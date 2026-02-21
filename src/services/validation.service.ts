@@ -1,5 +1,5 @@
 import axios from "axios";
-import { inspectContainer } from "../utils/docker";
+import { inspectContainer, getContainerRestartCount, getContainerLogs } from "../utils/docker";
 import { config } from "../config/env";
 import { logger } from "../utils/logger";
 
@@ -10,12 +10,6 @@ export interface ValidationResult {
 }
 
 export class ValidationService {
-  /**
-   * Validates a deployed container by:
-   * 1. Confirming the container is running via docker inspect.
-   * 2. Hitting the health endpoint up to maxRetries times.
-   * 3. Failing if the response time exceeds maxLatencyMs.
-   */
   async validate(
     baseUrl: string,
     healthPath: string,
@@ -26,17 +20,24 @@ export class ValidationService {
 
     logger.info({ healthUrl, containerName }, "Starting validation");
 
-    // Fast-fail if container is not running
     const running = await inspectContainer(containerName);
     if (!running) {
-      return {
-        success: false,
-        latency: 0,
-        error: `Container ${containerName} is not running`,
-      };
+      const logs = await getContainerLogs(containerName, 30);
+      logger.error({ containerName, logs }, "Container is not running");
+      return { success: false, latency: 0, error: this.formatError("Container failed to start", logs) };
     }
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      // After first attempt, check for crash loop — restart count > 0 means app keeps dying
+      if (attempt > 1) {
+        const restarts = await getContainerRestartCount(containerName);
+        if (restarts > 0) {
+          const logs = await getContainerLogs(containerName, 40);
+          logger.error({ containerName, attempt, restarts, logs }, "Container is crash-looping");
+          return { success: false, latency: 0, error: this.formatError(`App crashed (restarted ${restarts}x) — check your env vars and startup config`, logs) };
+        }
+      }
+
       const start = Date.now();
       try {
         const response = await axios.get(healthUrl, { timeout: healthTimeoutMs });
@@ -44,9 +45,7 @@ export class ValidationService {
 
         if (response.status >= 200 && response.status < 300) {
           if (latency > maxLatencyMs) {
-            const msg = `Latency ${latency}ms exceeded threshold of ${maxLatencyMs}ms`;
-            logger.warn({ healthUrl, attempt, latency }, msg);
-            // Treat high latency as failure and retry
+            logger.warn({ healthUrl, attempt, latency }, `Latency ${latency}ms exceeded threshold`);
           } else {
             logger.info({ healthUrl, attempt, latency }, "Validation passed");
             return { success: true, latency };
@@ -62,9 +61,20 @@ export class ValidationService {
       }
     }
 
+    const logs = await getContainerLogs(containerName, 40);
     const error = `Health check failed after ${maxRetries} attempts`;
-    logger.error({ healthUrl, containerName }, error);
-    return { success: false, latency: 0, error };
+    logger.error({ healthUrl, containerName, logs }, error);
+    return { success: false, latency: 0, error: this.formatError(error, logs) };
+  }
+
+  private formatError(reason: string, logs: string[]): string {
+    if (logs.length === 0) return reason;
+    // Strip ANSI colour codes and Docker timestamps for readability
+    const clean = logs
+      .map((l) => l.replace(/\x1b\[[0-9;]*m/g, "").replace(/^\S+Z\s+/, ""))
+      .filter((l) => l.trim().length > 0)
+      .slice(-20);
+    return `${reason}\n\n--- Container output ---\n${clean.join("\n")}`;
   }
 
   private sleep(ms: number): Promise<void> {

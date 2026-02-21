@@ -200,18 +200,31 @@ export class DeploymentService {
    * stops the container immediately so health-check retries exit fast.
    */
   async cancelDeploy(projectId: string): Promise<{ cancelled: boolean }> {
-    if (!DeploymentService.locks.get(projectId)) {
-      throw new NotFoundError(`No deployment in progress for project ${projectId}`);
-    }
-    DeploymentService.cancelRequests.add(projectId);
-
-    // Stop the container immediately — causes health check loop to fail fast
     const deploying = await this.repo.findDeployingForProject(projectId);
-    if (deploying?.containerName) {
-      await stopContainer(deploying.containerName).catch(() => null);
+
+    if (!deploying) {
+      throw new NotFoundError(`No in-progress deployment found for project ${projectId}`);
     }
 
-    logger.info({ projectId }, "Cancellation requested");
+    // If there's an active lock, signal the running pipeline to stop
+    if (DeploymentService.locks.get(projectId)) {
+      DeploymentService.cancelRequests.add(projectId);
+    }
+
+    // Stop + remove the container regardless (handles stale DEPLOYING records too)
+    if (deploying.containerName) {
+      await stopContainer(deploying.containerName).catch(() => null);
+      await removeContainer(deploying.containerName).catch(() => null);
+    }
+
+    // Mark the deployment as FAILED so the UI unblocks
+    await this.repo.updateStatus(deploying.id, DeploymentStatus.FAILED, "Cancelled by user").catch(() => null);
+
+    // Release the lock if held
+    DeploymentService.locks.delete(projectId);
+    DeploymentService.cancelRequests.delete(projectId);
+
+    logger.info({ projectId, deploymentId: deploying.id }, "Deployment cancelled");
     return { cancelled: true };
   }
 

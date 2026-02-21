@@ -67,8 +67,22 @@ export async function inspectContainer(name: string): Promise<boolean> {
     ]);
     return stdout.trim() === "true";
   } catch {
-    // Container does not exist or inspect failed
     return false;
+  }
+}
+
+/**
+ * Returns the number of times Docker has restarted this container.
+ * A non-zero value means the app inside is crash-looping.
+ */
+export async function getContainerRestartCount(name: string): Promise<number> {
+  try {
+    const { stdout } = await execFileAsync("docker", [
+      "inspect", "-f", "{{.RestartCount}}", name,
+    ]);
+    return parseInt(stdout.trim(), 10) || 0;
+  } catch {
+    return 0;
   }
 }
 
