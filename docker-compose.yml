@@ -1,0 +1,49 @@
+version: "3.9"
+
+services:
+  app:
+    build: .
+    container_name: zeroshift-engine
+    restart: unless-stopped
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - DOCKER_NETWORK=${DOCKER_NETWORK}
+      - BASE_APP_PORT=${BASE_APP_PORT}
+      - NGINX_CONFIG_PATH=${NGINX_CONFIG_PATH}
+      - NODE_ENV=production
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - zeroshift-net
+
+  db:
+    image: postgres:16-alpine
+    container_name: zeroshift-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: zeroshift
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - zeroshift-net
+
+volumes:
+  pg_data:
+
+networks:
+  zeroshift-net:
+    driver: bridge
