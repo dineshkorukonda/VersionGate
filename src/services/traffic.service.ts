@@ -1,43 +1,59 @@
 import fs from "fs/promises";
-import { execAsync } from "../utils/exec";
+import { execFileAsync } from "../utils/exec";
 import { config } from "../config/env";
 import { logger } from "../utils/logger";
+import { DeploymentError } from "../utils/errors";
 
 export class TrafficService {
   /**
-   * Updates the Nginx upstream config to point at the given port,
-   * then reloads Nginx without dropping connections.
-   *
-   * TODO: implement real config template rendering and atomic file swap.
+   * Updates the Nginx upstream config to point at the given port, then
+   * reloads Nginx. Backs up the existing config before overwriting and
+   * restores it automatically if nginx -s reload fails.
    */
   async switchTrafficTo(port: number): Promise<void> {
-    logger.info({ port }, "Switching Nginx traffic");
-
-    await this.writeNginxConfig(port);
-    await this.reloadNginx();
-
-    logger.info({ port }, "Traffic switched successfully");
-  }
-
-  private async writeNginxConfig(port: number): Promise<void> {
     const configPath = config.nginx.configPath;
+    const backupPath = `${configPath}.bak`;
+    const tmpPath = `${configPath}.tmp`;
 
-    // TODO: use a real template engine (e.g., handlebars) for complex configs.
-    const content = this.buildNginxUpstream(port);
+    logger.info({ port, configPath }, "Switching Nginx traffic");
 
-    logger.info({ configPath }, "Writing Nginx upstream config");
-    // TODO: uncomment once running in a real environment with Nginx.
-    // await fs.writeFile(configPath, content, "utf-8");
+    const newContent = this.buildNginxUpstream(port);
 
-    // Stub: log what would be written
-    logger.debug({ configPath, content }, "Nginx config (stub — not written)");
-  }
+    // Write to temp file first
+    await fs.writeFile(tmpPath, newContent, "utf-8");
 
-  private async reloadNginx(): Promise<void> {
-    logger.info("Reloading Nginx");
-    // TODO: uncomment once Nginx is present in the environment.
-    // await execAsync("nginx -s reload");
-    logger.debug("Nginx reload (stub — not executed)");
+    // Backup existing config if it exists
+    let hasBackup = false;
+    try {
+      await fs.copyFile(configPath, backupPath);
+      hasBackup = true;
+      logger.debug({ backupPath }, "Nginx config backed up");
+    } catch {
+      // No existing config to back up — first run
+    }
+
+    // Atomically move tmp → config
+    await fs.rename(tmpPath, configPath);
+
+    // Reload Nginx; restore backup on failure
+    try {
+      await execFileAsync("nginx", ["-s", "reload"]);
+      logger.info({ port }, "Nginx reloaded — traffic switched");
+    } catch (err) {
+      logger.error({ err }, "Nginx reload failed — restoring backup");
+
+      if (hasBackup) {
+        try {
+          await fs.copyFile(backupPath, configPath);
+          logger.info({ backupPath }, "Nginx config restored from backup");
+        } catch (restoreErr) {
+          logger.error({ restoreErr }, "Failed to restore Nginx backup");
+        }
+      }
+
+      const message = err instanceof Error ? err.message : String(err);
+      throw new DeploymentError(`Nginx reload failed: ${message}`);
+    }
   }
 
   private buildNginxUpstream(port: number): string {
@@ -45,9 +61,6 @@ export class TrafficService {
       "upstream zeroshift_backend {",
       `  server 127.0.0.1:${port};`,
       "}",
-    ].join("\n");
+    ].join("\n") + "\n";
   }
-
-  // Suppress unused-import warnings during stub phase
-  private _unusedRefs = { fs, execAsync };
 }

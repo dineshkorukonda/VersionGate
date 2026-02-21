@@ -10,21 +10,51 @@ export class DeploymentRepository {
     return prisma.deployment.findUnique({ where: { id } });
   }
 
-  async findActive(): Promise<Deployment | null> {
+  // ── Project-scoped queries ─────────────────────────────────────────────────
+
+  async findActiveForProject(projectId: string): Promise<Deployment | null> {
     return prisma.deployment.findFirst({
-      where: { status: DeploymentStatus.ACTIVE },
+      where: { projectId, status: DeploymentStatus.ACTIVE },
       orderBy: { createdAt: "desc" },
     });
   }
 
-  async findPrevious(): Promise<Deployment | null> {
-    // Returns the most recent ACTIVE deployment before the current one.
+  /**
+   * Finds the most recently ROLLED_BACK deployment for a project whose version
+   * is strictly lower than the current active version. This ensures correct
+   * rollback targets even after multiple sequential deploy/rollback cycles.
+   */
+  async findPreviousForProject(
+    projectId: string,
+    currentVersion: number
+  ): Promise<Deployment | null> {
     return prisma.deployment.findFirst({
-      where: { status: DeploymentStatus.ACTIVE },
-      orderBy: { createdAt: "desc" },
-      skip: 1,
+      where: {
+        projectId,
+        status: DeploymentStatus.ROLLED_BACK,
+        version: { lt: currentVersion },
+      },
+      orderBy: { version: "desc" },
     });
   }
+
+  async findAllForProject(projectId: string): Promise<Deployment[]> {
+    return prisma.deployment.findMany({
+      where: { projectId },
+      orderBy: { createdAt: "desc" },
+    });
+  }
+
+  async getNextVersionForProject(projectId: string): Promise<number> {
+    const latest = await prisma.deployment.findFirst({
+      where: { projectId },
+      orderBy: { version: "desc" },
+      select: { version: true },
+    });
+    return (latest?.version ?? 0) + 1;
+  }
+
+  // ── Global queries (kept for status endpoint) ──────────────────────────────
 
   async findAll(): Promise<Deployment[]> {
     return prisma.deployment.findMany({
@@ -37,13 +67,5 @@ export class DeploymentRepository {
       where: { id },
       data: { status },
     });
-  }
-
-  async getNextVersion(): Promise<number> {
-    const latest = await prisma.deployment.findFirst({
-      orderBy: { version: "desc" },
-      select: { version: true },
-    });
-    return (latest?.version ?? 0) + 1;
   }
 }

@@ -25,9 +25,18 @@ export const config = {
   },
   docker: {
     network: optional("DOCKER_NETWORK", "zeroshift-net"),
-    basePort: parseInt(optional("BASE_APP_PORT", "3100"), 10),
   },
   nginx: {
     configPath: optional("NGINX_CONFIG_PATH", "/etc/nginx/conf.d/upstream.conf"),
+  },
+  git: {
+    projectsBasePath: optional("PROJECTS_BASE_PATH", "/var/zeroshift/projects"),
+    token: optional("GIT_TOKEN", ""),
+  },
+  validation: {
+    healthTimeoutMs: parseInt(optional("HEALTH_TIMEOUT_MS", "5000"), 10),
+    retryDelayMs: parseInt(optional("HEALTH_RETRY_DELAY_MS", "2000"), 10),
+    maxLatencyMs: parseInt(optional("HEALTH_MAX_LATENCY_MS", "2000"), 10),
+    maxRetries: parseInt(optional("HEALTH_MAX_RETRIES", "5"), 10),
   },
 } as const;

@@ -1,41 +1,68 @@
-import { execAsync } from "./exec";
+import { execFileAsync } from "./exec";
 import { logger } from "./logger";
 
 /**
- * Thin wrappers around Docker CLI commands via child_process.
- * Full implementations are stubbed — replace with real logic.
+ * Builds a Docker image from a local build context.
  */
-
-export async function dockerPull(imageTag: string): Promise<void> {
-  logger.info({ imageTag }, "Pulling Docker image");
-  // TODO: implement real pull
-  // await execAsync(`docker pull ${imageTag}`);
+export async function buildImage(imageTag: string, contextPath: string): Promise<void> {
+  logger.info({ imageTag, contextPath }, "Building Docker image");
+  await execFileAsync("docker", ["build", "-t", imageTag, contextPath]);
 }
 
-export async function dockerRun(opts: {
-  containerName: string;
-  imageTag: string;
-  port: number;
-  network: string;
-}): Promise<void> {
-  const { containerName, imageTag, port, network } = opts;
-  logger.info(opts, "Starting Docker container");
-  // TODO: implement real run
-  // await execAsync(
-  //   `docker run -d --name ${containerName} --network ${network} -p ${port}:80 ${imageTag}`
-  // );
+/**
+ * Starts a Docker container in detached mode.
+ * Maps hostPort on the host to containerPort inside the container.
+ */
+export async function runContainer(
+  name: string,
+  imageTag: string,
+  hostPort: number,
+  containerPort: number,
+  network: string
+): Promise<void> {
+  logger.info({ name, imageTag, hostPort, containerPort, network }, "Starting Docker container");
+  await execFileAsync("docker", [
+    "run",
+    "-d",
+    "--name", name,
+    "--network", network,
+    "-p", `${hostPort}:${containerPort}`,
+    "--restart", "unless-stopped",
+    imageTag,
+  ]);
 }
 
-export async function dockerStop(containerName: string): Promise<void> {
-  logger.info({ containerName }, "Stopping Docker container");
-  // TODO: implement real stop + rm
-  // await execAsync(`docker stop ${containerName} && docker rm ${containerName}`);
+/**
+ * Gracefully stops a running container.
+ */
+export async function stopContainer(name: string): Promise<void> {
+  logger.info({ name }, "Stopping Docker container");
+  await execFileAsync("docker", ["stop", name]);
 }
 
-export async function dockerInspect(containerName: string): Promise<boolean> {
-  logger.info({ containerName }, "Inspecting Docker container");
-  // TODO: check if container is running
-  // const { stdout } = await execAsync(`docker inspect -f '{{.State.Running}}' ${containerName}`);
-  // return stdout.trim() === "true";
-  return true;
+/**
+ * Force-removes a container (stopped or running).
+ */
+export async function removeContainer(name: string): Promise<void> {
+  logger.info({ name }, "Removing Docker container");
+  await execFileAsync("docker", ["rm", "-f", name]);
+}
+
+/**
+ * Returns true if the container exists and is in a running state.
+ */
+export async function inspectContainer(name: string): Promise<boolean> {
+  logger.info({ name }, "Inspecting Docker container");
+  try {
+    const { stdout } = await execFileAsync("docker", [
+      "inspect",
+      "-f",
+      "{{.State.Running}}",
+      name,
+    ]);
+    return stdout.trim() === "true";
+  } catch {
+    // Container does not exist or inspect failed
+    return false;
+  }
 }

@@ -14,16 +14,41 @@ enum DeploymentStatus {
   ROLLED_BACK
 }
 
+enum DeploymentColor {
+  BLUE
+  GREEN
+}
+
+model Project {
+  id          String       @id @default(cuid())
+  name        String       @unique
+  repoUrl     String
+  branch      String       @default("main")
+  localPath   String
+  appPort     Int
+  healthPath  String       @default("/health")
+  basePort    Int
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  deployments Deployment[]
+
+  @@index([name])
+}
+
 model Deployment {
   id            String           @id @default(cuid())
   version       Int
   imageTag      String
   containerName String
   port          Int
+  color         DeploymentColor
   status        DeploymentStatus @default(PENDING)
+  projectId     String
+  project       Project          @relation(fields: [projectId], references: [id])
   createdAt     DateTime         @default(now())
   updatedAt     DateTime         @updatedAt
 
   @@index([status])
   @@index([createdAt])
+  @@index([projectId])
 }

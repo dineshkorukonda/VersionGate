@@ -1,16 +1,15 @@
 import { FastifyInstance } from "fastify";
 import {
   deployHandler,
-  rollbackHandler,
   listDeploymentsHandler,
   statusHandler,
 } from "../controllers/deployment.controller";
 
 const deployBodySchema = {
   type: "object",
-  required: ["imageTag"],
+  required: ["projectId"],
   properties: {
-    imageTag: { type: "string", minLength: 1 },
+    projectId: { type: "string", minLength: 1 },
   },
   additionalProperties: false,
 };
@@ -23,7 +22,9 @@ const deploymentSchema = {
     imageTag: { type: "string" },
     containerName: { type: "string" },
     port: { type: "number" },
+    color: { type: "string" },
     status: { type: "string" },
+    projectId: { type: "string" },
     createdAt: { type: "string" },
     updatedAt: { type: "string" },
   },
@@ -44,22 +45,6 @@ export async function deploymentRoutes(app: FastifyInstance): Promise<void> {
       },
     },
     handler: deployHandler,
-  });
-
-  app.post("/rollback", {
-    schema: {
-      response: {
-        200: {
-          type: "object",
-          properties: {
-            rolledBackFrom: deploymentSchema,
-            restoredTo: deploymentSchema,
-            message: { type: "string" },
-          },
-        },
-      },
-    },
-    handler: rollbackHandler,
   });
 
   app.get("/deployments", {

@@ -1,29 +1,19 @@
 import { FastifyRequest, FastifyReply } from "fastify";
 import { DeploymentService } from "../services/deployment.service";
-import { RollbackService } from "../services/rollback.service";
 
 const deploymentService = new DeploymentService();
-const rollbackService = new RollbackService();
 
 interface DeployBody {
-  imageTag: string;
+  projectId: string;
 }
 
 export async function deployHandler(
   req: FastifyRequest<{ Body: DeployBody }>,
   reply: FastifyReply
 ): Promise<void> {
-  const { imageTag } = req.body;
-  const result = await deploymentService.deploy({ imageTag });
+  const { projectId } = req.body;
+  const result = await deploymentService.deploy({ projectId });
   reply.code(202).send(result);
-}
-
-export async function rollbackHandler(
-  _req: FastifyRequest,
-  reply: FastifyReply
-): Promise<void> {
-  const result = await rollbackService.rollback();
-  reply.code(200).send(result);
 }
 
 export async function listDeploymentsHandler(

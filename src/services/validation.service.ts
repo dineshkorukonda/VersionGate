@@ -1,44 +1,70 @@
 import axios from "axios";
+import { inspectContainer } from "../utils/docker";
+import { config } from "../config/env";
 import { logger } from "../utils/logger";
 
-const HEALTH_TIMEOUT_MS = 5_000;
-const MAX_RETRIES = 5;
-const RETRY_DELAY_MS = 2_000;
+export interface ValidationResult {
+  success: boolean;
+  latency: number;
+  error?: string;
+}
 
 export class ValidationService {
   /**
-   * Performs a health check against the given container URL.
-   * Retries up to MAX_RETRIES times before declaring failure.
-   *
-   * TODO: make retry count and timeout configurable via env.
+   * Validates a deployed container by:
+   * 1. Confirming the container is running via docker inspect.
+   * 2. Hitting the health endpoint up to maxRetries times.
+   * 3. Failing if the response time exceeds maxLatencyMs.
    */
-  async validate(containerUrl: string): Promise<boolean> {
-    const healthUrl = `${containerUrl}/health`;
-    logger.info({ healthUrl }, "Running health check");
+  async validate(
+    baseUrl: string,
+    healthPath: string,
+    containerName: string
+  ): Promise<ValidationResult> {
+    const healthUrl = `${baseUrl}${healthPath}`;
+    const { maxRetries, retryDelayMs, healthTimeoutMs, maxLatencyMs } = config.validation;
 
-    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    logger.info({ healthUrl, containerName }, "Starting validation");
+
+    // Fast-fail if container is not running
+    const running = await inspectContainer(containerName);
+    if (!running) {
+      return {
+        success: false,
+        latency: 0,
+        error: `Container ${containerName} is not running`,
+      };
+    }
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      const start = Date.now();
       try {
-        // TODO: replace stub with real HTTP check once containers are real
-        const response = await axios.get(healthUrl, {
-          timeout: HEALTH_TIMEOUT_MS,
-        });
+        const response = await axios.get(healthUrl, { timeout: healthTimeoutMs });
+        const latency = Date.now() - start;
 
         if (response.status === 200) {
-          logger.info({ healthUrl, attempt }, "Health check passed");
-          return true;
+          if (latency > maxLatencyMs) {
+            const msg = `Latency ${latency}ms exceeded threshold of ${maxLatencyMs}ms`;
+            logger.warn({ healthUrl, attempt, latency }, msg);
+            // Treat high latency as failure and retry
+          } else {
+            logger.info({ healthUrl, attempt, latency }, "Validation passed");
+            return { success: true, latency };
+          }
         }
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
-        logger.warn({ healthUrl, attempt, err: message }, "Health check attempt failed");
+        logger.warn({ healthUrl, attempt, err: message }, "Validation attempt failed");
+      }
 
-        if (attempt < MAX_RETRIES) {
-          await this.sleep(RETRY_DELAY_MS);
-        }
+      if (attempt < maxRetries) {
+        await this.sleep(retryDelayMs);
       }
     }
 
-    logger.error({ healthUrl }, "Health check failed after all retries");
-    return false;
+    const error = `Health check failed after ${maxRetries} attempts`;
+    logger.error({ healthUrl, containerName }, error);
+    return { success: false, latency: 0, error };
   }
 
   private sleep(ms: number): Promise<void> {

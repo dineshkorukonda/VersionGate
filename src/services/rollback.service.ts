@@ -1,7 +1,10 @@
 import { Deployment, DeploymentStatus } from "@prisma/client";
 import { DeploymentRepository } from "../repositories/deployment.repository";
+import { ProjectRepository } from "../repositories/project.repository";
 import { TrafficService } from "./traffic.service";
-import { dockerStop } from "../utils/docker";
+import { ValidationService } from "./validation.service";
+import { runContainer, stopContainer, removeContainer } from "../utils/docker";
+import { config } from "../config/env";
 import { logger } from "../utils/logger";
 import { NotFoundError, DeploymentError } from "../utils/errors";
 
@@ -13,47 +16,97 @@ export interface RollbackResult {
 
 export class RollbackService {
   private readonly repo: DeploymentRepository;
+  private readonly projectRepo: ProjectRepository;
   private readonly traffic: TrafficService;
+  private readonly validation: ValidationService;
 
   constructor() {
     this.repo = new DeploymentRepository();
+    this.projectRepo = new ProjectRepository();
     this.traffic = new TrafficService();
+    this.validation = new ValidationService();
   }
 
   /**
-   * Rolls back to the previous ACTIVE deployment:
-   * 1. Find the current active deployment (green).
-   * 2. Find the one before it (blue/previous).
-   * 3. Stop the current container.
-   * 4. Switch Nginx traffic back to the previous port.
-   * 5. Mark previous as ACTIVE, current as ROLLED_BACK.
-   *
-   * TODO: handle edge case where previous container was already removed.
+   * Rolls back a project to its previous deployment:
+   * 1. Find the current ACTIVE deployment for the project.
+   * 2. Find the most recent ROLLED_BACK deployment with a lower version.
+   * 3. Restart the old container (it was stopped when superseded).
+   * 4. Validate the restarted container.
+   * 5. Switch traffic back to the old port.
+   * 6. Stop and remove the current container.
+   * 7. Update DB statuses.
    */
-  async rollback(): Promise<RollbackResult> {
-    logger.info("Initiating rollback");
+  async rollback(projectId: string): Promise<RollbackResult> {
+    logger.info({ projectId }, "Initiating rollback");
 
-    const current = await this.repo.findActive();
+    const project = await this.projectRepo.findById(projectId);
+    if (!project) {
+      throw new NotFoundError(`Project ${projectId}`);
+    }
+
+    const current = await this.repo.findActiveForProject(projectId);
     if (!current) {
       throw new NotFoundError("Active deployment");
     }
 
-    const previous = await this.findPreviousDeployment();
+    const previous = await this.repo.findPreviousForProject(projectId, current.version);
     if (!previous) {
       throw new DeploymentError("No previous deployment available for rollback");
     }
 
-    // Stop the current (green) container
-    // TODO: verify container exists before stopping
-    await dockerStop(current.containerName);
-    await this.repo.updateStatus(current.id, DeploymentStatus.ROLLED_BACK);
+    if (previous.version === current.version) {
+      throw new DeploymentError("Already at the earliest available deployment");
+    }
 
-    // Restore traffic to previous (blue) container
+    logger.info(
+      { projectId, from: current.containerName, to: previous.containerName },
+      "Rolling back"
+    );
+
+    // Restart the old container using stored imageTag and port
+    logger.info({ containerName: previous.containerName }, "Restarting previous container");
+    await runContainer(
+      previous.containerName,
+      previous.imageTag,
+      previous.port,
+      project.appPort,
+      config.docker.network
+    );
+
+    // Validate the restarted container before switching traffic
+    const result = await this.validation.validate(
+      `http://localhost:${previous.port}`,
+      project.healthPath,
+      previous.containerName
+    );
+
+    if (!result.success) {
+      // Clean up the restarted container — rollback itself failed
+      await stopContainer(previous.containerName).catch(() => null);
+      await removeContainer(previous.containerName).catch(() => null);
+      throw new DeploymentError(
+        `Rollback failed — previous container unhealthy: ${result.error ?? "unknown error"}`
+      );
+    }
+
+    // Switch traffic to old container
     await this.traffic.switchTrafficTo(previous.port);
+
+    // Stop and remove the current (now-replaced) container
+    await stopContainer(current.containerName).catch((err) => {
+      logger.warn({ err, containerName: current.containerName }, "Failed to stop current container during rollback");
+    });
+    await removeContainer(current.containerName).catch((err) => {
+      logger.warn({ err, containerName: current.containerName }, "Failed to remove current container during rollback");
+    });
+
+    // Update DB
+    await this.repo.updateStatus(current.id, DeploymentStatus.ROLLED_BACK);
     await this.repo.updateStatus(previous.id, DeploymentStatus.ACTIVE);
 
     logger.info(
-      { from: current.containerName, to: previous.containerName },
+      { projectId, from: current.containerName, to: previous.containerName },
       "Rollback completed"
     );
 
@@ -62,13 +115,5 @@ export class RollbackService {
       restoredTo: { ...previous, status: DeploymentStatus.ACTIVE },
       message: `Rolled back from v${current.version} to v${previous.version}`,
     };
-  }
-
-  /**
-   * Finds the deployment that was ACTIVE immediately before the current one.
-   * TODO: extend to support rollback to arbitrary versions by tag/id.
-   */
-  private async findPreviousDeployment(): Promise<Deployment | null> {
-    return this.repo.findPrevious();
   }
 }

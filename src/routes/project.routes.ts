@@ -1,0 +1,114 @@
+import { FastifyInstance } from "fastify";
+import {
+  createProjectHandler,
+  listProjectsHandler,
+  getProjectHandler,
+  deleteProjectHandler,
+  rollbackProjectHandler,
+} from "../controllers/project.controller";
+
+const projectSchema = {
+  type: "object",
+  properties: {
+    id: { type: "string" },
+    name: { type: "string" },
+    repoUrl: { type: "string" },
+    branch: { type: "string" },
+    localPath: { type: "string" },
+    appPort: { type: "number" },
+    healthPath: { type: "string" },
+    basePort: { type: "number" },
+    createdAt: { type: "string" },
+    updatedAt: { type: "string" },
+  },
+};
+
+const createBodySchema = {
+  type: "object",
+  required: ["name", "repoUrl", "appPort", "basePort"],
+  properties: {
+    name: { type: "string", minLength: 1, maxLength: 64, pattern: "^[a-z0-9-]+$" },
+    repoUrl: { type: "string", minLength: 1 },
+    branch: { type: "string", minLength: 1 },
+    appPort: { type: "integer", minimum: 1, maximum: 65535 },
+    healthPath: { type: "string", minLength: 1 },
+    basePort: { type: "integer", minimum: 1024, maximum: 65534 },
+  },
+  additionalProperties: false,
+};
+
+const rollbackDeploymentSchema = {
+  type: "object",
+  properties: {
+    id: { type: "string" },
+    version: { type: "number" },
+    imageTag: { type: "string" },
+    containerName: { type: "string" },
+    port: { type: "number" },
+    color: { type: "string" },
+    status: { type: "string" },
+    projectId: { type: "string" },
+    createdAt: { type: "string" },
+    updatedAt: { type: "string" },
+  },
+};
+
+export async function projectRoutes(app: FastifyInstance): Promise<void> {
+  app.post("/projects", {
+    schema: {
+      body: createBodySchema,
+      response: {
+        201: {
+          type: "object",
+          properties: { project: projectSchema },
+        },
+      },
+    },
+    handler: createProjectHandler,
+  });
+
+  app.get("/projects", {
+    schema: {
+      response: {
+        200: {
+          type: "object",
+          properties: { projects: { type: "array", items: projectSchema } },
+        },
+      },
+    },
+    handler: listProjectsHandler,
+  });
+
+  app.get("/projects/:id", {
+    schema: {
+      response: {
+        200: {
+          type: "object",
+          properties: { project: projectSchema },
+        },
+      },
+    },
+    handler: getProjectHandler,
+  });
+
+  app.delete("/projects/:id", {
+    schema: {},
+    handler: deleteProjectHandler,
+  });
+
+  app.post("/projects/:id/rollback", {
+    schema: {
+      response: {
+        200: {
+          type: "object",
+          properties: {
+            rolledBackFrom: rollbackDeploymentSchema,
+            restoredTo: rollbackDeploymentSchema,
+            message: { type: "string" },
+          },
+        },
+      },
+    },
+    handler: rollbackProjectHandler,
+  });
+}

@@ -7,6 +7,7 @@ async function start(): Promise<void> {
   const app = await buildApp();
 
   // Graceful shutdown
+  
   const shutdown = async (signal: string): Promise<void> => {
     logger.info({ signal }, "Shutting down");
     await app.close();

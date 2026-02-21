@@ -1,15 +1,16 @@
-import { Deployment, DeploymentStatus } from "@prisma/client";
+import { Deployment, DeploymentColor, DeploymentStatus } from "@prisma/client";
 import { config } from "../config/env";
 import { DeploymentRepository } from "../repositories/deployment.repository";
-import { dockerPull, dockerRun, dockerStop } from "../utils/docker";
+import { ProjectRepository } from "../repositories/project.repository";
+import { buildImage, runContainer, stopContainer, removeContainer } from "../utils/docker";
 import { logger } from "../utils/logger";
-import { ConflictError, DeploymentError } from "../utils/errors";
+import { ConflictError, DeploymentError, NotFoundError } from "../utils/errors";
 import { ValidationService } from "./validation.service";
 import { TrafficService } from "./traffic.service";
-import { RollbackService } from "./rollback.service";
+import { GitService } from "./git.service";
 
 export interface DeployOptions {
-  imageTag: string;
+  projectId: string;
 }
 
 export interface DeployResult {
@@ -18,109 +19,183 @@ export interface DeployResult {
 }
 
 export class DeploymentService {
+  // In-memory lock per project — prevents concurrent deploys on the same project
+  private static readonly locks = new Map<string, boolean>();
+
   private readonly repo: DeploymentRepository;
+  private readonly projectRepo: ProjectRepository;
   private readonly validation: ValidationService;
   private readonly traffic: TrafficService;
-  private readonly rollback: RollbackService;
+  private readonly git: GitService;
 
   constructor() {
     this.repo = new DeploymentRepository();
+    this.projectRepo = new ProjectRepository();
     this.validation = new ValidationService();
     this.traffic = new TrafficService();
-    this.rollback = new RollbackService();
+    this.git = new GitService();
   }
 
   /**
-   * Orchestrates a full blue-green deployment:
-   * 1. Pull image
-   * 2. Start green container
-   * 3. Health-check green container
-   * 4. Switch Nginx traffic → green
-   * 5. Mark green as ACTIVE; retire old active deployment
-   * On failure: stop green container and mark it FAILED.
+   * Full blue-green deployment pipeline:
+   * 1. Acquire per-project lock
+   * 2. Fetch project config
+   * 3. Clone/pull source via Git
+   * 4. Build Docker image from source
+   * 5. Determine color (BLUE/GREEN) and port
+   * 6. Start new container
+   * 7. Validate health
+   * 8. Switch Nginx traffic
+   * 9. Mark new ACTIVE, retire old
+   * 10. Release lock (always — via finally)
    */
   async deploy(opts: DeployOptions): Promise<DeployResult> {
-    const { imageTag } = opts;
-    logger.info({ imageTag }, "Starting deployment");
+    const { projectId } = opts;
 
-    // Guard: prevent concurrent deployments
-    const existing = await this.getActiveDeployment();
-    if (existing?.status === DeploymentStatus.PENDING) {
-      throw new ConflictError("A deployment is already in progress");
+    if (!this.acquireLock(projectId)) {
+      throw new ConflictError(`Deployment already in progress for project ${projectId}`);
     }
 
-    const version = await this.repo.getNextVersion();
-    const port = config.docker.basePort + version;
-    const containerName = `zeroshift-app-v${version}`;
-
-    // Persist initial record
-    const deployment = await this.repo.create({
-      version,
-      imageTag,
-      containerName,
-      port,
-      status: DeploymentStatus.PENDING,
-    });
+    let deploymentId: string | undefined;
 
     try {
-      // Step 1 — Pull image
-      await dockerPull(imageTag);
-
-      // Step 2 — Start green container
-      await this.startGreenContainer({ containerName, imageTag, port });
-
-      // Step 3 — Validate health
-      const containerUrl = `http://localhost:${port}`;
-      const healthy = await this.validation.validate(containerUrl);
-
-      if (!healthy) {
-        await this.stopContainer(containerName);
-        await this.repo.updateStatus(deployment.id, DeploymentStatus.FAILED);
-        throw new DeploymentError(`Health check failed for ${containerName}`);
+      // ── Fetch project ──────────────────────────────────────────────────────
+      const project = await this.projectRepo.findById(projectId);
+      if (!project) {
+        throw new NotFoundError(`Project ${projectId}`);
       }
 
-      // Step 4 — Switch traffic
-      await this.traffic.switchTrafficTo(port);
+      logger.info({ projectId, name: project.name }, "Starting deployment pipeline");
 
-      // Step 5 — Activate
+      // ── Step 1: Prepare source ─────────────────────────────────────────────
+      logger.info({ projectId, step: 1 }, "Preparing source code");
+      await this.git.prepareSource(project);
+
+      // ── Step 2: Determine color and port ───────────────────────────────────
+      const activeDeployment = await this.repo.findActiveForProject(projectId);
+      const newColor =
+        activeDeployment?.color === DeploymentColor.BLUE
+          ? DeploymentColor.GREEN
+          : DeploymentColor.BLUE;
+      const hostPort =
+        newColor === DeploymentColor.BLUE ? project.basePort : project.basePort + 1;
+      const containerName = `${project.name}-${newColor.toLowerCase()}`;
+      const imageTag = `zeroshift-${project.name}:${Date.now()}`;
+      const version = await this.repo.getNextVersionForProject(projectId);
+
+      logger.info(
+        { projectId, step: 2, newColor, hostPort, containerName, imageTag },
+        "Determined deployment target"
+      );
+
+      // ── Step 3: Create PENDING record ──────────────────────────────────────
+      const deployment = await this.repo.create({
+        version,
+        imageTag,
+        containerName,
+        port: hostPort,
+        color: newColor,
+        status: DeploymentStatus.PENDING,
+        project: { connect: { id: projectId } },
+      });
+      deploymentId = deployment.id;
+
+      // ── Step 4: Build image ────────────────────────────────────────────────
+      logger.info({ projectId, step: 4, imageTag }, "Building Docker image");
+      await buildImage(imageTag, this.git.projectPath(project));
+
+      // ── Step 5: Start container ────────────────────────────────────────────
+      logger.info({ projectId, step: 5, containerName, hostPort }, "Starting container");
+      await runContainer(
+        containerName,
+        imageTag,
+        hostPort,
+        project.appPort,
+        config.docker.network
+      );
+
+      // ── Step 6: Validate ───────────────────────────────────────────────────
+      logger.info({ projectId, step: 6 }, "Validating new container");
+      const result = await this.validation.validate(
+        `http://localhost:${hostPort}`,
+        project.healthPath,
+        containerName
+      );
+
+      if (!result.success) {
+        logger.error({ projectId, error: result.error }, "Validation failed");
+        await this.cleanupFailedContainer(containerName, deployment.id);
+        throw new DeploymentError(result.error ?? "Health check failed");
+      }
+
+      // ── Step 7: Switch traffic ─────────────────────────────────────────────
+      logger.info({ projectId, step: 7, hostPort }, "Switching traffic");
+      await this.traffic.switchTrafficTo(hostPort);
+
+      // ── Step 8: Activate new, retire old ──────────────────────────────────
       await this.repo.updateStatus(deployment.id, DeploymentStatus.ACTIVE);
-      logger.info({ deploymentId: deployment.id, containerName }, "Deployment successful");
+
+      if (activeDeployment) {
+        logger.info(
+          { projectId, step: 8, oldContainer: activeDeployment.containerName },
+          "Stopping old container"
+        );
+        await stopContainer(activeDeployment.containerName).catch((err) => {
+          logger.warn({ err, containerName: activeDeployment.containerName }, "Failed to stop old container");
+        });
+        await removeContainer(activeDeployment.containerName).catch((err) => {
+          logger.warn({ err, containerName: activeDeployment.containerName }, "Failed to remove old container");
+        });
+        await this.repo.updateStatus(activeDeployment.id, DeploymentStatus.ROLLED_BACK);
+      }
+
+      logger.info(
+        { projectId, deploymentId: deployment.id, containerName, latency: result.latency },
+        "Deployment successful"
+      );
 
       return {
         deployment: { ...deployment, status: DeploymentStatus.ACTIVE },
-        message: "Deployment successful",
+        message: `Deployment successful — ${containerName} is live on port ${hostPort}`,
       };
     } catch (err) {
-      // Rollback guard — only update status if not already set
-      await this.repo.updateStatus(deployment.id, DeploymentStatus.FAILED).catch(() => null);
+      // Mark FAILED if we created a record but haven't marked it yet
+      if (deploymentId) {
+        await this.repo.updateStatus(deploymentId, DeploymentStatus.FAILED).catch(() => null);
+      }
       throw err;
+    } finally {
+      this.releaseLock(projectId);
     }
   }
 
-  async startGreenContainer(opts: {
-    containerName: string;
-    imageTag: string;
-    port: number;
-  }): Promise<void> {
-    logger.info(opts, "Starting green container");
-    // TODO: wire to real Docker run
-    await dockerRun({
-      ...opts,
-      network: config.docker.network,
-    });
+  async getActiveDeployment(projectId?: string): Promise<Deployment | null> {
+    if (projectId) {
+      return this.repo.findActiveForProject(projectId);
+    }
+    return this.repo.findAll().then((all) => all.find((d) => d.status === DeploymentStatus.ACTIVE) ?? null);
   }
 
-  async stopContainer(containerName: string): Promise<void> {
-    logger.info({ containerName }, "Stopping container");
-    // TODO: wire to real Docker stop
-    await dockerStop(containerName);
-  }
-
-  async getActiveDeployment(): Promise<Deployment | null> {
-    return this.repo.findActive();
-  }
-
-  async getAllDeployments(): Promise<Deployment[]> {
+  async getAllDeployments(projectId?: string): Promise<Deployment[]> {
+    if (projectId) {
+      return this.repo.findAllForProject(projectId);
+    }
     return this.repo.findAll();
+  }
+
+  private async cleanupFailedContainer(containerName: string, deploymentId: string): Promise<void> {
+    await stopContainer(containerName).catch(() => null);
+    await removeContainer(containerName).catch(() => null);
+    await this.repo.updateStatus(deploymentId, DeploymentStatus.FAILED).catch(() => null);
+  }
+
+  private acquireLock(projectId: string): boolean {
+    if (DeploymentService.locks.get(projectId)) return false;
+    DeploymentService.locks.set(projectId, true);
+    return true;
+  }
+
+  private releaseLock(projectId: string): void {
+    DeploymentService.locks.delete(projectId);
   }
 }

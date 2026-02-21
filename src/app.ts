@@ -3,6 +3,7 @@ import { config } from "./config/env";
 import { logger } from "./utils/logger";
 import { AppError } from "./utils/errors";
 import { deploymentRoutes } from "./routes/deployment.routes";
+import { projectRoutes } from "./routes/project.routes";
 
 export async function buildApp(): Promise<FastifyInstance> {
   const app = Fastify({
@@ -46,6 +47,7 @@ export async function buildApp(): Promise<FastifyInstance> {
 
   // ── Routes ──────────────────────────────────────────────────────────────────
   await app.register(deploymentRoutes, { prefix: "/api/v1" });
+  await app.register(projectRoutes, { prefix: "/api/v1" });
 
   return app;
 }
