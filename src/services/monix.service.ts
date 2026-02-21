@@ -48,12 +48,12 @@ export class MonixService {
 
     this.proc.stdout?.on("data", (chunk: Buffer) => {
       const line = chunk.toString().trim();
-      if (line) logger.debug({ src: "monix" }, line);
+      if (line) logger.info({ src: "monix" }, line);
     });
 
     this.proc.stderr?.on("data", (chunk: Buffer) => {
       const line = chunk.toString().trim();
-      if (line) logger.warn({ src: "monix" }, line);
+      if (line) logger.info({ src: "monix" }, line);
     });
 
     this.proc.on("exit", (code, signal) => {
