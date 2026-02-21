@@ -3,6 +3,7 @@ import {
   deployHandler,
   listDeploymentsHandler,
   statusHandler,
+  cancelDeployHandler,
 } from "../controllers/deployment.controller";
 
 const deployBodySchema = {
@@ -74,5 +75,17 @@ export async function deploymentRoutes(app: FastifyInstance): Promise<void> {
       },
     },
     handler: statusHandler,
+  });
+
+  app.post("/projects/:id/cancel-deploy", {
+    schema: {
+      response: {
+        200: {
+          type: "object",
+          properties: { cancelled: { type: "boolean" } },
+        },
+      },
+    },
+    handler: cancelDeployHandler,
   });
 }

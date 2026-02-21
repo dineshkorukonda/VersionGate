@@ -23,6 +23,8 @@ export interface DeployResult {
 export class DeploymentService {
   // In-memory lock per project — prevents concurrent deploys on the same project
   private static readonly locks = new Map<string, boolean>();
+  // Projects for which a cancel has been requested mid-deploy
+  private static readonly cancelRequests = new Set<string>();
 
   private readonly repo: DeploymentRepository;
   private readonly projectRepo: ProjectRepository;
@@ -72,6 +74,7 @@ export class DeploymentService {
       // ── Step 1: Prepare source ─────────────────────────────────────────────
       logger.info({ projectId, step: 1 }, "Preparing source code");
       await this.git.prepareSource(project);
+      this.checkCancelled(projectId);
       const buildContextPath = this.git.buildContextPath(project);
       await ensureDockerfile(buildContextPath, project.appPort);
 
@@ -107,6 +110,7 @@ export class DeploymentService {
       // ── Step 4: Build image ────────────────────────────────────────────────
       logger.info({ projectId, step: 4, imageTag, buildContextPath }, "Building Docker image");
       await buildImage(imageTag, buildContextPath);
+      this.checkCancelled(projectId);
 
       // ── Step 5: Start container ────────────────────────────────────────────
       logger.info({ projectId, step: 5, containerName, hostPort }, "Starting container");
@@ -123,6 +127,7 @@ export class DeploymentService {
         config.dockerNetwork,
         projectEnv
       );
+      this.checkCancelled(projectId);
 
       // ── Step 6: Validate ───────────────────────────────────────────────────
       logger.info({ projectId, step: 6 }, "Validating new container");
@@ -184,8 +189,30 @@ export class DeploymentService {
       }
       throw err;
     } finally {
+      DeploymentService.cancelRequests.delete(projectId);
       this.releaseLock(projectId);
     }
+  }
+
+  /**
+   * Requests cancellation of the in-progress deployment for a project.
+   * Marks the flag (so the pipeline throws on the next checkpoint) and
+   * stops the container immediately so health-check retries exit fast.
+   */
+  async cancelDeploy(projectId: string): Promise<{ cancelled: boolean }> {
+    if (!DeploymentService.locks.get(projectId)) {
+      throw new NotFoundError(`No deployment in progress for project ${projectId}`);
+    }
+    DeploymentService.cancelRequests.add(projectId);
+
+    // Stop the container immediately — causes health check loop to fail fast
+    const deploying = await this.repo.findDeployingForProject(projectId);
+    if (deploying?.containerName) {
+      await stopContainer(deploying.containerName).catch(() => null);
+    }
+
+    logger.info({ projectId }, "Cancellation requested");
+    return { cancelled: true };
   }
 
   async getActiveDeployment(projectId?: string): Promise<Deployment | null> {
@@ -200,6 +227,12 @@ export class DeploymentService {
       return this.repo.findAllForProject(projectId);
     }
     return this.repo.findAll();
+  }
+
+  private checkCancelled(projectId: string): void {
+    if (DeploymentService.cancelRequests.has(projectId)) {
+      throw new DeploymentError("Cancelled by user");
+    }
   }
 
   private async cleanupFailedContainer(

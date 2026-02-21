@@ -3,6 +3,22 @@ import { useState, useEffect, useRef } from "react";
 import { api, type CreateProjectInput } from "@/lib/api";
 import toast from "react-hot-toast";
 
+async function fetchRepoDirs(owner: string, repo: string, branch: string): Promise<string[]> {
+  try {
+    const res = await fetch(
+      `https://api.github.com/repos/${owner}/${repo}/git/trees/${branch}?recursive=1`
+    );
+    if (!res.ok) return [];
+    const data = (await res.json()) as { tree: { path: string; type: string }[] };
+    const dirs = data.tree
+      .filter((item) => item.type === "tree")
+      .map((item) => item.path);
+    return [".", ...dirs];
+  } catch {
+    return [];
+  }
+}
+
 interface Props {
   open: boolean;
   onClose: () => void;
@@ -48,12 +64,18 @@ export function CreateProjectModal({ open, onClose, onCreated }: Props) {
   const [branchOpen, setBranchOpen] = useState(false);
   const branchInputRef = useRef<HTMLInputElement>(null);
 
-  // Fetch branches when repoUrl changes (debounced 800ms)
+  // Build context directory picker state
+  const [dirs, setDirs] = useState<string[]>([]);
+  const [contextOpen, setContextOpen] = useState(false);
+  const contextInputRef = useRef<HTMLInputElement>(null);
+
+  // Fetch branches + repo directory tree when repoUrl changes (debounced 800ms)
   useEffect(() => {
     const url = form.repoUrl.trim();
     const match = url.match(/github\.com\/([^/]+)\/([^/.\s]+?)(?:\.git)?(?:[\/?#].*)?$/);
     if (!match) {
       setBranches([]);
+      setDirs([]);
       setBranchesLoading(false);
       return;
     }
@@ -69,21 +91,24 @@ export function CreateProjectModal({ open, onClose, onCreated }: Props) {
           const names = data.map((b) => b.name);
           setBranches(names);
           // Auto-select default branch if current value isn't in the list
-          setForm((prev) => ({
-            ...prev,
-            branch: names.includes(prev.branch)
-              ? prev.branch
-              : names.includes("main")
-              ? "main"
-              : names.includes("master")
-              ? "master"
-              : names[0] ?? prev.branch,
-          }));
+          const selectedBranch = names.includes(form.branch)
+            ? form.branch
+            : names.includes("main")
+            ? "main"
+            : names.includes("master")
+            ? "master"
+            : names[0] ?? form.branch;
+          setForm((prev) => ({ ...prev, branch: selectedBranch }));
+          // Fetch directory tree for build context picker
+          const repoDirs = await fetchRepoDirs(owner, repo, selectedBranch);
+          setDirs(repoDirs);
         } else {
           setBranches([]);
+          setDirs([]);
         }
       } catch {
         setBranches([]);
+        setDirs([]);
       } finally {
         setBranchesLoading(false);
       }
@@ -159,6 +184,7 @@ export function CreateProjectModal({ open, onClose, onCreated }: Props) {
       setEnvRows([]);
       setErrors({});
       setBranches([]);
+      setDirs([]);
       onCreated();
       onClose();
     } catch (err) {
@@ -174,6 +200,7 @@ export function CreateProjectModal({ open, onClose, onCreated }: Props) {
     setEnvRows([]);
     setErrors({});
     setBranches([]);
+    setDirs([]);
     onClose();
   }
 
@@ -313,13 +340,64 @@ export function CreateProjectModal({ open, onClose, onCreated }: Props) {
 
             {/* Build context */}
             <Field label="Build context" hint="Subdirectory containing the Dockerfile (or where one will be generated). Use . for repo root.">
-              <input
-                type="text"
-                value={form.buildContext}
-                onChange={(e) => set("buildContext", e.target.value)}
-                placeholder="."
-                className={input(undefined)}
-              />
+              <div className="relative">
+                <input
+                  ref={contextInputRef}
+                  type="text"
+                  value={form.buildContext}
+                  onChange={(e) => {
+                    set("buildContext", e.target.value);
+                    setContextOpen(true);
+                  }}
+                  onFocus={() => setContextOpen(dirs.length > 0)}
+                  onBlur={() => setTimeout(() => setContextOpen(false), 150)}
+                  placeholder="."
+                  className={`${input(undefined)} ${dirs.length > 0 ? "pr-8" : ""}`}
+                />
+                {dirs.length > 0 && (
+                  <button
+                    type="button"
+                    tabIndex={-1}
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      setContextOpen((v) => !v);
+                      contextInputRef.current?.focus();
+                    }}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+                      <path d="M6 8L1 3h10L6 8z" />
+                    </svg>
+                  </button>
+                )}
+                {contextOpen && dirs.length > 0 && (
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-zinc-800 border border-zinc-700 rounded-lg shadow-2xl z-20 max-h-44 overflow-y-auto">
+                    {dirs
+                      .filter((d) => d === "." || d.toLowerCase().includes(form.buildContext.toLowerCase().replace(/^\.\//, "")))
+                      .map((d) => (
+                        <button
+                          key={d}
+                          type="button"
+                          onMouseDown={() => {
+                            set("buildContext", d);
+                            setContextOpen(false);
+                          }}
+                          className={`w-full text-left px-3 py-2 text-sm font-mono transition-colors flex items-center gap-2 ${
+                            d === form.buildContext
+                              ? "bg-zinc-700 text-zinc-100"
+                              : "text-zinc-300 hover:bg-zinc-700/60"
+                          }`}
+                        >
+                          <span className="text-zinc-500 text-xs">{d === "." ? "📁" : "/"}</span>
+                          {d}
+                          {d === form.buildContext && (
+                            <span className="ml-auto text-zinc-500 text-xs">✓</span>
+                          )}
+                        </button>
+                      ))}
+                  </div>
+                )}
+              </div>
             </Field>
 
             {/* Ports row */}

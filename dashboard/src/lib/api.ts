@@ -177,6 +177,8 @@ export const api = {
       request<LogsResponse>("GET", `/api/v1/projects/${id}/logs`),
     rollback: (id: string) =>
       request<RollbackResult>("POST", `/api/v1/projects/${id}/rollback`),
+    cancelDeploy: (id: string) =>
+      request<{ cancelled: boolean }>("POST", `/api/v1/projects/${id}/cancel-deploy`),
   },
   deployments: {
     list: () =>

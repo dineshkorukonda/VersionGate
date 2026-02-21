@@ -19,6 +19,13 @@ export class DeploymentRepository {
     });
   }
 
+  async findDeployingForProject(projectId: string): Promise<Deployment | null> {
+    return prisma.deployment.findFirst({
+      where: { projectId, status: DeploymentStatus.DEPLOYING },
+      orderBy: { createdAt: "desc" },
+    });
+  }
+
   /**
    * Finds the most recently ROLLED_BACK deployment for a project whose version
    * is strictly lower than the current active version. This ensures correct

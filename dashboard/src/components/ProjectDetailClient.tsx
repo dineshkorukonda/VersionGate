@@ -61,6 +61,7 @@ export function ProjectDetailClient() {
   const [deploying, setDeploying] = useState(false);
   const [deployStep, setDeployStep] = useState(-1); // -1 = not visible; 0-4 = current step
   const [deployFailed, setDeployFailed] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
   const [rollingBack, setRollingBack] = useState(false);
   const [rollbackOpen, setRollbackOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -71,6 +72,8 @@ export function ProjectDetailClient() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [savingSettings, setSavingSettings] = useState(false);
   const [settingsForm, setSettingsForm] = useState({ branch: "", buildContext: "", appPort: "", healthPath: "", basePort: "" });
+  const [buildContextDirs, setBuildContextDirs] = useState<string[]>([]);
+  const [buildContextOpen, setBuildContextOpen] = useState(false);
 
   // Env editor
   const [envRows, setEnvRows] = useState<{ key: string; value: string }[]>([]);
@@ -208,6 +211,23 @@ export function ProjectDetailClient() {
     }
   }
 
+  async function handleCancelDeploy() {
+    setCancelling(true);
+    const tid = toast.loading("Stopping deployment...");
+    try {
+      await api.projects.cancelDeploy(projectId);
+      toast.success("Deployment cancelled", { id: tid });
+      setDeploying(false);
+      setDeployStep(-1);
+      setDeployFailed(false);
+      await fetchStatus();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Cancel failed", { id: tid });
+    } finally {
+      setCancelling(false);
+    }
+  }
+
   async function handleRollback() {
     setRollbackOpen(false);
     setRollingBack(true);
@@ -243,6 +263,23 @@ export function ProjectDetailClient() {
     fetchLogs();
     toast.success("Refreshed", { duration: 1500 });
   }
+
+  // Fetch repo directory tree when settings panel opens
+  useEffect(() => {
+    if (!settingsOpen || !project?.repoUrl) return;
+    const match = project.repoUrl.match(/github\.com\/([^/]+)\/([^/.\s]+?)(?:\.git)?(?:[\/?#].*)?$/);
+    if (!match) return;
+    const [, owner, repo] = match;
+    const branch = settingsForm.branch || project.branch || "main";
+    fetch(`https://api.github.com/repos/${owner}/${repo}/git/trees/${branch}?recursive=1`)
+      .then((res) => res.ok ? res.json() : null)
+      .then((data: { tree: { path: string; type: string }[] } | null) => {
+        if (!data) return;
+        const dirs = data.tree.filter((item) => item.type === "tree").map((item) => item.path);
+        setBuildContextDirs([".", ...dirs]);
+      })
+      .catch(() => {});
+  }, [settingsOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleSaveSettings() {
     setSavingSettings(true);
@@ -379,15 +416,28 @@ export function ProjectDetailClient() {
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 flex flex-col gap-3">
           <h2 className="text-sm font-medium text-zinc-400 mb-1">Actions</h2>
 
-          <button
-            onClick={handleDeploy}
-            disabled={deploying || isDeploying}
-            className="w-full py-2.5 px-4 rounded-lg bg-zinc-100 text-zinc-900 font-medium text-sm hover:bg-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            {deploying || isDeploying
-              ? <Spinner label={isDeploying ? "Deploying..." : "Triggering..."} />
-              : "Deploy"}
-          </button>
+          {deploying || isDeploying ? (
+            <div className="flex gap-2">
+              <div className="flex-1 py-2.5 px-4 rounded-lg bg-zinc-800 text-zinc-400 font-medium text-sm flex items-center justify-center">
+                <Spinner label={isDeploying ? "Deploying..." : "Triggering..."} />
+              </div>
+              <button
+                onClick={handleCancelDeploy}
+                disabled={cancelling}
+                className="py-2.5 px-3 rounded-lg bg-red-950/60 border border-red-800/50 text-red-400 text-sm font-medium hover:bg-red-950 hover:border-red-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                title="Stop deployment"
+              >
+                {cancelling ? "..." : "Stop"}
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={handleDeploy}
+              className="w-full py-2.5 px-4 rounded-lg bg-zinc-100 text-zinc-900 font-medium text-sm hover:bg-white transition-colors"
+            >
+              Deploy
+            </button>
+          )}
 
           <button
             onClick={() => setRollbackOpen(true)}
@@ -424,13 +474,58 @@ export function ProjectDetailClient() {
                 />
               </SField>
               <SField label="Build context">
-                <input
-                  type="text"
-                  value={settingsForm.buildContext}
-                  onChange={(e) => setSettingsForm((p) => ({ ...p, buildContext: e.target.value }))}
-                  placeholder="."
-                  className={sinput}
-                />
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={settingsForm.buildContext}
+                    onChange={(e) => {
+                      setSettingsForm((p) => ({ ...p, buildContext: e.target.value }));
+                      setBuildContextOpen(true);
+                    }}
+                    onFocus={() => setBuildContextOpen(buildContextDirs.length > 0)}
+                    onBlur={() => setTimeout(() => setBuildContextOpen(false), 150)}
+                    placeholder="."
+                    className={`${sinput} ${buildContextDirs.length > 0 ? "pr-7" : ""}`}
+                  />
+                  {buildContextDirs.length > 0 && (
+                    <button
+                      type="button"
+                      tabIndex={-1}
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        setBuildContextOpen((v) => !v);
+                      }}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300"
+                    >
+                      <svg width="10" height="10" viewBox="0 0 12 12" fill="currentColor">
+                        <path d="M6 8L1 3h10L6 8z" />
+                      </svg>
+                    </button>
+                  )}
+                  {buildContextOpen && buildContextDirs.length > 0 && (
+                    <div className="absolute top-full left-0 right-0 mt-1 bg-zinc-800 border border-zinc-700 rounded-lg shadow-2xl z-20 max-h-40 overflow-y-auto">
+                      {buildContextDirs
+                        .filter((d) => d === "." || d.toLowerCase().includes(settingsForm.buildContext.toLowerCase().replace(/^\.\//, "")))
+                        .map((d) => (
+                          <button
+                            key={d}
+                            type="button"
+                            onMouseDown={() => {
+                              setSettingsForm((p) => ({ ...p, buildContext: d }));
+                              setBuildContextOpen(false);
+                            }}
+                            className={`w-full text-left px-3 py-1.5 text-xs font-mono transition-colors ${
+                              d === settingsForm.buildContext
+                                ? "bg-zinc-700 text-zinc-100"
+                                : "text-zinc-300 hover:bg-zinc-700/60"
+                            }`}
+                          >
+                            {d}
+                          </button>
+                        ))}
+                    </div>
+                  )}
+                </div>
               </SField>
               <SField label="App port">
                 <input

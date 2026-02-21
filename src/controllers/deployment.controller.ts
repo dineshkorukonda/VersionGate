@@ -34,3 +34,11 @@ export async function statusHandler(
     activeDeployment: active ?? null,
   });
 }
+
+export async function cancelDeployHandler(
+  req: FastifyRequest<{ Params: { id: string } }>,
+  reply: FastifyReply
+): Promise<void> {
+  const result = await deploymentService.cancelDeploy(req.params.id);
+  reply.code(200).send(result);
+}
