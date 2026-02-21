@@ -19,7 +19,7 @@ export class GitService {
    * buildContext (e.g. "." keeps it at root, "server" points to a subdir).
    */
   buildContextPath(project: Pick<Project, "id" | "buildContext">): string {
-    return path.join(config.projectsRootPath, project.id, project.buildContext);
+    return path.join(config.projectsRootPath, project.id, project.buildContext ?? ".");
   }
 
   /**

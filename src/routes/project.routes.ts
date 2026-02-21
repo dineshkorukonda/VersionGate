@@ -5,6 +5,7 @@ import {
   getProjectHandler,
   deleteProjectHandler,
   rollbackProjectHandler,
+  updateProjectHandler,
   updateProjectEnvHandler,
 } from "../controllers/project.controller";
 
@@ -113,6 +114,24 @@ export async function projectRoutes(app: FastifyInstance): Promise<void> {
   app.delete("/projects/:id", {
     schema: {},
     handler: deleteProjectHandler,
+  });
+
+  app.patch("/projects/:id", {
+    schema: {
+      body: {
+        type: "object",
+        properties: {
+          branch:       { type: "string", minLength: 1 },
+          buildContext: { type: "string", minLength: 1 },
+          appPort:      { type: "integer", minimum: 1, maximum: 65535 },
+          healthPath:   { type: "string", minLength: 1 },
+          basePort:     { type: "integer", minimum: 1024, maximum: 65534 },
+        },
+        additionalProperties: false,
+      },
+      response: { 200: { type: "object", properties: { project: projectSchema } } },
+    },
+    handler: updateProjectHandler,
   });
 
   app.patch("/projects/:id/env", {

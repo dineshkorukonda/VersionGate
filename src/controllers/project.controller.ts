@@ -27,6 +27,14 @@ interface UpdateEnvBody {
   env: Record<string, string>;
 }
 
+interface UpdateProjectBody {
+  branch?: string;
+  buildContext?: string;
+  appPort?: number;
+  healthPath?: string;
+  basePort?: number;
+}
+
 export async function createProjectHandler(
   req: FastifyRequest<{ Body: CreateProjectBody }>,
   reply: FastifyReply
@@ -92,6 +100,19 @@ export async function rollbackProjectHandler(
 ): Promise<void> {
   const result = await rollbackService.rollback(req.params.id);
   reply.code(200).send(result);
+}
+
+export async function updateProjectHandler(
+  req: FastifyRequest<{ Params: ProjectParams; Body: UpdateProjectBody }>,
+  reply: FastifyReply
+): Promise<void> {
+  const { id } = req.params;
+  const project = await projectRepo.findById(id);
+  if (!project) {
+    return reply.code(404).send({ error: "NotFound", message: "Project not found" });
+  }
+  const updated = await projectRepo.update(id, req.body);
+  reply.code(200).send({ project: updated });
 }
 
 export async function updateProjectEnvHandler(
