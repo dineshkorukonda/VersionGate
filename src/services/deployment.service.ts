@@ -88,14 +88,14 @@ export class DeploymentService {
         "Determined deployment target"
       );
 
-      // ── Step 3: Create PENDING record ──────────────────────────────────────
+      // ── Step 3: Create DEPLOYING record ───────────────────────────────────
       const deployment = await this.repo.create({
         version,
         imageTag,
         containerName,
         port: hostPort,
         color: newColor,
-        status: DeploymentStatus.PENDING,
+        status: DeploymentStatus.DEPLOYING,
         project: { connect: { id: projectId } },
       });
       deploymentId = deployment.id;
@@ -190,12 +190,17 @@ export class DeploymentService {
   }
 
   private acquireLock(projectId: string): boolean {
-    if (DeploymentService.locks.get(projectId)) return false;
+    if (DeploymentService.locks.get(projectId)) {
+      logger.warn({ projectId }, "Deploy lock already held — rejecting concurrent deploy");
+      return false;
+    }
     DeploymentService.locks.set(projectId, true);
+    logger.info({ projectId }, "Deploy lock acquired");
     return true;
   }
 
   private releaseLock(projectId: string): void {
     DeploymentService.locks.delete(projectId);
+    logger.info({ projectId }, "Deploy lock released");
   }
 }

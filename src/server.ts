@@ -2,6 +2,7 @@ import { buildApp } from "./app";
 import { config } from "./config/env";
 import { logger } from "./utils/logger";
 import prisma from "./prisma/client";
+import { ReconciliationService } from "./services/reconciliation.service";
 
 async function start(): Promise<void> {
   const app = await buildApp();
@@ -19,6 +20,11 @@ async function start(): Promise<void> {
   process.on("SIGTERM", () => shutdown("SIGTERM"));
 
   try {
+    // Run reconciliation before accepting requests — cleans up any crashed deploys
+    const reconciliation = new ReconciliationService();
+    const report = await reconciliation.reconcile();
+    logger.info(report, "Startup reconciliation complete");
+
     await app.listen({ port: config.app.port, host: "0.0.0.0" });
     logger.info(
       { port: config.app.port, env: config.app.env },

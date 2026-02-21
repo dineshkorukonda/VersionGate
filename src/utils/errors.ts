@@ -30,3 +30,10 @@ export class DeploymentError extends AppError {
     this.name = "DeploymentError";
   }
 }
+
+export class BadRequestError extends AppError {
+  constructor(message: string) {
+    super(message, 400, "BAD_REQUEST");
+    this.name = "BadRequestError";
+  }
+}

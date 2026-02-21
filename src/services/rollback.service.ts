@@ -6,7 +6,7 @@ import { ValidationService } from "./validation.service";
 import { runContainer, stopContainer, removeContainer } from "../utils/docker";
 import { config } from "../config/env";
 import { logger } from "../utils/logger";
-import { NotFoundError, DeploymentError } from "../utils/errors";
+import { NotFoundError, DeploymentError, BadRequestError } from "../utils/errors";
 
 export interface RollbackResult {
   rolledBackFrom: Deployment;
@@ -47,16 +47,16 @@ export class RollbackService {
 
     const current = await this.repo.findActiveForProject(projectId);
     if (!current) {
-      throw new NotFoundError("Active deployment");
+      throw new BadRequestError("No active deployment to roll back from");
     }
 
     const previous = await this.repo.findPreviousForProject(projectId, current.version);
     if (!previous) {
-      throw new DeploymentError("No previous deployment available for rollback");
+      throw new BadRequestError("No previous deployment available for rollback");
     }
 
     if (previous.version === current.version) {
-      throw new DeploymentError("Already at the earliest available deployment");
+      throw new BadRequestError("Already at the earliest available deployment");
     }
 
     logger.info(

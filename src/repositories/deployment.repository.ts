@@ -1,4 +1,4 @@
-import { Deployment, DeploymentStatus, Prisma } from "@prisma/client";
+import { Deployment, DeploymentStatus, Prisma, Project } from "@prisma/client";
 import prisma from "../prisma/client";
 
 export class DeploymentRepository {
@@ -52,6 +52,21 @@ export class DeploymentRepository {
       select: { version: true },
     });
     return (latest?.version ?? 0) + 1;
+  }
+
+  // ── Reconciliation queries ─────────────────────────────────────────────────
+
+  /** All deployments stuck mid-deploy — used by crash recovery on startup. */
+  async findAllDeploying(): Promise<Deployment[]> {
+    return prisma.deployment.findMany({ where: { status: DeploymentStatus.DEPLOYING } });
+  }
+
+  /** All ACTIVE deployments with their project — used to audit container health. */
+  async findAllActiveWithProjects(): Promise<(Deployment & { project: Project })[]> {
+    return prisma.deployment.findMany({
+      where: { status: DeploymentStatus.ACTIVE },
+      include: { project: true },
+    }) as Promise<(Deployment & { project: Project })[]>;
   }
 
   // ── Global queries (kept for status endpoint) ──────────────────────────────
