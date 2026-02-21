@@ -75,6 +75,9 @@ export interface RawContainerStats {
   CPUPerc: string;
   MemUsage: string;
   MemPerc: string;
+  NetIO: string;
+  BlockIO: string;
+  PIDs: string;
   Name: string;
 }
 

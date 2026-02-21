@@ -41,6 +41,11 @@ export interface ContainerMetrics {
   memoryUsed: number;
   memoryLimit: number;
   memoryPercent: number;
+  netIn: number;
+  netOut: number;
+  blockIn: number;
+  blockOut: number;
+  pids: number;
   timestamp: string;
 }
 

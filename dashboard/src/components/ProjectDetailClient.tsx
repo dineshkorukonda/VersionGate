@@ -52,6 +52,7 @@ export function ProjectDetailClient() {
   const [activeDeployment, setActiveDeployment] = useState<Deployment | null>(null);
   const [blueDeployment, setBlueDeployment] = useState<Deployment | null>(null);
   const [greenDeployment, setGreenDeployment] = useState<Deployment | null>(null);
+  const [deploymentHistory, setDeploymentHistory] = useState<Deployment[]>([]);
   const [metrics, setMetrics] = useState<ContainerMetrics | null>(null);
   const [metricsHistory, setMetricsHistory] = useState<MetricSample[]>([]);
   const [logLines, setLogLines] = useState<string[]>([]);
@@ -108,6 +109,7 @@ export function ProjectDetailClient() {
       // Track the latest deployment for each slot
       setBlueDeployment(projectDeps.find((d) => d.color === "BLUE") ?? null);
       setGreenDeployment(projectDeps.find((d) => d.color === "GREEN") ?? null);
+      setDeploymentHistory(projectDeps.slice(0, 10));
     } catch (err) {
       const msg = err instanceof Error ? err.message : "";
       if (msg.includes("404") || msg.includes("not found")) {
@@ -130,6 +132,8 @@ export function ProjectDetailClient() {
           cpu: m.cpu,
           memoryPercent: m.memoryPercent,
           memoryMB: m.memoryUsed / (1024 * 1024),
+          netInKB:  (m.netIn  ?? 0) / 1024,
+          netOutKB: (m.netOut ?? 0) / 1024,
         };
         setMetricsHistory((prev) => [...prev, sample].slice(-60));
       }
@@ -334,10 +338,13 @@ export function ProjectDetailClient() {
           </div>
 
           {metrics?.running && (
-            <div className="mt-5 pt-4 border-t border-zinc-800 grid grid-cols-3 gap-3">
+            <div className="mt-5 pt-4 border-t border-zinc-800 grid grid-cols-3 sm:grid-cols-6 gap-3">
               <MetricTile value={`${metrics.cpu.toFixed(1)}%`} label="CPU" color="text-blue-400" />
               <MetricTile value={formatBytes(metrics.memoryUsed)} label="Memory" color="text-violet-400" />
               <MetricTile value={`${metrics.memoryPercent.toFixed(1)}%`} label="Mem %" color="text-zinc-300" />
+              <MetricTile value={formatBytes(metrics.netIn ?? 0)} label="Net RX" color="text-emerald-400" />
+              <MetricTile value={formatBytes(metrics.netOut ?? 0)} label="Net TX" color="text-orange-400" />
+              <MetricTile value={String(metrics.pids ?? 0)} label="PIDs" color="text-zinc-400" />
             </div>
           )}
         </div>
@@ -497,6 +504,43 @@ export function ProjectDetailClient() {
           </div>
         )}
       </div>
+
+      {/* ── Deployment History ───────────────────────────────────────────────── */}
+      {deploymentHistory.length > 0 && (
+        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm font-medium text-zinc-400">Deployment History</h2>
+            <span className="text-xs text-zinc-600">last {deploymentHistory.length} deployments</span>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b border-zinc-800">
+                  {["Version", "Slot", "Container", "Status", "Port", "Deployed"].map((h) => (
+                    <th key={h} className="text-left text-zinc-600 font-medium pb-2 pr-4">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-800/60">
+                {deploymentHistory.map((d) => (
+                  <tr key={d.id} className="hover:bg-zinc-800/30 transition-colors">
+                    <td className="py-2 pr-4 font-mono text-zinc-300">v{d.version}</td>
+                    <td className="py-2 pr-4">
+                      <span className={`font-semibold ${d.color === "BLUE" ? "text-blue-400" : "text-emerald-400"}`}>
+                        {d.color}
+                      </span>
+                    </td>
+                    <td className="py-2 pr-4 font-mono text-zinc-500 max-w-[140px] truncate">{d.containerName}</td>
+                    <td className="py-2 pr-4"><StatusBadge status={d.status} /></td>
+                    <td className="py-2 pr-4 font-mono text-zinc-500">{d.port}</td>
+                    <td className="py-2 text-zinc-500">{timeAgo(d.updatedAt)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {/* ── Environment Variables ────────────────────────────────────────────── */}
       <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">

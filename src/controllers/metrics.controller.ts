@@ -15,7 +15,7 @@ function parsePercent(s: string): number {
   return parseFloat(s.replace("%", "")) || 0;
 }
 
-function parseMemoryBytes(s: string): number {
+function parseBytes(s: string): number {
   const match = s.trim().match(/^([\d.]+)\s*([A-Za-z]+)?$/);
   if (!match) return 0;
   const value = parseFloat(match[1]);
@@ -30,12 +30,23 @@ function parseMemoryBytes(s: string): number {
   return value * (units[unit] ?? 1);
 }
 
+// Parse "1.23MB / 456kB" style strings (NetIO, BlockIO)
+function parseIoPair(s: string): { rx: number; tx: number } {
+  const [a, b] = s.split("/").map((x) => x.trim());
+  return { rx: parseBytes(a ?? "0"), tx: parseBytes(b ?? "0") };
+}
+
 const EMPTY_METRICS = {
   running: false,
   cpu: 0,
   memoryUsed: 0,
   memoryLimit: 0,
   memoryPercent: 0,
+  netIn: 0,
+  netOut: 0,
+  blockIn: 0,
+  blockOut: 0,
+  pids: 0,
 };
 
 export async function getProjectMetricsHandler(
@@ -59,8 +70,10 @@ export async function getProjectMetricsHandler(
   }
 
   const [usedStr, limitStr] = stats.MemUsage.split(" / ");
-  const memoryUsed = parseMemoryBytes(usedStr ?? "0");
-  const memoryLimit = parseMemoryBytes(limitStr ?? "0");
+  const memoryUsed  = parseBytes(usedStr ?? "0");
+  const memoryLimit = parseBytes(limitStr ?? "0");
+  const net   = parseIoPair(stats.NetIO   ?? "0B / 0B");
+  const block = parseIoPair(stats.BlockIO ?? "0B / 0B");
 
   reply.code(200).send({
     running: true,
@@ -68,6 +81,11 @@ export async function getProjectMetricsHandler(
     memoryUsed,
     memoryLimit,
     memoryPercent: parsePercent(stats.MemPerc),
+    netIn:    net.rx,
+    netOut:   net.tx,
+    blockIn:  block.rx,
+    blockOut: block.tx,
+    pids: parseInt(stats.PIDs ?? "0", 10) || 0,
     timestamp: new Date().toISOString(),
   });
 }

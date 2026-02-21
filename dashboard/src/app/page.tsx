@@ -70,6 +70,11 @@ export default function OverviewPage() {
     );
   }
 
+  const allDeployments = Object.values(deploymentMap);
+  const runningCount = allDeployments.filter((d) => d.status === "ACTIVE").length;
+  const failedCount  = allDeployments.filter((d) => d.status === "FAILED").length;
+  const deployingCount = allDeployments.filter((d) => d.status === "DEPLOYING").length;
+
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
@@ -86,6 +91,16 @@ export default function OverviewPage() {
           + New Project
         </button>
       </div>
+
+      {/* Global stats bar */}
+      {projects.length > 0 && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+          <StatCard label="Total Projects" value={projects.length} color="text-zinc-300" />
+          <StatCard label="Running" value={runningCount} color="text-emerald-400" dot="bg-emerald-400" />
+          <StatCard label="Failed" value={failedCount} color={failedCount > 0 ? "text-red-400" : "text-zinc-600"} dot={failedCount > 0 ? "bg-red-400" : undefined} />
+          <StatCard label="Deploying" value={deployingCount} color={deployingCount > 0 ? "text-amber-400" : "text-zinc-600"} dot={deployingCount > 0 ? "bg-amber-400" : undefined} pulse={deployingCount > 0} />
+        </div>
+      )}
 
       {projects.length === 0 ? (
         <div
@@ -113,6 +128,37 @@ export default function OverviewPage() {
         onClose={() => setCreateOpen(false)}
         onCreated={fetchData}
       />
+    </div>
+  );
+}
+
+function StatCard({
+  label,
+  value,
+  color,
+  dot,
+  pulse = false,
+}: {
+  label: string;
+  value: number;
+  color: string;
+  dot?: string;
+  pulse?: boolean;
+}) {
+  return (
+    <div className="bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 flex items-center gap-3">
+      {dot && (
+        <span className="relative flex h-2 w-2 shrink-0">
+          {pulse && (
+            <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${dot} opacity-60`} />
+          )}
+          <span className={`relative inline-flex h-2 w-2 rounded-full ${dot}`} />
+        </span>
+      )}
+      <div>
+        <p className={`text-xl font-semibold ${color}`}>{value}</p>
+        <p className="text-xs text-zinc-600">{label}</p>
+      </div>
     </div>
   );
 }
