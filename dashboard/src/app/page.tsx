@@ -102,6 +102,7 @@ export default function OverviewPage() {
               key={p.id}
               project={p}
               activeDeployment={deploymentMap[p.id]}
+              onDeleted={fetchData}
             />
           ))}
         </div>

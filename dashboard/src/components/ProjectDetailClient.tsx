@@ -9,7 +9,7 @@ import {
   type Deployment,
   type ContainerMetrics,
 } from "@/lib/api";
-import { StatusBadge, ColorBadge, RunningDot } from "./StatusBadge";
+import { StatusBadge, RunningDot } from "./StatusBadge";
 import { ConfirmModal } from "./ConfirmModal";
 import { MetricsChart, type MetricSample } from "./MetricsChart";
 import { LogsViewer } from "./LogsViewer";
@@ -35,13 +35,12 @@ function timeAgo(iso: string): string {
 export function ProjectDetailClient() {
   const pathname = usePathname();
   const router = useRouter();
-  // Extract the real project ID from the browser URL (not RSC params — we
-  // serve __placeholder__ RSC payloads for all project routes, so useParams()
-  // would return "__placeholder__" instead of the actual ID).
   const projectId = pathname.split("/").filter(Boolean)[1] ?? "";
 
   const [project, setProject] = useState<Project | null>(null);
   const [activeDeployment, setActiveDeployment] = useState<Deployment | null>(null);
+  const [blueDeployment, setBlueDeployment] = useState<Deployment | null>(null);
+  const [greenDeployment, setGreenDeployment] = useState<Deployment | null>(null);
   const [metrics, setMetrics] = useState<ContainerMetrics | null>(null);
   const [metricsHistory, setMetricsHistory] = useState<MetricSample[]>([]);
   const [logLines, setLogLines] = useState<string[]>([]);
@@ -50,6 +49,8 @@ export function ProjectDetailClient() {
   const [deploying, setDeploying] = useState(false);
   const [rollingBack, setRollingBack] = useState(false);
   const [rollbackOpen, setRollbackOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
 
   // ── Status ─────────────────────────────────────────────────────────────────
@@ -60,18 +61,21 @@ export function ProjectDetailClient() {
         api.deployments.list(),
       ]);
       setProject(p);
+
       const projectDeps = deployments
         .filter((d) => d.projectId === projectId)
-        .sort(
-          (a, b) =>
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-        );
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
       const active =
         projectDeps.find((d) => d.status === "ACTIVE") ??
         projectDeps.find((d) => d.status === "DEPLOYING") ??
         projectDeps[0] ??
         null;
       setActiveDeployment(active);
+
+      // Track the latest deployment for each slot
+      setBlueDeployment(projectDeps.find((d) => d.color === "BLUE") ?? null);
+      setGreenDeployment(projectDeps.find((d) => d.color === "GREEN") ?? null);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "";
       if (msg.includes("404") || msg.includes("not found")) {
@@ -90,11 +94,7 @@ export function ProjectDetailClient() {
       setMetrics(m);
       if (m.running) {
         const sample: MetricSample = {
-          time: new Date().toLocaleTimeString("en", {
-            hour: "2-digit",
-            minute: "2-digit",
-            second: "2-digit",
-          }),
+          time: new Date().toLocaleTimeString("en", { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
           cpu: m.cpu,
           memoryPercent: m.memoryPercent,
           memoryMB: m.memoryUsed / (1024 * 1024),
@@ -102,7 +102,7 @@ export function ProjectDetailClient() {
         setMetricsHistory((prev) => [...prev, sample].slice(-60));
       }
     } catch {
-      // Metrics failure must never crash the page — keep last known state
+      // keep last known state
     }
   }, [projectId]);
 
@@ -114,7 +114,7 @@ export function ProjectDetailClient() {
       setLogLines(lines);
       setLogsUpdated(new Date());
     } catch {
-      // Ignore log errors silently
+      // ignore
     } finally {
       setLogsLoading(false);
     }
@@ -123,15 +123,12 @@ export function ProjectDetailClient() {
   // ── Lifecycle ──────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!projectId || projectId === "__placeholder__") return;
-
     fetchStatus();
     fetchMetrics();
     fetchLogs();
-
     const statusTimer  = setInterval(fetchStatus,  30_000);
     const metricsTimer = setInterval(fetchMetrics, 30_000);
     const logsTimer    = setInterval(fetchLogs,    15_000);
-
     return () => {
       clearInterval(statusTimer);
       clearInterval(metricsTimer);
@@ -169,6 +166,20 @@ export function ProjectDetailClient() {
     }
   }
 
+  async function handleDelete() {
+    setDeleteOpen(false);
+    setDeleting(true);
+    const tid = toast.loading("Deleting project...");
+    try {
+      await api.projects.delete(projectId);
+      toast.success(`Project "${project?.name}" deleted`, { id: tid });
+      router.push("/");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Delete failed", { id: tid });
+      setDeleting(false);
+    }
+  }
+
   function handleRefresh() {
     fetchStatus();
     fetchMetrics();
@@ -185,6 +196,7 @@ export function ProjectDetailClient() {
           <div className="lg:col-span-2 bg-zinc-900 border border-zinc-800 rounded-xl h-56" />
           <div className="bg-zinc-900 border border-zinc-800 rounded-xl h-56" />
         </div>
+        <div className="bg-zinc-900 border border-zinc-800 rounded-xl h-32" />
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl h-40" />
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl h-80" />
       </div>
@@ -200,38 +212,33 @@ export function ProjectDetailClient() {
     <div className="space-y-6">
       {/* Breadcrumb */}
       <div className="flex items-center gap-2 text-sm text-zinc-500">
-        <Link href="/" className="hover:text-zinc-300 transition-colors">
-          Projects
-        </Link>
+        <Link href="/" className="hover:text-zinc-300 transition-colors">Projects</Link>
         <span>/</span>
         <span className="text-zinc-300">{project.name}</span>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* ── SECTION A: Status Panel ────────────────────────────────────── */}
+        {/* ── Status Panel ─────────────────────────────────────────────────── */}
         <div className="lg:col-span-2 bg-zinc-900 border border-zinc-800 rounded-xl p-6">
           <div className="flex items-start justify-between mb-6">
             <div>
-              <h1 className="text-xl font-semibold text-zinc-100">
-                {project.name}
-              </h1>
-              <p className="text-xs text-zinc-500 mt-0.5 font-mono">
-                {project.repoUrl}
+              <h1 className="text-xl font-semibold text-zinc-100">{project.name}</h1>
+              <p className="text-xs text-zinc-500 mt-0.5 font-mono">{project.repoUrl}</p>
+              <p className="text-xs text-zinc-600 mt-0.5">
+                branch: <span className="text-zinc-400 font-mono">{project.branch}</span>
+                {project.buildContext !== "." && (
+                  <> · context: <span className="text-zinc-400 font-mono">{project.buildContext}</span></>
+                )}
               </p>
             </div>
-            {activeDeployment && <ColorBadge color={activeDeployment.color} />}
+            <RunningDot running={containerRunning} />
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             <Stat label="Status">
-              {activeDeployment ? (
-                <StatusBadge status={activeDeployment.status} />
-              ) : (
-                <span className="text-xs text-zinc-600">None</span>
-              )}
-            </Stat>
-            <Stat label="Container">
-              <RunningDot running={containerRunning} />
+              {activeDeployment
+                ? <StatusBadge status={activeDeployment.status} />
+                : <span className="text-xs text-zinc-600">None</span>}
             </Stat>
             <Stat label="Active Port">
               <span className="text-sm font-mono text-zinc-300">
@@ -243,15 +250,16 @@ export function ProjectDetailClient() {
                 {activeDeployment ? `v${activeDeployment.version}` : "—"}
               </span>
             </Stat>
-            <Stat label="Branch">
-              <span className="text-sm font-mono text-zinc-300">
-                {project.branch}
-              </span>
-            </Stat>
             <Stat label="Last deploy">
               <span className="text-sm text-zinc-300">
                 {activeDeployment ? timeAgo(activeDeployment.updatedAt) : "—"}
               </span>
+            </Stat>
+            <Stat label="App port">
+              <span className="text-sm font-mono text-zinc-300">{project.appPort}</span>
+            </Stat>
+            <Stat label="Health path">
+              <span className="text-sm font-mono text-zinc-300">{project.healthPath}</span>
             </Stat>
           </div>
 
@@ -264,7 +272,7 @@ export function ProjectDetailClient() {
           )}
         </div>
 
-        {/* ── SECTION B: Controls ────────────────────────────────────────── */}
+        {/* ── Actions Panel ────────────────────────────────────────────────── */}
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 flex flex-col gap-3">
           <h2 className="text-sm font-medium text-zinc-400 mb-1">Actions</h2>
 
@@ -273,11 +281,9 @@ export function ProjectDetailClient() {
             disabled={deploying || isDeploying}
             className="w-full py-2.5 px-4 rounded-lg bg-zinc-100 text-zinc-900 font-medium text-sm hover:bg-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            {deploying || isDeploying ? (
-              <Spinner label={isDeploying ? "Deploying..." : "Triggering..."} />
-            ) : (
-              "Deploy"
-            )}
+            {deploying || isDeploying
+              ? <Spinner label={isDeploying ? "Deploying..." : "Triggering..."} />
+              : "Deploy"}
           </button>
 
           <button
@@ -296,27 +302,73 @@ export function ProjectDetailClient() {
           </button>
 
           <div className="mt-auto pt-4 border-t border-zinc-800 space-y-2">
-            <KV k="App port" v={String(project.appPort)} />
-            <KV k="Build context" v={project.buildContext} mono />
-            <KV k="Health path" v={project.healthPath} />
             <KV k="Container" v={activeDeployment?.containerName ?? "—"} mono truncate />
             <KV k="Image" v={activeDeployment?.imageTag ?? "—"} mono truncate />
+          </div>
+
+          {/* Danger zone */}
+          <div className="pt-4 border-t border-zinc-800">
+            <button
+              onClick={() => setDeleteOpen(true)}
+              disabled={deleting}
+              className="w-full py-2 px-4 rounded-lg border border-red-900/50 text-red-500 text-sm hover:bg-red-950/40 hover:border-red-700/50 transition-colors disabled:opacity-40"
+            >
+              {deleting ? <Spinner label="Deleting..." /> : "Delete project"}
+            </button>
           </div>
         </div>
       </div>
 
-      {/* ── SECTION C: Metrics ──────────────────────────────────────────────── */}
+      {/* ── Blue / Green Slots ───────────────────────────────────────────────── */}
+      <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="text-sm font-medium text-zinc-400">Deployment Slots</h2>
+          <span className="text-xs text-zinc-600">
+            base port {project.basePort} · {project.basePort + 1}
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <DeploymentSlot
+            color="BLUE"
+            deployment={blueDeployment}
+            basePort={project.basePort}
+            isActive={activeDeployment?.color === "BLUE"}
+          />
+          <DeploymentSlot
+            color="GREEN"
+            deployment={greenDeployment}
+            basePort={project.basePort + 1}
+            isActive={activeDeployment?.color === "GREEN"}
+          />
+        </div>
+
+        {/* Traffic indicator */}
+        {activeDeployment && (
+          <div className="mt-4 pt-4 border-t border-zinc-800 flex items-center gap-3">
+            <span className="text-xs text-zinc-600">Traffic routing</span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs text-zinc-500">nginx upstream</span>
+              <span className="text-xs text-zinc-700">→</span>
+              <span className={`text-xs font-semibold font-mono ${activeDeployment.color === "BLUE" ? "text-blue-400" : "text-emerald-400"}`}>
+                {activeDeployment.containerName}
+              </span>
+              <span className="text-xs text-zinc-600">:{activeDeployment.port}</span>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ── Resource Metrics ─────────────────────────────────────────────────── */}
       <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-sm font-medium text-zinc-400">Resource Metrics</h2>
-          <span className="text-xs text-zinc-600">
-            {metricsHistory.length}/60 samples · polls every 30s
-          </span>
+          <span className="text-xs text-zinc-600">{metricsHistory.length}/60 samples · polls every 30s</span>
         </div>
         <MetricsChart data={metricsHistory} />
       </div>
 
-      {/* ── SECTION D: Logs ─────────────────────────────────────────────────── */}
+      {/* ── Logs ─────────────────────────────────────────────────────────────── */}
       <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
         <LogsViewer lines={logLines} loading={logsLoading} lastUpdated={logsUpdated} />
       </div>
@@ -324,12 +376,90 @@ export function ProjectDetailClient() {
       <ConfirmModal
         open={rollbackOpen}
         title="Rollback deployment?"
-        description={`This will restore the previous deployment for "${project.name}" and stop the current container. This cannot be undone.`}
+        description={`This will restore the previous deployment for "${project.name}" and stop the current container.`}
         confirmLabel="Rollback"
         danger
         onConfirm={handleRollback}
         onCancel={() => setRollbackOpen(false)}
       />
+
+      <ConfirmModal
+        open={deleteOpen}
+        title="Delete project?"
+        description={`This will permanently delete "${project.name}" and all its deployment records. Running containers will not be stopped automatically.`}
+        confirmLabel="Delete"
+        danger
+        onConfirm={handleDelete}
+        onCancel={() => setDeleteOpen(false)}
+      />
+    </div>
+  );
+}
+
+// ── Blue/Green Slot Card ──────────────────────────────────────────────────────
+
+function DeploymentSlot({
+  color,
+  deployment,
+  basePort,
+  isActive,
+}: {
+  color: "BLUE" | "GREEN";
+  deployment: Deployment | null;
+  basePort: number;
+  isActive: boolean;
+}) {
+  const isBlue = color === "BLUE";
+
+  const activeRing = isBlue
+    ? "border-blue-500/50 shadow-[0_0_24px_rgba(59,130,246,0.12)] bg-blue-500/[0.03]"
+    : "border-emerald-500/50 shadow-[0_0_24px_rgba(16,185,129,0.12)] bg-emerald-500/[0.03]";
+
+  const dotColor    = isBlue ? "bg-blue-400" : "bg-emerald-400";
+  const labelColor  = isBlue ? "text-blue-400" : "text-emerald-400";
+  const badgeColor  = isBlue ? "bg-blue-500 text-white" : "bg-emerald-500 text-white";
+
+  return (
+    <div className={`relative rounded-xl border p-5 transition-all duration-500 ${isActive ? activeRing : "border-zinc-800 bg-zinc-950"}`}>
+
+      {/* LIVE pill */}
+      {isActive && (
+        <span className={`absolute -top-2.5 left-4 px-2.5 py-0.5 rounded-full text-xs font-semibold tracking-wide ${badgeColor}`}>
+          LIVE
+        </span>
+      )}
+
+      {/* Header */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2.5">
+          <span className="relative flex h-3 w-3">
+            {isActive && deployment?.status === "ACTIVE" && (
+              <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${dotColor} opacity-50`} />
+            )}
+            <span className={`relative inline-flex h-3 w-3 rounded-full ${dotColor} ${!isActive ? "opacity-30" : ""}`} />
+          </span>
+          <span className={`text-sm font-bold tracking-wide ${labelColor}`}>{color}</span>
+        </div>
+        <span className="text-xs font-mono text-zinc-500">:{basePort}</span>
+      </div>
+
+      {/* Body */}
+      {deployment ? (
+        <div className="space-y-2">
+          <Row k="Version" v={`v${deployment.version}`} mono />
+          <Row k="Container" v={deployment.containerName} mono truncate />
+          <Row k="Image" v={deployment.imageTag} mono truncate />
+          <div className="flex justify-between items-center text-xs">
+            <span className="text-zinc-600">Status</span>
+            <StatusBadge status={deployment.status} />
+          </div>
+          <Row k="Deployed" v={timeAgo(deployment.updatedAt)} />
+        </div>
+      ) : (
+        <div className="flex flex-col items-center justify-center py-4 gap-1">
+          <span className="text-xs text-zinc-700">No deployment in this slot</span>
+        </div>
+      )}
     </div>
   );
 }
@@ -358,9 +488,16 @@ function KV({ k, v, mono = false, truncate = false }: { k: string; v: string; mo
   return (
     <div className="flex justify-between text-xs gap-2">
       <span className="text-zinc-600 shrink-0">{k}</span>
-      <span className={`text-zinc-400 ${mono ? "font-mono" : ""} ${truncate ? "truncate max-w-[120px]" : ""}`}>
-        {v}
-      </span>
+      <span className={`text-zinc-400 ${mono ? "font-mono" : ""} ${truncate ? "truncate max-w-[120px]" : ""}`}>{v}</span>
+    </div>
+  );
+}
+
+function Row({ k, v, mono = false, truncate = false }: { k: string; v: string; mono?: boolean; truncate?: boolean }) {
+  return (
+    <div className="flex justify-between items-center text-xs gap-2">
+      <span className="text-zinc-600 shrink-0">{k}</span>
+      <span className={`text-zinc-300 ${mono ? "font-mono" : ""} ${truncate ? "truncate max-w-[140px]" : ""}`}>{v}</span>
     </div>
   );
 }
