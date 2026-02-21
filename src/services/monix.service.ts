@@ -40,7 +40,7 @@ export class MonixService {
   private spawn_(entrypoint: string): void {
     logger.info({ monixPath: config.monixPath, port: config.monixPort }, "Monix: starting");
 
-    this.proc = spawn("python", [entrypoint], {
+    this.proc = spawn("python3", [entrypoint], {
       cwd:  config.monixPath,
       env:  { ...process.env, PORT: String(config.monixPort) },
       stdio: ["ignore", "pipe", "pipe"],
@@ -73,7 +73,7 @@ export class MonixService {
     });
 
     this.proc.on("error", (err) => {
-      logger.warn({ err: err.message }, "Monix: failed to start (python not found?)");
+      logger.warn({ err: err.message }, "Monix: failed to start (python3 not found?)");
     });
   }
 }
