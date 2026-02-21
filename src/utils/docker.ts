@@ -29,6 +29,7 @@ export async function runContainer(
     "-d",
     "--name", name,
     "--network", network,
+    "--add-host=host.docker.internal:host-gateway",
     "-p", `${hostPort}:${containerPort}`,
     "--restart", "unless-stopped",
     ...envArgs,
