@@ -121,6 +121,7 @@ function formatUptime(seconds: number): string {
 export default function OverviewPage() {
   const [projects, setProjects]         = useState<Project[]>([]);
   const [deploymentMap, setDeploymentMap] = useState<Record<string, Deployment>>({});
+  const [allDeployments, setAllDeployments] = useState<Deployment[]>([]);
   const [serverStats, setServerStats]   = useState<ServerStats | null>(null);
   const [loading, setLoading]           = useState(true);
   const [createOpen, setCreateOpen]     = useState(false);
@@ -145,6 +146,7 @@ export default function OverviewPage() {
       }
       setProjects(p);
       setDeploymentMap(map);
+      setAllDeployments(d);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to load projects");
     } finally {
@@ -383,7 +385,7 @@ export default function OverviewPage() {
           <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
             <p className="text-xs font-medium text-zinc-500 uppercase tracking-wider mb-5">Deployments per Project</p>
             <div className="flex items-center justify-center py-2">
-              <DeploymentsPerProjectChart projects={projects} deployments={Object.values(deploymentMap)} />
+              <DeploymentsPerProjectChart projects={projects} deployments={allDeployments} />
             </div>
           </div>
         </div>

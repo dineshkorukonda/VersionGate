@@ -77,11 +77,31 @@ function StatCard({ label, value, sub, color = "text-zinc-200" }: { label: strin
   );
 }
 
+// ── Charts skeleton ─────────────────────────────────────────────────────────────
+function ChartsSkeleton({ label }: { label: string }) {
+  return (
+    <div className="space-y-6">
+      {[{ title: "CPU & Memory History", h: 160 }, { title: "Network Rate (KB/s)", h: 140 }].map(({ title, h }) => (
+        <div key={title}>
+          <p className="text-xs font-medium text-zinc-500 uppercase tracking-wider mb-3">{title}</p>
+          <div className={`bg-zinc-800/40 rounded-lg flex flex-col items-center justify-center gap-1.5`} style={{ height: h }}>
+            <span className="text-xs text-zinc-600">{label}</span>
+            {label.startsWith("Collecting") && (
+              <span className="text-[10px] text-zinc-700">Chart will appear once 2+ samples are collected</span>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ── Charts (recharts, client-only) ─────────────────────────────────────────────
 function Charts({ history }: { history: Sample[] }) {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
-  if (!mounted) return <div className="h-40 flex items-center justify-center"><span className="text-xs text-zinc-700">Loading...</span></div>;
+  if (!mounted) return <ChartsSkeleton label="Loading…" />;
+  if (history.length < 2) return <ChartsSkeleton label={history.length === 0 ? "Waiting for first sample…" : "Collecting data — 1 sample so far…"} />;
 
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const RC = require("recharts");
