@@ -123,6 +123,62 @@ export async function updateProjectHandler(
   reply.code(200).send({ project: updated });
 }
 
+export async function generatePipelineHandler(
+  req: FastifyRequest<{ Params: ProjectParams; Body: { webhookUrl: string } }>,
+  reply: FastifyReply
+): Promise<void> {
+  const project = await projectRepo.findById(req.params.id);
+  if (!project) {
+    return reply.code(404).send({ error: "NotFound", message: "Project not found" });
+  }
+
+  const { webhookUrl } = req.body;
+  const apiKey = config.geminiApiKey;
+
+  const prompt = `You are a senior DevOps engineer. Generate a production-ready GitHub Actions CI/CD workflow YAML for this project:
+
+Name: ${project.name}
+Repository: ${project.repoUrl}
+Branch: ${project.branch}
+Build context subdirectory: ${project.buildContext}
+App port: ${project.appPort}
+Health check path: ${project.healthPath}
+ZeroShift deploy webhook: ${webhookUrl}
+
+Rules:
+- Trigger on push to "${project.branch}" only
+- Detect runtime: if bun.lockb exists use Bun, otherwise use Node.js with npm
+- Cache dependencies (node_modules or bun cache)
+- Steps: checkout → setup runtime → install → build → test (if test script exists, use --passWithNoTests) → deploy
+- Deploy step: curl -s -o /dev/null -w "%{http_code}" -X POST "${webhookUrl}" and assert 200
+- Use concurrency group to cancel in-progress runs on the same branch
+- Output ONLY the raw YAML. No markdown, no code fences, no commentary.`;
+
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { temperature: 0.2, maxOutputTokens: 2048 },
+      }),
+    }
+  );
+
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`Gemini error: ${errText}`);
+  }
+
+  const data = await res.json() as {
+    candidates: { content: { parts: { text: string }[] } }[];
+  };
+  const yaml = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? "";
+
+  reply.code(200).send({ yaml });
+}
+
 export async function updateProjectEnvHandler(
   req: FastifyRequest<{ Params: ProjectParams; Body: UpdateEnvBody }>,
   reply: FastifyReply

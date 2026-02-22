@@ -180,6 +180,8 @@ export const api = {
       request<RollbackResult>("POST", `/api/v1/projects/${id}/rollback`),
     cancelDeploy: (id: string) =>
       request<{ cancelled: boolean }>("POST", `/api/v1/projects/${id}/cancel-deploy`),
+    generatePipeline: (id: string, webhookUrl: string) =>
+      request<{ yaml: string }>("POST", `/api/v1/projects/${id}/generate-pipeline`, { webhookUrl }),
   },
   deployments: {
     list: () =>

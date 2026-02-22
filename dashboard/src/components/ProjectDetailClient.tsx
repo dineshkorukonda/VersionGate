@@ -68,6 +68,11 @@ export function ProjectDetailClient() {
   const [deleting, setDeleting] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
 
+  // AI Pipeline generation
+  const [pipelineLoading, setPipelineLoading] = useState(false);
+  const [pipelineYaml, setPipelineYaml] = useState<string | null>(null);
+  const [pipelineStep, setPipelineStep] = useState(0);
+
   // Settings panel
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [savingSettings, setSavingSettings] = useState(false);
@@ -262,6 +267,32 @@ export function ProjectDetailClient() {
     fetchMetrics();
     fetchLogs();
     toast.success("Refreshed", { duration: 1500 });
+  }
+
+  async function handleGeneratePipeline() {
+    if (!project?.webhookSecret) return;
+    setPipelineLoading(true);
+    setPipelineYaml(null);
+    setPipelineStep(0);
+
+    const webhookUrl = `${window.location.origin}/api/v1/webhooks/${project.webhookSecret}`;
+
+    // Cycle through loading messages
+    const steps = [0, 1, 2, 3];
+    const timers = steps.map((s) =>
+      setTimeout(() => setPipelineStep(s), s * 1800)
+    );
+
+    try {
+      const { yaml } = await api.projects.generatePipeline(projectId, webhookUrl);
+      timers.forEach(clearTimeout);
+      setPipelineYaml(yaml);
+    } catch (err) {
+      timers.forEach(clearTimeout);
+      toast.error(err instanceof Error ? err.message : "Failed to generate pipeline");
+    } finally {
+      setPipelineLoading(false);
+    }
   }
 
   // Fetch repo directory tree when settings panel opens
@@ -573,7 +604,7 @@ export function ProjectDetailClient() {
             <KV k="Image" v={activeDeployment?.imageTag ?? "—"} mono truncate />
           </div>
 
-          {/* Webhook URL */}
+          {/* Webhook + AI Pipeline */}
           <div className="pt-3 border-t border-zinc-800 space-y-2">
             <p className="text-xs font-medium text-zinc-400">Auto-Deploy Webhook</p>
             {project.webhookSecret ? (
@@ -592,6 +623,20 @@ export function ProjectDetailClient() {
                   className="w-full py-1.5 rounded-lg bg-zinc-700 hover:bg-zinc-600 text-zinc-300 hover:text-zinc-100 text-xs font-medium transition-colors"
                 >
                   Copy URL
+                </button>
+
+                {/* AI Pipeline Generator */}
+                <button
+                  onClick={handleGeneratePipeline}
+                  disabled={pipelineLoading}
+                  className="w-full py-2 rounded-lg bg-gradient-to-r from-violet-600/80 to-indigo-600/80 hover:from-violet-500/90 hover:to-indigo-500/90 text-white text-xs font-medium transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 border border-violet-500/30"
+                >
+                  {pipelineLoading ? (
+                    <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <span>✦</span>
+                  )}
+                  {pipelineLoading ? "Generating..." : pipelineYaml ? "Regenerate CI Pipeline" : "Generate CI Pipeline with AI"}
                 </button>
               </>
             ) : (
@@ -616,6 +661,16 @@ export function ProjectDetailClient() {
       {/* ── Deploy Progress ──────────────────────────────────────────────────── */}
       {deployStep >= 0 && (
         <DeployProgressPanel step={deployStep} failed={deployFailed} />
+      )}
+
+      {/* ── AI Pipeline Generation ───────────────────────────────────────────── */}
+      {(pipelineLoading || pipelineYaml) && (
+        <AIPipelinePanel
+          loading={pipelineLoading}
+          step={pipelineStep}
+          yaml={pipelineYaml}
+          projectName={project.name}
+        />
       )}
 
       {/* ── Blue / Green Slots ───────────────────────────────────────────────── */}
@@ -1053,6 +1108,121 @@ function Spinner({ label }: { label: string }) {
       <span className="w-3 h-3 border-2 border-current/30 border-t-current rounded-full animate-spin" />
       {label}
     </span>
+  );
+}
+
+// ── AI Pipeline Panel ─────────────────────────────────────────────────────────
+
+const AI_STEPS = [
+  { icon: "⬡", label: "Analyzing project structure", sub: "Reading repo config, runtime and dependencies..." },
+  { icon: "⬡", label: "Designing pipeline stages",   sub: "Planning CI steps: install → build → test → deploy..." },
+  { icon: "⬡", label: "Generating workflow YAML",    sub: "Crafting GitHub Actions syntax and job definitions..." },
+  { icon: "⬡", label: "Wiring ZeroShift webhook",    sub: "Injecting auto-deploy trigger into the pipeline..." },
+];
+
+function AIPipelinePanel({
+  loading,
+  step,
+  yaml,
+  projectName,
+}: {
+  loading: boolean;
+  step: number;
+  yaml: string | null;
+  projectName: string;
+}) {
+  const [copied, setCopied] = useState(false);
+
+  function copyYaml() {
+    if (!yaml) return;
+    navigator.clipboard.writeText(yaml).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
+  return (
+    <div className="bg-zinc-900 border border-violet-800/40 rounded-xl overflow-hidden shadow-[0_0_40px_rgba(139,92,246,0.08)]">
+      {/* Header */}
+      <div className="flex items-center gap-3 px-6 py-4 border-b border-violet-800/20 bg-gradient-to-r from-violet-950/40 to-indigo-950/40">
+        <div className="w-7 h-7 rounded-full bg-violet-500/20 border border-violet-500/30 flex items-center justify-center text-violet-400 text-sm">
+          ✦
+        </div>
+        <div>
+          <p className="text-sm font-semibold text-zinc-100">AI CI Pipeline</p>
+          <p className="text-xs text-zinc-500">
+            {loading ? "Generating GitHub Actions workflow for " : "Generated for "}
+            <span className="text-violet-400 font-mono">{projectName}</span>
+          </p>
+        </div>
+        {loading && (
+          <div className="ml-auto flex items-center gap-1.5">
+            {[0, 1, 2].map((i) => (
+              <span
+                key={i}
+                className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-bounce"
+                style={{ animationDelay: `${i * 0.15}s` }}
+              />
+            ))}
+          </div>
+        )}
+        {!loading && yaml && (
+          <button
+            onClick={copyYaml}
+            className="ml-auto px-3 py-1.5 rounded-lg bg-violet-600/30 hover:bg-violet-600/50 border border-violet-500/30 text-violet-300 hover:text-violet-100 text-xs font-medium transition-colors"
+          >
+            {copied ? "✓ Copied!" : "Copy YAML"}
+          </button>
+        )}
+      </div>
+
+      {/* Loading state — step-by-step progress */}
+      {loading && (
+        <div className="px-6 py-5 space-y-3">
+          {AI_STEPS.map((s, i) => {
+            const done    = i < step;
+            const active  = i === step;
+            const pending = i > step;
+            return (
+              <div key={i} className={`flex items-start gap-3 transition-opacity duration-500 ${pending ? "opacity-25" : "opacity-100"}`}>
+                <div className={`mt-0.5 w-5 h-5 rounded-full flex items-center justify-center shrink-0 text-[10px] transition-colors ${
+                  done   ? "bg-emerald-500/20 text-emerald-400" :
+                  active ? "bg-violet-500/20 text-violet-400" :
+                           "bg-zinc-800 text-zinc-600"
+                }`}>
+                  {done ? "✓" : active ? (
+                    <span className="w-2.5 h-2.5 border border-violet-400 border-t-transparent rounded-full animate-spin block" />
+                  ) : s.icon}
+                </div>
+                <div>
+                  <p className={`text-sm font-medium ${done ? "text-zinc-500" : active ? "text-zinc-100" : "text-zinc-600"}`}>
+                    {s.label}
+                  </p>
+                  {active && (
+                    <p className="text-xs text-zinc-500 mt-0.5">{s.sub}</p>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Result — generated YAML */}
+      {!loading && yaml && (
+        <div className="relative">
+          {/* File path bar */}
+          <div className="flex items-center gap-2 px-4 py-2 bg-zinc-950/60 border-b border-zinc-800">
+            <span className="text-zinc-600 text-xs">📄</span>
+            <span className="text-xs font-mono text-zinc-400">.github/workflows/ci.yml</span>
+            <span className="ml-auto text-xs text-zinc-600">{yaml.split("\n").length} lines</span>
+          </div>
+          <pre className="px-5 py-4 text-xs font-mono text-zinc-300 leading-relaxed overflow-x-auto max-h-[520px] overflow-y-auto bg-zinc-950/40 whitespace-pre">
+            {yaml}
+          </pre>
+        </div>
+      )}
+    </div>
   );
 }
 

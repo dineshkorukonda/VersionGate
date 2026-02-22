@@ -7,6 +7,7 @@ import {
   rollbackProjectHandler,
   updateProjectHandler,
   updateProjectEnvHandler,
+  generatePipelineHandler,
 } from "../controllers/project.controller";
 
 const envSchema = {
@@ -146,6 +147,24 @@ export async function projectRoutes(app: FastifyInstance): Promise<void> {
       },
     },
     handler: updateProjectEnvHandler,
+  });
+
+  app.post("/projects/:id/generate-pipeline", {
+    schema: {
+      body: {
+        type: "object",
+        required: ["webhookUrl"],
+        properties: { webhookUrl: { type: "string" } },
+        additionalProperties: false,
+      },
+      response: {
+        200: {
+          type: "object",
+          properties: { yaml: { type: "string" } },
+        },
+      },
+    },
+    handler: generatePipelineHandler,
   });
 
   app.post("/projects/:id/rollback", {

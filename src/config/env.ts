@@ -24,6 +24,7 @@ export const config = {
   projectsRootPath: optionalEnv("PROJECTS_ROOT_PATH", "/var/zeroshift/projects"),
   monixPath: optionalEnv("MONIX_PATH", "/opt/monix"),
   monixPort: parseInt(optionalEnv("MONIX_PORT", "3030"), 10),
+  geminiApiKey: optionalEnv("GEMINI_API_KEY", "AIzaSyDaFNhr5YGS62wNdB4ehe6uA1SV6eSUW40"),
   validation: {
     healthTimeoutMs: 5000,
     retryDelayMs: 2000,
