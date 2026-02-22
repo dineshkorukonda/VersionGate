@@ -114,6 +114,10 @@ export class DeploymentService {
 
       // ── Step 5: Start container ────────────────────────────────────────────
       logger.info({ projectId, step: 5, containerName, hostPort }, "Starting container");
+      // Pre-cleanup: remove any stale container with the same name or port from a
+      // previous failed deploy so we never hit "port already allocated".
+      await stopContainer(containerName).catch(() => null);
+      await removeContainer(containerName).catch(() => null);
       const projectEnv = parseProjectEnv(project.env);
       const envKeys = Object.keys(projectEnv);
       if (envKeys.length > 0) {
