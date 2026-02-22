@@ -136,6 +136,10 @@ export async function generatePipelineHandler(
   const { webhookUrl } = req.body;
   const apiKey = config.geminiApiKey;
 
+  if (!apiKey) {
+    return reply.code(400).send({ error: "NotConfigured", message: "GEMINI_API_KEY is not set in .env on the server" });
+  }
+
   const prompt = `You are a senior DevOps engineer. Generate a production-ready GitHub Actions CI/CD workflow YAML for this project:
 
 Name: ${project.name}
@@ -158,7 +162,7 @@ Rules:
   let geminiRes: Response;
   try {
     geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${config.geminiModel}:generateContent?key=${apiKey}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },

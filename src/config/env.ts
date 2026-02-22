@@ -25,6 +25,7 @@ export const config = {
   monixPath: optionalEnv("MONIX_PATH", "/opt/monix"),
   monixPort: parseInt(optionalEnv("MONIX_PORT", "3030"), 10),
   geminiApiKey: optionalEnv("GEMINI_API_KEY", ""),
+  geminiModel: optionalEnv("GEMINI_MODEL", "gemini-2.0-flash"),
   validation: {
     healthTimeoutMs: 5000,
     retryDelayMs: 2000,
