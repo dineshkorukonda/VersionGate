@@ -36,10 +36,24 @@ export async function ensureDockerfile(
     // Does not exist — generate one
   }
 
-  // Try detection in the specified build context first.
+  // Build candidate list: specified buildContext → repo root → immediate subdirs of repo root.
+  const root = repoRootDir ?? buildContextDir;
   const dirsToTry: string[] = [buildContextDir];
-  if (repoRootDir && repoRootDir !== buildContextDir) {
-    dirsToTry.push(repoRootDir);
+  if (root !== buildContextDir) dirsToTry.push(root);
+
+  // Scan one level of subdirectories of the repo root as a final fallback.
+  // This handles repos where the app lives inside e.g. `backend/` or `url-shortener/`.
+  try {
+    const entries = await fs.readdir(root, { withFileTypes: true });
+    const subdirs = entries
+      .filter((e) => e.isDirectory() && !e.name.startsWith(".") && e.name !== "node_modules")
+      .map((e) => path.join(root, e.name));
+    logger.info({ root, subdirs }, "Scanning repo for project files");
+    for (const sub of subdirs) {
+      if (!dirsToTry.includes(sub)) dirsToTry.push(sub);
+    }
+  } catch {
+    // readdir failed — skip subdir scan
   }
 
   for (const dir of dirsToTry) {
@@ -47,14 +61,7 @@ export async function ensureDockerfile(
     if (content !== null) {
       const targetDockerfile = path.join(dir, "Dockerfile");
       await fs.writeFile(targetDockerfile, content, "utf-8");
-      if (dir !== buildContextDir) {
-        logger.info(
-          { buildContextDir, fallbackDir: dir, appPort },
-          "Dockerfile auto-generated using repo root (build context adjusted)"
-        );
-      } else {
-        logger.info({ dir, appPort }, "Dockerfile auto-generated");
-      }
+      logger.info({ dir, appPort }, "Dockerfile auto-generated");
       return dir;
     }
   }
