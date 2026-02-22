@@ -26,13 +26,17 @@ export async function execAsync(command: string): Promise<ExecResult> {
 /**
  * Promisified child_process.execFile (shell=false).
  * Arguments are passed as an array — no shell expansion, no injection risk.
+ * maxBuffer raised to 50 MB to handle large Docker build output.
  */
 export async function execFileAsync(cmd: string, args: string[]): Promise<ExecResult> {
   try {
-    const { stdout, stderr } = await execFilePromise(cmd, args);
+    const { stdout, stderr } = await execFilePromise(cmd, args, { maxBuffer: 50 * 1024 * 1024 });
     return { stdout: stdout.toString(), stderr: stderr.toString() };
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err);
-    throw new Error(`Command failed: ${cmd} ${args.join(" ")}\n${message}`);
+    // execFile errors carry .stderr with the actual output — include it in the message
+    const errObj = err as NodeJS.ErrnoException & { stderr?: Buffer | string; stdout?: Buffer | string };
+    const stderr = errObj.stderr ? errObj.stderr.toString().trim() : "";
+    const detail = stderr || (err instanceof Error ? err.message : String(err));
+    throw new Error(`Command failed: ${cmd} ${args.join(" ")}\n${detail}`);
   }
 }
