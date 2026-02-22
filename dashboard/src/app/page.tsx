@@ -206,9 +206,9 @@ export default function OverviewPage() {
                 { label: "Failed",     value: failedCount,       color: failedCount > 0 ? "text-red-400" : "text-zinc-600" },
                 { label: "Deploying",  value: deployingCount,    color: deployingCount > 0 ? "text-amber-400" : "text-zinc-600" },
               ].map(({ label, value, color }) => (
-                <div key={label} className="bg-zinc-950 rounded-lg p-3">
-                  <p className={`text-xl font-semibold ${color}`}>{value}</p>
-                  <p className="text-xs text-zinc-600 mt-0.5">{label}</p>
+                <div key={label} className="bg-zinc-950 rounded-lg px-4 py-5">
+                  <p className={`text-3xl font-bold tracking-tight ${color}`}>{value}</p>
+                  <p className="text-xs text-zinc-500 mt-1.5">{label}</p>
                 </div>
               ))}
             </div>
@@ -247,7 +247,7 @@ export default function OverviewPage() {
                 </div>
               </div>
             ) : (
-              <div className="py-4 text-center">
+              <div className="py-8 text-center">
                 <p className="text-xs text-zinc-700">Monix not running</p>
                 <p className="text-[10px] text-zinc-800 mt-1">Start monix to see server metrics</p>
               </div>
@@ -278,8 +278,8 @@ export default function OverviewPage() {
             {loading ? (
               <div className="divide-y divide-zinc-800">
                 {Array.from({ length: 3 }).map((_, i) => (
-                  <div key={i} className="px-5 py-4 flex items-center gap-4 animate-pulse">
-                    <div className="w-8 h-8 bg-zinc-800 rounded-lg shrink-0" />
+                  <div key={i} className="px-5 py-5 flex items-center gap-4 animate-pulse">
+                    <div className="w-9 h-9 bg-zinc-800 rounded-lg shrink-0" />
                     <div className="flex-1 space-y-1.5">
                       <div className="h-3 bg-zinc-800 rounded w-1/4" />
                       <div className="h-2.5 bg-zinc-800 rounded w-1/2" />
@@ -306,10 +306,10 @@ export default function OverviewPage() {
                     <Link
                       key={p.id}
                       href={`/projects/${p.id}`}
-                      className="flex items-center gap-4 px-5 py-4 hover:bg-zinc-800/40 transition-colors group"
+                      className="flex items-center gap-4 px-5 py-5 hover:bg-zinc-800/40 transition-colors group"
                     >
                       {/* Avatar */}
-                      <div className="w-8 h-8 rounded-lg bg-zinc-800 border border-zinc-700 flex items-center justify-center shrink-0 group-hover:border-zinc-600 transition-colors">
+                      <div className="w-9 h-9 rounded-lg bg-zinc-800 border border-zinc-700 flex items-center justify-center shrink-0 group-hover:border-zinc-600 transition-colors">
                         <span className="text-xs font-bold text-zinc-400 uppercase">
                           {p.name.slice(0, 2)}
                         </span>
@@ -373,16 +373,16 @@ export default function OverviewPage() {
 
       {/* ── Deployment analytics charts ── */}
       {Object.keys(deploymentMap).length > 0 && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
-            <p className="text-xs font-medium text-zinc-500 uppercase tracking-wider mb-4">Deployment Status</p>
-            <div className="flex items-center justify-center">
+        <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
+            <p className="text-xs font-medium text-zinc-500 uppercase tracking-wider mb-5">Deployment Status</p>
+            <div className="flex items-center justify-center py-2">
               <DeploymentPieChart deployments={Object.values(deploymentMap)} />
             </div>
           </div>
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
-            <p className="text-xs font-medium text-zinc-500 uppercase tracking-wider mb-4">Deployments per Project</p>
-            <div className="flex items-center justify-center">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
+            <p className="text-xs font-medium text-zinc-500 uppercase tracking-wider mb-5">Deployments per Project</p>
+            <div className="flex items-center justify-center py-2">
               <DeploymentsPerProjectChart projects={projects} deployments={Object.values(deploymentMap)} />
             </div>
           </div>
