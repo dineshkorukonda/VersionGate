@@ -42,62 +42,6 @@
 
     a { color: inherit; text-decoration: none; }
 
-    /* ── NAV ─────────────────────────────────────────────────────────────────── */
-    nav {
-      position: sticky;
-      top: 0;
-      z-index: 100;
-      border-bottom: 1px solid var(--border);
-      background: rgba(10,10,10,0.92);
-      backdrop-filter: blur(12px);
-      padding: 0 48px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      height: 52px;
-    }
-
-    .nav-logo {
-      font-family: 'JetBrains Mono', monospace;
-      font-weight: 600;
-      font-size: 14px;
-      color: var(--text);
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .nav-logo span { color: var(--green); }
-
-    .nav-links {
-      display: flex;
-      align-items: center;
-      gap: 32px;
-      list-style: none;
-    }
-
-    .nav-links a {
-      font-size: 13px;
-      color: var(--text2);
-      transition: color 0.15s;
-    }
-
-    .nav-links a:hover { color: var(--text); }
-
-    .nav-cta {
-      font-size: 13px;
-      font-weight: 500;
-      padding: 6px 16px;
-      border: 1px solid var(--border2);
-      border-radius: 4px;
-      color: var(--text);
-      background: var(--bg2);
-      cursor: pointer;
-      transition: background 0.15s, border-color 0.15s;
-    }
-
-    .nav-cta:hover { background: var(--bg3); border-color: var(--text2); }
-
     /* ── HERO ────────────────────────────────────────────────────────────────── */
     .hero {
       max-width: 960px;
@@ -798,20 +742,6 @@
 </head>
 <body>
 
-<!-- ── NAV ──────────────────────────────────────────────────────────────────── -->
-<nav>
-  <div class="nav-logo">
-    <span>▸</span> ZeroShift Engine
-  </div>
-  <ul class="nav-links">
-    <li><a href="#how-it-works">How it works</a></li>
-    <li><a href="#features">Features</a></li>
-    <li><a href="#setup">Setup</a></li>
-    <li><a href="#api">API</a></li>
-  </ul>
-  <a class="nav-cta" href="https://github.com/dinexh/ZeroShift-Engine" target="_blank">GitHub →</a>
-</nav>
-
 <!-- ── HERO ─────────────────────────────────────────────────────────────────── -->
 <div class="hero">
   <div class="badge">v1.0 — Self-hosted</div>
@@ -1051,14 +981,14 @@
       <p class="feature-desc">Inject environment variables per project via the dashboard. Applied to the next deploy — no restart required.</p>
     </div>
     <div class="feature">
-      <span class="feature-icon">✦</span>
-      <div class="feature-title">AI CI pipeline</div>
-      <p class="feature-desc">Generate a GitHub Actions CI/CD workflow for your project in seconds. Wired to your ZeroShift webhook automatically.</p>
+      <span class="feature-icon">◈</span>
+      <div class="feature-title">Server monitoring</div>
+      <p class="feature-desc">Live CPU, memory, disk, and network stats for the host server. Per-container metrics — CPU %, memory used, net I/O, block I/O, PIDs. All polled in real-time from the dashboard.</p>
     </div>
     <div class="feature">
-      <span class="feature-icon">◈</span>
-      <div class="feature-title">Built-in dashboard</div>
-      <p class="feature-desc">Real-time metrics, live logs, deployment history, blue/green slot status — served from the same Fastify server as the API.</p>
+      <span class="feature-icon">✦</span>
+      <div class="feature-title">Automatic CI pipeline</div>
+      <p class="feature-desc">AI-generates a production GitHub Actions workflow for your project — detects runtime, caches deps, runs build &amp; test, then fires the ZeroShift webhook to deploy on every push.</p>
     </div>
   </div>
 </section>
