@@ -21,9 +21,6 @@ export function Sidebar() {
       {/* Logo */}
       <div className="px-5 py-5 border-b border-zinc-800">
         <div className="flex items-center gap-2.5">
-          <div className="w-6 h-6 rounded bg-zinc-100 flex items-center justify-center">
-            <span className="text-zinc-900 text-xs font-black">Z</span>
-          </div>
           <span className="text-sm font-semibold text-zinc-100 tracking-tight">VersionGate</span>
           <span className="text-[10px] text-zinc-500 bg-zinc-900 border border-zinc-700 px-1.5 py-0.5 rounded ml-auto">
             Engine
