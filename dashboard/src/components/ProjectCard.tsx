@@ -70,7 +70,7 @@ export function ProjectCard({ project, activeDeployment, onDeleted }: Props) {
               <>
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-zinc-500">Slot</span>
-                  <span className={`text-xs font-semibold font-mono ${activeDeployment.color === "BLUE" ? "text-blue-400" : "text-emerald-400"}`}>
+                  <span className={`text-xs font-semibold font-mono ${activeDeployment.color === "BLUE" ? "text-blue-400" : "text-indigo-400"}`}>
                     {activeDeployment.color} :{activeDeployment.port}
                   </span>
                 </div>

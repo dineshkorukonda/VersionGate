@@ -146,8 +146,8 @@ function Charts({ history }: { history: Sample[] }) {
           <RC.AreaChart data={history.map(s => ({ ...s, rx: +(s.recvRate / 1024).toFixed(2), tx: +(s.sentRate / 1024).toFixed(2) }))} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
             <defs>
               <linearGradient id="gRx" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#34d399" stopOpacity={0.3} />
-                <stop offset="95%" stopColor="#34d399" stopOpacity={0} />
+                <stop offset="5%" stopColor="#818cf8" stopOpacity={0.3} />
+                <stop offset="95%" stopColor="#818cf8" stopOpacity={0} />
               </linearGradient>
               <linearGradient id="gTx" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor="#f97316" stopOpacity={0.3} />
@@ -159,7 +159,7 @@ function Charts({ history }: { history: Sample[] }) {
             <RC.YAxis {...axis} />
             <RC.Tooltip {...tooltip} formatter={(v: number, n: string) => [`${v.toFixed(2)} KB/s`, n === "rx" ? "RX" : "TX"]} />
             <RC.Legend wrapperStyle={{ fontSize: 10, color: "#71717a" }} formatter={(v: string) => v === "rx" ? "RX (in)" : "TX (out)"} />
-            <RC.Area type="monotone" dataKey="rx" stroke="#34d399" strokeWidth={1.5} fill="url(#gRx)" dot={false} isAnimationActive={false} />
+            <RC.Area type="monotone" dataKey="rx" stroke="#818cf8" strokeWidth={1.5} fill="url(#gRx)" dot={false} isAnimationActive={false} />
             <RC.Area type="monotone" dataKey="tx" stroke="#f97316" strokeWidth={1.5} fill="url(#gTx)" dot={false} isAnimationActive={false} />
           </RC.AreaChart>
         </RC.ResponsiveContainer>
@@ -303,9 +303,9 @@ export default function ServerPage() {
           <div className="border-t border-zinc-800 pt-4 space-y-3">
             <p className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Network (total)</p>
             {[
-              { label: "Total Received", value: formatBytes(stats.network_recv), color: "text-emerald-400" },
+              { label: "Total Received", value: formatBytes(stats.network_recv), color: "text-indigo-400" },
               { label: "Total Sent",     value: formatBytes(stats.network_sent), color: "text-orange-400" },
-              { label: "RX Rate",        value: `${formatBytes(stats.network_recv_rate)}/s`, color: "text-emerald-300" },
+              { label: "RX Rate",        value: `${formatBytes(stats.network_recv_rate)}/s`, color: "text-indigo-300" },
               { label: "TX Rate",        value: `${formatBytes(stats.network_sent_rate)}/s`, color: "text-orange-300" },
             ].map(({ label, value, color }) => (
               <div key={label} className="flex justify-between text-xs">
@@ -351,7 +351,7 @@ export default function ServerPage() {
                     <tr key={i} className="hover:bg-zinc-800/30">
                       <td className="px-5 py-2 font-mono text-zinc-400 truncate max-w-[120px]">{c.remote_address ?? "—"}</td>
                       <td className="px-5 py-2 font-mono text-zinc-600 truncate max-w-[100px]">{c.local_address ?? "—"}</td>
-                      <td className="px-5 py-2 text-emerald-400 font-medium">{c.state ?? "—"}</td>
+                      <td className="px-5 py-2 text-indigo-400 font-medium">{c.state ?? "—"}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -370,7 +370,7 @@ export default function ServerPage() {
           <div className="max-h-64 overflow-y-auto">
             {!dashboard?.alerts?.length ? (
               <div className="px-5 py-8 text-center">
-                <p className="text-xs text-emerald-400 font-medium">All systems normal</p>
+                <p className="text-xs text-indigo-400 font-medium">All systems normal</p>
                 <p className="text-[10px] text-zinc-700 mt-1">No alerts detected</p>
               </div>
             ) : (

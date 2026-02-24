@@ -265,7 +265,7 @@ export function CreateProjectModal({ open, onClose, onCreated }: Props) {
                 )}
               </div>
               {!branchesLoading && branches.length > 0 && (
-                <p className="text-xs text-emerald-600 mt-1">
+                <p className="text-xs text-indigo-500 mt-1">
                   ✓ {branches.length} branches loaded
                 </p>
               )}

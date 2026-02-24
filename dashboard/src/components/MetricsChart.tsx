@@ -106,8 +106,8 @@ export function MetricsChart({ data }: Props) {
           <RC.AreaChart data={data} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
             <defs>
               <linearGradient id="gNetInPrj" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%"  stopColor="#34d399" stopOpacity={0.25} />
-                <stop offset="95%" stopColor="#34d399" stopOpacity={0} />
+                <stop offset="5%"  stopColor="#818cf8" stopOpacity={0.25} />
+                <stop offset="95%" stopColor="#818cf8" stopOpacity={0} />
               </linearGradient>
               <linearGradient id="gNetOutPrj" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%"  stopColor="#f97316" stopOpacity={0.2} />
@@ -130,7 +130,7 @@ export function MetricsChart({ data }: Props) {
             />
             <RC.Area
               type="monotone" dataKey="netInKB"
-              stroke="#34d399" strokeWidth={2}
+              stroke="#818cf8" strokeWidth={2}
               fill="url(#gNetInPrj)" dot={false} isAnimationActive={false}
             />
             <RC.Area

@@ -424,7 +424,7 @@ export function ProjectDetailClient() {
             <Stat label="Success rate">
               <span className={`text-sm font-medium ${
                 successRate === null ? "text-zinc-600" :
-                successRate >= 80    ? "text-emerald-400" :
+                successRate >= 80    ? "text-indigo-400" :
                 successRate >= 50    ? "text-amber-400"   : "text-red-400"
               }`}>
                 {successRate === null ? "—" : `${successRate}%`}
@@ -442,7 +442,7 @@ export function ProjectDetailClient() {
               <MetricTile value={`${metrics.cpu.toFixed(1)}%`} label="CPU" color="text-blue-400" />
               <MetricTile value={formatBytes(metrics.memoryUsed)} label="Memory" color="text-violet-400" />
               <MetricTile value={`${metrics.memoryPercent.toFixed(1)}%`} label="Mem %" color="text-zinc-300" />
-              <MetricTile value={formatBytes(metrics.netIn ?? 0)} label="Net RX" color="text-emerald-400" />
+              <MetricTile value={formatBytes(metrics.netIn ?? 0)} label="Net RX" color="text-indigo-400" />
               <MetricTile value={formatBytes(metrics.netOut ?? 0)} label="Net TX" color="text-orange-400" />
               <MetricTile value={String(metrics.pids ?? 0)} label="PIDs" color="text-zinc-400" />
             </div>
@@ -728,7 +728,7 @@ export function ProjectDetailClient() {
             <div className="flex items-center gap-1.5">
               <span className="text-xs text-zinc-500">nginx upstream</span>
               <span className="text-xs text-zinc-700">→</span>
-              <span className={`text-xs font-semibold font-mono ${activeDeployment.color === "BLUE" ? "text-blue-400" : "text-emerald-400"}`}>
+              <span className={`text-xs font-semibold font-mono ${activeDeployment.color === "BLUE" ? "text-blue-400" : "text-indigo-400"}`}>
                 {activeDeployment.containerName}
               </span>
               <span className="text-xs text-zinc-600">:{activeDeployment.port}</span>
@@ -758,7 +758,7 @@ export function ProjectDetailClient() {
                   <tr key={d.id} className={`hover:bg-zinc-800/30 transition-colors ${d.status === "FAILED" ? "bg-red-950/10" : ""}`}>
                     <td className="py-2 pr-4 font-mono text-zinc-300">v{d.version}</td>
                     <td className="py-2 pr-4">
-                      <span className={`font-semibold ${d.color === "BLUE" ? "text-blue-400" : "text-emerald-400"}`}>
+                      <span className={`font-semibold ${d.color === "BLUE" ? "text-blue-400" : "text-indigo-400"}`}>
                         {d.color}
                       </span>
                     </td>
@@ -935,13 +935,13 @@ function DeployProgressPanel({ step, failed }: { step: number; failed: boolean }
   const done = step >= DEPLOY_STEPS.length;
   return (
     <div className={`bg-zinc-900 border rounded-xl p-5 transition-colors duration-500 ${
-      failed ? "border-red-800/60" : done ? "border-emerald-800/40" : "border-zinc-800"
+      failed ? "border-red-800/60" : done ? "border-indigo-900/40" : "border-zinc-800"
     }`}>
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-sm font-medium text-zinc-400">Deploy Progress</h2>
         {done && !failed && (
-          <span className="text-xs font-semibold text-emerald-400 flex items-center gap-1.5">
-            <span className="w-4 h-4 rounded-full bg-emerald-500/20 flex items-center justify-center text-[10px]">✓</span>
+          <span className="text-xs font-semibold text-indigo-400 flex items-center gap-1.5">
+            <span className="w-4 h-4 rounded-full bg-indigo-500/20 flex items-center justify-center text-[10px]">✓</span>
             Complete
           </span>
         )}
@@ -971,7 +971,7 @@ function DeployProgressPanel({ step, failed }: { step: number; failed: boolean }
             }`}>
               {/* Step icon */}
               <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 text-[10px] font-bold transition-colors ${
-                isDone    ? "bg-emerald-500/20 text-emerald-400" :
+                isDone    ? "bg-indigo-500/20 text-indigo-400" :
                 isFailed  ? "bg-red-500/20 text-red-400" :
                 isActive  ? "bg-blue-500/20 text-blue-400" :
                             "bg-zinc-800 text-zinc-600"
@@ -1011,7 +1011,7 @@ function DeployProgressPanel({ step, failed }: { step: number; failed: boolean }
       {!failed && (
         <div className="mt-4 h-1 bg-zinc-800 rounded-full overflow-hidden">
           <div
-            className={`h-full rounded-full transition-all duration-700 ${done ? "bg-emerald-500" : "bg-blue-500"}`}
+            className={`h-full rounded-full transition-all duration-700 ${done ? "bg-indigo-500" : "bg-blue-500"}`}
             style={{ width: `${done ? 100 : (Math.min(step, DEPLOY_STEPS.length) / DEPLOY_STEPS.length) * 100}%` }}
           />
         </div>
@@ -1037,11 +1037,11 @@ function DeploymentSlot({
 
   const activeRing = isBlue
     ? "border-blue-500/50 shadow-[0_0_24px_rgba(59,130,246,0.12)] bg-blue-500/[0.03]"
-    : "border-emerald-500/50 shadow-[0_0_24px_rgba(16,185,129,0.12)] bg-emerald-500/[0.03]";
+    : "border-indigo-500/50 shadow-[0_0_24px_rgba(16,185,129,0.12)] bg-indigo-500/[0.03]";
 
-  const dotColor    = isBlue ? "bg-blue-400" : "bg-emerald-400";
-  const labelColor  = isBlue ? "text-blue-400" : "text-emerald-400";
-  const badgeColor  = isBlue ? "bg-blue-500 text-white" : "bg-emerald-500 text-white";
+  const dotColor    = isBlue ? "bg-blue-400" : "bg-indigo-400";
+  const labelColor  = isBlue ? "text-blue-400" : "text-indigo-400";
+  const badgeColor  = isBlue ? "bg-blue-500 text-white" : "bg-indigo-500 text-white";
 
   return (
     <div className={`relative rounded-xl border p-5 transition-all duration-500 ${isActive ? activeRing : "border-zinc-800 bg-zinc-950"}`}>
@@ -1331,7 +1331,7 @@ function AIPipelinePanel({
             return (
               <div key={i} className={`flex items-start gap-3 transition-opacity duration-500 ${pending ? "opacity-25" : "opacity-100"}`}>
                 <div className={`mt-0.5 w-5 h-5 rounded-full flex items-center justify-center shrink-0 text-[10px] transition-colors ${
-                  done   ? "bg-emerald-500/20 text-emerald-400" :
+                  done   ? "bg-indigo-500/20 text-indigo-400" :
                   active ? "bg-violet-500/20 text-violet-400" :
                            "bg-zinc-800 text-zinc-600"
                 }`}>

@@ -73,7 +73,7 @@ export default function DeploymentsPage() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
           { label: "Total",       value: deployments.length,       color: "text-zinc-200" },
-          { label: "Active",      value: statusCounts.ACTIVE,      color: "text-emerald-400" },
+          { label: "Active",      value: statusCounts.ACTIVE,      color: "text-indigo-400" },
           { label: "Failed",      value: statusCounts.FAILED,      color: statusCounts.FAILED > 0 ? "text-red-400" : "text-zinc-600" },
           { label: "Rolled back", value: statusCounts.ROLLED_BACK, color: "text-zinc-400" },
         ].map(({ label, value, color }) => (
@@ -179,7 +179,7 @@ export default function DeploymentsPage() {
                       </td>
                       <td className="px-5 py-3.5 font-mono text-zinc-400">v{d.version}</td>
                       <td className="px-5 py-3.5">
-                        <span className={`font-semibold ${d.color === "BLUE" ? "text-blue-400" : "text-emerald-400"}`}>
+                        <span className={`font-semibold ${d.color === "BLUE" ? "text-blue-400" : "text-indigo-400"}`}>
                           {d.color}
                         </span>
                       </td>

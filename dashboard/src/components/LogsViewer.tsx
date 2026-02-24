@@ -22,7 +22,7 @@ function classifyLine(line: string): LogLevel {
 const levelClass: Record<LogLevel, string> = {
   error:   "text-red-400",
   warn:    "text-amber-400",
-  success: "text-emerald-400",
+  success: "text-indigo-400",
   info:    "text-blue-400",
   debug:   "text-zinc-500",
   plain:   "text-zinc-300",
@@ -90,7 +90,7 @@ export function LogsViewer({ lines, loading, lastUpdated }: Props) {
         <div className="flex items-center gap-1.5 px-4 py-2 border-b border-zinc-800 bg-zinc-900">
           <span className="w-2.5 h-2.5 rounded-full bg-red-500/60" />
           <span className="w-2.5 h-2.5 rounded-full bg-amber-500/60" />
-          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/60" />
+          <span className="w-2.5 h-2.5 rounded-full bg-indigo-500/60" />
           <span className="ml-2 text-xs text-zinc-600 font-mono">stdout / stderr</span>
         </div>
 
