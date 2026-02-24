@@ -8,11 +8,11 @@ interface Step {
   error?: string;
 }
 
-type Phase = "form" | "running" | "restarting" | "done" | "error";
+type Phase = "checking" | "form" | "running" | "restarting" | "done" | "error";
 
 export default function SetupPage() {
   const router = useRouter();
-  const [phase, setPhase] = useState<Phase>("form");
+  const [phase, setPhase] = useState<Phase>("checking");
   const [domain, setDomain] = useState("");
   const [databaseUrl, setDatabaseUrl] = useState("");
   const [geminiApiKey, setGeminiApiKey] = useState("");
@@ -20,12 +20,18 @@ export default function SetupPage() {
   const [fatalError, setFatalError] = useState("");
   const [countdown, setCountdown] = useState(8);
 
-  // If already configured, send to dashboard
+  // Check if already configured — only show form once we know it's needed
   useEffect(() => {
     fetch("/api/v1/setup/status")
       .then((r) => r.json())
-      .then((d) => { if (d.configured) router.replace("/"); })
-      .catch(() => {});
+      .then((d) => {
+        if (d.configured) {
+          router.replace("/");
+        } else {
+          setPhase("form");
+        }
+      })
+      .catch(() => setPhase("form")); // on error, show form anyway
   }, [router]);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -91,6 +97,13 @@ export default function SetupPage() {
 
         {/* Card */}
         <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
+
+          {/* CHECKING */}
+          {phase === "checking" && (
+            <div className="py-8 flex items-center justify-center">
+              <div className="w-6 h-6 border-2 border-zinc-600 border-t-zinc-300 rounded-full animate-spin" />
+            </div>
+          )}
 
           {/* FORM */}
           {phase === "form" && (
