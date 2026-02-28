@@ -6,9 +6,6 @@ function optionalEnv(key: string, fallback: string): string {
   return process.env[key] ?? fallback;
 }
 
-// Whether the engine has been configured (DATABASE_URL present)
-export const isConfigured = (): boolean => !!process.env.DATABASE_URL;
-
 export const config = {
   port: parseInt(optionalEnv("PORT", "9090"), 10) || 9090,
   logLevel: optionalEnv("LOG_LEVEL", "info"),
