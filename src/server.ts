@@ -27,9 +27,18 @@ async function start(): Promise<void> {
     const PORT = config.port || 9090;
 
     // Run reconciliation before accepting requests — cleans up any crashed deploys
-    const reconciliation = new ReconciliationService();
-    const report = await reconciliation.reconcile();
-    logger.info(report, "Startup reconciliation complete");
+    // Skip if database is not configured (setup wizard not completed yet)
+    if (config.databaseUrl) {
+      try {
+        const reconciliation = new ReconciliationService();
+        const report = await reconciliation.reconcile();
+        logger.info(report, "Startup reconciliation complete");
+      } catch (err) {
+        logger.warn({ err }, "Startup reconciliation failed (database may not be ready)");
+      }
+    } else {
+      logger.warn("DATABASE_URL not set — skipping startup reconciliation. Complete setup at /setup");
+    }
 
     await app.listen({ port: PORT, host: "0.0.0.0" });
     logger.info(
@@ -44,6 +53,10 @@ async function start(): Promise<void> {
 
     monitor.start();
     systemMetrics.start();
+
+    if (!config.databaseUrl) {
+      logger.info("Setup wizard available at http://0.0.0.0:" + PORT + "/setup");
+    }
   } catch (err) {
     logger.fatal({ err }, "Failed to start server");
     await prisma.$disconnect();

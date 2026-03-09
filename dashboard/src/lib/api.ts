@@ -159,6 +159,12 @@ export interface ServerDashboard {
 }
 
 export const api = {
+  setup: {
+    status: () =>
+      request<{ configured: boolean; dbConnected: boolean }>("GET", "/api/v1/setup/status"),
+    apply: (data: { domain: string; databaseUrl: string; geminiApiKey?: string }) =>
+      request<{ configured: boolean }>("POST", "/api/v1/setup/apply", data),
+  },
   projects: {
     list: () =>
       request<{ projects: Project[] }>("GET", "/api/v1/projects"),
