@@ -10,17 +10,25 @@ interface SetupApplyBody {
   geminiApiKey?: string;
 }
 
+const NGINX_CONF_PATH = "/etc/nginx/conf.d/versiongate.conf";
+const DB_URL_REGEX = /^DATABASE_URL\s*=\s*"?([^"\n\r]+)"?\s*$/m;
+
 function getEnvPath(): string {
   return join(process.cwd(), ".env");
 }
 
-function isConfigured(): boolean {
+function readDatabaseUrl(): string | null {
   const envPath = getEnvPath();
-  if (!existsSync(envPath)) return false;
+  if (!existsSync(envPath)) return null;
 
   const content = readFileSync(envPath, "utf-8");
-  const dbUrlMatch = content.match(/^DATABASE_URL\s*=\s*"?(.+?)"?\s*$/m);
-  return !!dbUrlMatch && dbUrlMatch[1].length > 0;
+  const match = content.match(DB_URL_REGEX);
+  return match ? match[1] : null;
+}
+
+function isConfigured(): boolean {
+  const dbUrl = readDatabaseUrl();
+  return !!dbUrl && dbUrl.length > 0;
 }
 
 async function canConnectToDatabase(databaseUrl: string): Promise<boolean> {
@@ -43,11 +51,9 @@ export async function getSetupStatusHandler(
 
   let dbConnected = false;
   if (configured) {
-    const envPath = getEnvPath();
-    const content = readFileSync(envPath, "utf-8");
-    const dbUrlMatch = content.match(/^DATABASE_URL\s*=\s*"?(.+?)"?\s*$/m);
-    if (dbUrlMatch) {
-      dbConnected = await canConnectToDatabase(dbUrlMatch[1]);
+    const dbUrl = readDatabaseUrl();
+    if (dbUrl) {
+      dbConnected = await canConnectToDatabase(dbUrl);
     }
   }
 
@@ -86,7 +92,7 @@ export async function applySetupHandler(
 PORT=9090
 NODE_ENV=production
 DOCKER_NETWORK="versiongate-net"
-NGINX_CONFIG_PATH="/etc/nginx/conf.d/versiongate.conf"
+NGINX_CONFIG_PATH="${NGINX_CONF_PATH}"
 PROJECTS_BASE_PATH="/var/versiongate/projects"
 `;
 
@@ -97,7 +103,7 @@ PROJECTS_BASE_PATH="/var/versiongate/projects"
   writeFileSync(envPath, envContent, "utf-8");
   logger.info("Setup: .env written successfully");
 
-  // 3. Run prisma db push
+  // 3. Run prisma db push (--accept-data-loss is safe here: this is initial setup on an empty DB)
   logger.info("Setup: running database migrations…");
   try {
     execSync("bunx prisma db push --accept-data-loss", {
@@ -141,7 +147,7 @@ PROJECTS_BASE_PATH="/var/versiongate/projects"
     }
 }
 `;
-    writeFileSync("/etc/nginx/conf.d/versiongate.conf", nginxConf, "utf-8");
+    writeFileSync(NGINX_CONF_PATH, nginxConf, "utf-8");
 
     try {
       execSync("nginx -t && nginx -s reload", { stdio: "pipe", timeout: 10_000 });
