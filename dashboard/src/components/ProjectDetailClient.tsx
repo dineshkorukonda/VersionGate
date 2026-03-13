@@ -853,7 +853,7 @@ export function ProjectDetailClient() {
 
       {/* ── Logs ─────────────────────────────────────────────────────────────── */}
       <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
-        <LogsViewer lines={logLines} loading={logsLoading} lastUpdated={logsUpdated} />
+        <LogsViewer lines={logLines} loading={logsLoading} updatedAt={logsUpdated} />
       </div>
 
       <ConfirmModal
