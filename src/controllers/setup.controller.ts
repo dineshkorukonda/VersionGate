@@ -1,7 +1,8 @@
 import { FastifyRequest, FastifyReply } from "fastify";
-import { existsSync, readFileSync, writeFileSync } from "fs";
+import { accessSync, constants, existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { execSync } from "child_process";
 import { randomBytes } from "crypto";
+import { join } from "path";
 import { logger } from "../utils/logger";
 import { envFilePath, projectRoot } from "../utils/paths";
 import { runPrismaSchemaSync } from "../utils/prisma-schema-sync";
@@ -15,6 +16,7 @@ interface SetupApplyBody {
 const NGINX_CONF_PATH = "/etc/nginx/conf.d/versiongate.conf";
 const DB_URL_REGEX = /^DATABASE_URL\s*=\s*"?([^"\n\r]+)"?\s*$/m;
 const ENCRYPTION_KEY_REGEX = /^ENCRYPTION_KEY\s*=\s*"?([0-9a-fA-F]{64})"?\s*$/m;
+const HOSTNAME_LABEL_REGEX = /^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$/;
 
 function getEnvPath(): string {
   return envFilePath;
@@ -41,6 +43,51 @@ function readExistingEncryptionKey(): string | null {
   const content = readFileSync(envPath, "utf-8");
   const match = content.match(ENCRYPTION_KEY_REGEX);
   return match ? match[1] : null;
+}
+
+function isValidIpv4Address(value: string): boolean {
+  const octets = value.split(".");
+  if (octets.length !== 4) {
+    return false;
+  }
+
+  return octets.every((octet) => {
+    if (!/^\d{1,3}$/.test(octet)) {
+      return false;
+    }
+    const parsed = Number.parseInt(octet, 10);
+    return parsed >= 0 && parsed <= 255;
+  });
+}
+
+function isValidHostname(value: string): boolean {
+  if (value.length === 0 || value.length > 253 || value.startsWith(".") || value.endsWith(".")) {
+    return false;
+  }
+
+  const labels = value.split(".");
+  return labels.every((label) => HOSTNAME_LABEL_REGEX.test(label));
+}
+
+function escapeEnvValue(value: string): string {
+  return value
+    .replace(/\\/g, "\\\\")
+    .replace(/\n/g, "\\n")
+    .replace(/\r/g, "\\r")
+    .replace(/"/g, '\\"');
+}
+
+function resolveProjectsRootPath(): string {
+  const preferredPath = "/var/versiongate/projects";
+  try {
+    mkdirSync(preferredPath, { recursive: true });
+    accessSync(preferredPath, constants.W_OK);
+    return preferredPath;
+  } catch {
+    const fallbackPath = join(projectRoot, "projects");
+    mkdirSync(fallbackPath, { recursive: true });
+    return fallbackPath;
+  }
 }
 
 async function canConnectToDatabase(databaseUrl: string): Promise<boolean> {
@@ -86,6 +133,27 @@ export async function applySetupHandler(
     return reply.code(400).send({ error: "BadRequest", message: "domain is required" });
   }
 
+  const normalizedDomain = domain.trim().toLowerCase();
+  const domainIsIp = isValidIpv4Address(normalizedDomain);
+  const domainIsHostname = isValidHostname(normalizedDomain);
+  if (!domainIsIp && !domainIsHostname) {
+    return reply.code(400).send({
+      error: "BadRequest",
+      message: "domain must be a valid domain name or IPv4 address",
+    });
+  }
+
+  const existingDatabaseUrl = readDatabaseUrl();
+  if (existingDatabaseUrl) {
+    const existingDbConnected = await canConnectToDatabase(existingDatabaseUrl);
+    if (existingDbConnected) {
+      return reply.code(409).send({
+        error: "SetupError",
+        message: "Setup is already complete. Update configuration manually if needed.",
+      });
+    }
+  }
+
   // 1. Validate database connection
   logger.info("Setup: validating database connection…");
   const dbOk = await canConnectToDatabase(databaseUrl);
@@ -100,18 +168,19 @@ export async function applySetupHandler(
   const envPath = getEnvPath();
   logger.info({ envPath }, "Setup: writing .env file…");
   const encryptionKey = readExistingEncryptionKey() ?? randomBytes(32).toString("hex");
+  const projectsRootPath = resolveProjectsRootPath();
 
-  let envContent = `DATABASE_URL="${databaseUrl}"
+  let envContent = `DATABASE_URL="${escapeEnvValue(databaseUrl)}"
 PORT=9090
 NODE_ENV=production
 DOCKER_NETWORK="versiongate-net"
 NGINX_CONFIG_PATH="${NGINX_CONF_PATH}"
-PROJECTS_ROOT_PATH="/var/versiongate/projects"
+PROJECTS_ROOT_PATH="${escapeEnvValue(projectsRootPath)}"
 ENCRYPTION_KEY="${encryptionKey}"
 `;
 
   if (geminiApiKey && geminiApiKey.trim().length > 0) {
-    envContent += `GEMINI_API_KEY="${geminiApiKey.trim()}"\n`;
+    envContent += `GEMINI_API_KEY="${escapeEnvValue(geminiApiKey.trim())}"\n`;
   }
 
   writeFileSync(envPath, envContent, "utf-8");
@@ -156,9 +225,8 @@ ENCRYPTION_KEY="${encryptionKey}"
 
   // 4. Write Nginx config (best-effort — may not have permissions)
   try {
-    const isIp = /^\d{1,3}(\.\d{1,3}){3}$/.test(domain.trim());
-    const serverName = isIp ? "_" : domain.trim();
-    const listenDirective = isIp ? "listen 80 default_server;" : "listen 80;";
+    const serverName = domainIsIp ? "_" : normalizedDomain;
+    const listenDirective = domainIsIp ? "listen 80 default_server;" : "listen 80;";
 
     const nginxConf = `server {
     ${listenDirective}

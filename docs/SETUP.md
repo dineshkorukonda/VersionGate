@@ -54,13 +54,16 @@ Fill in:
 | PostgreSQL URL | `postgresql://user:pass@host:5432/db` |
 | Gemini API key | `AIza...` (optional) |
 
-Click **Apply & Start Engine**. The wizard will:
+Click **Apply Configuration**. The wizard will:
 
-1. Write `.env` to the repo root
-2. Run `bunx prisma migrate deploy` (applies versioned migrations; falls back to `db push` for legacy databases)
-3. Write an Nginx reverse-proxy config and reload Nginx
-4. Restart the engine via PM2 (autorestart)
-5. Redirect you to `http://your-domain`
+1. Validate your `DATABASE_URL` by opening a real DB connection
+2. Write `.env` to the repo root (including a generated `ENCRYPTION_KEY`)
+3. Ensure `PROJECTS_ROOT_PATH` is writable (`/var/versiongate/projects`, with local repo fallback if needed)
+4. Run `bunx prisma generate`
+5. Run `bunx prisma migrate deploy` (applies versioned migrations; falls back to `db push` for legacy databases)
+6. Write an Nginx reverse-proxy config and reload Nginx when permissions allow
+
+After success, open the dashboard from `/`. The wizard is intended for initial bootstrap and returns `409` if setup is already complete.
 
 ---
 
