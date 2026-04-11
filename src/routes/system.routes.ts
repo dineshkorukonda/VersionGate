@@ -1,8 +1,12 @@
 import { FastifyInstance } from "fastify";
 import { reconcileHandler, getServerStatsHandler, getServerDashboardHandler } from "../controllers/system.controller";
+import { preflightHandler } from "../controllers/preflight.controller";
 import { requireDatabaseConfigured } from "../middleware/require-database";
 
 export async function systemRoutes(app: FastifyInstance): Promise<void> {
+  /** Host compatibility (Docker, Git, network, …) — no database required. */
+  app.get("/system/preflight", { handler: preflightHandler });
+
   app.get("/server/stats", { handler: getServerStatsHandler });
   app.get("/system/server-stats", { handler: getServerStatsHandler });
   app.get("/system/server-dashboard", { handler: getServerDashboardHandler });
