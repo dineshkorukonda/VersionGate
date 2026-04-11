@@ -82,6 +82,22 @@ export function ProjectDetail() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- load only when project id changes
   }, [id]);
 
+  const deploymentPie = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const d of deployments) {
+      m.set(d.status, (m.get(d.status) ?? 0) + 1);
+    }
+    return [...m.entries()].map(([name, value]) => ({ name, value }));
+  }, [deployments]);
+
+  const jobsByStatus = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const j of jobs) {
+      m.set(j.status, (m.get(j.status) ?? 0) + 1);
+    }
+    return [...m.entries()].map(([name, value]) => ({ name, value }));
+  }, [jobs]);
+
   const onDeploy = async () => {
     if (!id) return;
     try {
@@ -144,22 +160,6 @@ export function ProjectDetail() {
   const liveUrl = liveHostPort != null ? publicServiceUrl(liveHostPort) : null;
   const totalDeploys = deployments.length;
   const lastDeploy = deployments[0];
-
-  const deploymentPie = useMemo(() => {
-    const m = new Map<string, number>();
-    for (const d of deployments) {
-      m.set(d.status, (m.get(d.status) ?? 0) + 1);
-    }
-    return [...m.entries()].map(([name, value]) => ({ name, value }));
-  }, [deployments]);
-
-  const jobsByStatus = useMemo(() => {
-    const m = new Map<string, number>();
-    for (const j of jobs) {
-      m.set(j.status, (m.get(j.status) ?? 0) + 1);
-    }
-    return [...m.entries()].map(([name, value]) => ({ name, value }));
-  }, [jobs]);
 
   return (
     <div className="w-full space-y-6">
