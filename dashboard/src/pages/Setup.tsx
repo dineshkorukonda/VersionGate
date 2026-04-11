@@ -45,7 +45,7 @@ export function Setup() {
 
   useEffect(() => {
     if (ready) {
-      navigate("/", { replace: true });
+      navigate("/login", { replace: true, state: { register: true } });
     }
   }, [ready, navigate]);
 

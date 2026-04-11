@@ -225,7 +225,7 @@ export function Settings() {
     <div className="w-full max-w-4xl space-y-10">
       <PageHeader
         title="Settings"
-        description="Instance diagnostics, optional updates to the server .env file, and how secrets are handled. Secret values are never read back from the API."
+        description="Instance diagnostics, optional updates to the server .env file, and how secrets are handled. Secret values are never read back from the API. Sign in is required once an admin account exists."
       />
 
       <div className="grid gap-4 lg:grid-cols-3">

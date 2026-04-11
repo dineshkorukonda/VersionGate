@@ -17,7 +17,7 @@ import { Separator } from "@/components/ui/separator";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
 import { useEffect, useState } from "react";
-import { getProjects, getServerStats, getSetupStatus, type Project } from "@/lib/api";
+import { authLogout, getAuthStatus, getProjects, getServerStats, getSetupStatus, type Project } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { CreateProjectModal } from "@/components/CreateProjectModal";
 import { CreateProjectLaunchContext } from "@/create-project-launch";
@@ -59,6 +59,29 @@ export function Layout() {
       cancelled = true;
     };
   }, [navigate]);
+
+  useEffect(() => {
+    if (setupGate !== "ready") return;
+    let cancelled = false;
+    void getAuthStatus()
+      .then((s) => {
+        if (cancelled) return;
+        if (!s.databaseReady) return;
+        if (!s.hasUsers) {
+          navigate("/login", { replace: true, state: { register: true } });
+          return;
+        }
+        if (!s.authenticated) {
+          navigate("/login", { replace: true });
+        }
+      })
+      .catch(() => {
+        if (!cancelled) navigate("/login", { replace: true });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [setupGate, navigate]);
 
   useEffect(() => {
     let cancelled = false;
@@ -185,14 +208,27 @@ export function Layout() {
                   <span className="hidden text-xs sm:inline">{serverOk ? "Connected" : "Disconnected"}</span>
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={() => setCreateProjectOpen(true)}
-                className="inline-flex h-8 items-center gap-2 rounded-lg border border-primary/30 bg-primary/10 px-3 text-xs font-medium text-primary transition-colors hover:bg-primary/20"
-              >
-                <span className="hidden sm:inline">New project</span>
-                <span className="sm:hidden">Add</span>
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    void authLogout()
+                      .then(() => navigate("/login", { replace: true }))
+                      .catch(() => navigate("/login", { replace: true }));
+                  }}
+                  className="hidden h-8 items-center rounded-lg border border-border/60 bg-transparent px-3 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/50 sm:inline-flex"
+                >
+                  Sign out
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCreateProjectOpen(true)}
+                  className="inline-flex h-8 items-center gap-2 rounded-lg border border-primary/30 bg-primary/10 px-3 text-xs font-medium text-primary transition-colors hover:bg-primary/20"
+                >
+                  <span className="hidden sm:inline">New project</span>
+                  <span className="sm:hidden">Add</span>
+                </button>
+              </div>
             </header>
             <div className="flex w-full min-w-0 flex-1 flex-col gap-4 px-4 py-4 md:px-6 md:py-6 lg:px-8">
               {setupGate === "loading" ? (

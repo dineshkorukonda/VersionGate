@@ -52,6 +52,8 @@ export const config = {
   selfUpdateAutoApply:
     optionalEnv("SELF_UPDATE_AUTO_APPLY", "").toLowerCase() === "true" ||
     optionalEnv("SELF_UPDATE_AUTO_APPLY", "") === "1",
+  /** Session cookie `Secure` flag — enable when the UI is HTTPS-only. */
+  cookieSecure: optionalEnv("COOKIE_SECURE", "").toLowerCase() === "true",
 } as const;
 
 /** Live values (updated when .env is patched at runtime). */
