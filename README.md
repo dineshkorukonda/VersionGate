@@ -23,8 +23,8 @@ Built for single-server (KVM/VPS) setups where you want Vercel-style deployments
 | Database | PostgreSQL via Prisma (Neon serverless supported) |
 | Containers | Docker CLI |
 | Proxy | Nginx upstream config management |
-| Process manager | PM2 |
-| Dashboard | Next.js (static export, served by Fastify) |
+| Process manager | PM2 (recommended) |
+| Dashboard | React / Vite (static build, served by Fastify) |
 
 ---
 
@@ -33,10 +33,32 @@ Built for single-server (KVM/VPS) setups where you want Vercel-style deployments
 ### Prerequisites
 
 - [Bun](https://bun.sh) ≥ 1.0
-- Docker (running)
-- Nginx (installed)
+- Docker Engine + CLI (daemon running; user in `docker` group or root)
+- Docker network for deployments — default name `versiongate-net`:  `docker network create versiongate-net`
+- Git (for cloning repositories)
+- Nginx (recommended — automatic upstream switching)
 - PostgreSQL — local or [Neon](https://neon.tech) free tier
-- PM2 — `npm i -g pm2`
+- PM2 — `npm i -g pm2` (recommended for API + worker)
+
+### Verify the host
+
+Before or after install, check that the machine can run deployments:
+
+```bash
+bun run preflight
+```
+
+This validates Bun, Git, Docker CLI + daemon, the configured Docker network, writable `PROJECTS_ROOT_PATH`, and optionally Node, PM2, and Nginx. Exit code `0` means all **required** checks passed.
+
+With the API running (no database needed for this endpoint):
+
+```http
+GET /api/v1/system/preflight
+```
+
+Returns JSON: `{ "ok": boolean, "checkedAt": "ISO-8601", "checks": [...] }`.
+
+If Docker is installed but PM2 provides a minimal `PATH`, set `DOCKER_BIN=/usr/bin/docker` in `.env` and ensure `ecosystem.config.cjs` prepends `/usr/bin` (already done in this repo).
 
 ### 1. Clone and install
 
