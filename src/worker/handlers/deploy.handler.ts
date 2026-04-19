@@ -1,8 +1,8 @@
-import { DeploymentColor, DeploymentStatus, Job, Project } from "@prisma/client";
+import { DeploymentColor, DeploymentStatus, Environment, Job, Project } from "@prisma/client";
 import { config } from "../../config/env";
 import { parseProjectEnv } from "../../utils/env";
 import { DeploymentRepository } from "../../repositories/deployment.repository";
-import { ProjectRepository } from "../../repositories/project.repository";
+import { EnvironmentRepository } from "../../repositories/environment.repository";
 import { buildImage, runContainer, stopContainer, removeContainer, freeHostPort } from "../../utils/docker";
 import { ensureDockerfile } from "../../utils/dockerfile";
 import { DeploymentError } from "../../utils/errors";
@@ -15,7 +15,7 @@ import { logEmitter } from "../../events/log-emitter";
 import prisma from "../../prisma/client";
 
 const repo = new DeploymentRepository();
-const projectRepo = new ProjectRepository();
+const envRepo = new EnvironmentRepository();
 const traffic = new TrafficService();
 const git = new GitService();
 const validation = new ValidationService();
@@ -38,13 +38,28 @@ async function updateJobDeploymentId(jobId: string, deploymentId: string): Promi
   });
 }
 
-export async function runDeployJob(job: Job & { project: Project }, log: LogFn): Promise<void> {
+export async function runDeployJob(
+  job: Job & { project: Project; environment: Environment | null },
+  log: LogFn
+): Promise<void> {
   const { projectId, id: jobId } = job;
   const project = job.project;
 
-  const acquired = await projectRepo.acquireDeployLock(projectId);
+  const environment =
+    job.environment ??
+    (await envRepo.findDefaultForProject(projectId));
+  if (!environment) {
+    await failJob(jobId, `No environment for project ${projectId}`);
+    await log(`No default environment — cannot deploy`);
+    logEmitter.emitStatus(jobId, "FAILED");
+    return;
+  }
+
+  const environmentId = environment.id;
+
+  const acquired = await envRepo.acquireDeployLock(environmentId);
   if (!acquired) {
-    await failJob(jobId, `Deployment already in progress for project ${projectId}`);
+    await failJob(jobId, `Deployment already in progress for environment ${environmentId}`);
     await log(`Deploy lock already held — rejecting job`);
     logEmitter.emitStatus(jobId, "FAILED");
     return;
@@ -53,23 +68,23 @@ export async function runDeployJob(job: Job & { project: Project }, log: LogFn):
   let deploymentId: string | undefined;
 
   try {
-    await log(`Starting deployment pipeline for project ${project.name} (${projectId})`);
+    await log(`Starting deployment pipeline for project ${project.name} (${projectId}), env ${environment.name} (${environmentId})`);
 
     await log(`Step 1: Preparing source code`);
     await git.prepareSource(project);
     await checkCancelled(undefined, log);
 
     const repoRoot = git.projectPath(project);
-    const buildContextPath = await ensureDockerfile(git.buildContextPath(project), project.appPort, repoRoot);
+    const buildContextPath = await ensureDockerfile(git.buildContextPath(project), environment.appPort, repoRoot);
 
     await log(`Step 2: Determining blue/green target`);
-    const activeDeployment = await repo.findActiveForProject(projectId);
+    const activeDeployment = await repo.findActiveForEnvironment(environmentId);
     const newColor =
       activeDeployment?.color === DeploymentColor.BLUE ? DeploymentColor.GREEN : DeploymentColor.BLUE;
-    const hostPort = newColor === DeploymentColor.BLUE ? project.basePort : project.basePort + 1;
-    const containerName = `${project.name}-${newColor.toLowerCase()}`;
+    const hostPort = newColor === DeploymentColor.BLUE ? environment.basePort : environment.basePort + 1;
+    const containerName = `${project.name}-${environment.name}-${newColor.toLowerCase()}`;
     const imageTag = `versiongate-${project.name}:${Date.now()}`;
-    const version = await repo.getNextVersionForProject(projectId);
+    const version = await repo.getNextVersionForEnvironment(environmentId);
 
     await log(
       `Target: color=${newColor}, hostPort=${hostPort}, container=${containerName}, image=${imageTag}, version=${version}`
@@ -83,7 +98,7 @@ export async function runDeployJob(job: Job & { project: Project }, log: LogFn):
       port: hostPort,
       color: newColor,
       status: DeploymentStatus.DEPLOYING,
-      project: { connect: { id: projectId } },
+      environment: { connect: { id: environmentId } },
     });
     deploymentId = deployment.id;
 
@@ -106,7 +121,7 @@ export async function runDeployJob(job: Job & { project: Project }, log: LogFn):
       containerName,
       imageTag,
       hostPort,
-      project.appPort,
+      environment.appPort,
       config.dockerNetwork,
       projectEnv
     );
@@ -157,7 +172,7 @@ export async function runDeployJob(job: Job & { project: Project }, log: LogFn):
     await log(`FAILED: ${friendly}`);
     logEmitter.emitStatus(jobId, "FAILED");
   } finally {
-    await projectRepo.releaseDeployLock(projectId);
+    await envRepo.releaseDeployLock(environmentId);
     await log(`Deploy lock released`);
   }
 }
