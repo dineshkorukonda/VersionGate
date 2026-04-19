@@ -83,7 +83,22 @@ export interface Deployment {
   color: string;
   status: DeploymentStatus;
   errorMessage?: string | null;
+  /** Derived from the parent environment for dashboard filtering */
   projectId: string;
+  environmentId?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface EnvironmentRow {
+  id: string;
+  name: string;
+  projectId: string;
+  branch: string;
+  serverHost: string;
+  basePort: number;
+  appPort: number;
+  lockedAt: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -147,11 +162,18 @@ export function deleteProject(id: string): Promise<void> {
   return request("DELETE", `/projects/${id}`);
 }
 
-export function triggerDeploy(projectId: string): Promise<{ jobId: string; status: string }> {
-  return request("POST", "/deploy", { projectId });
+export function triggerDeploy(
+  projectId: string,
+  environmentId?: string
+): Promise<{ jobId: string; status: string; environmentId?: string }> {
+  return request("POST", "/deploy", { projectId, ...(environmentId ? { environmentId } : {}) });
 }
 
-export function rollback(projectId: string): Promise<{ jobId: string; status: string }> {
+export function listEnvironments(projectId: string): Promise<{ environments: EnvironmentRow[] }> {
+  return request("GET", `/projects/${projectId}/environments`);
+}
+
+export function rollback(projectId: string): Promise<{ jobId: string; status: string; environmentId?: string }> {
   return request("POST", `/projects/${projectId}/rollback`);
 }
 
