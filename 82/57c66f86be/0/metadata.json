@@ -1,0 +1,50 @@
+{
+  "cli_version": "0.5.6",
+  "checkpoint_id": "8257c66f86be",
+  "session_id": "2325d5f8-24b1-40f0-a7b1-66fad2b5967e",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-30T18:09:43.510925Z",
+  "branch": "security/auth-and-path-hardening",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "src/controllers/setup.controller.ts",
+    "src/middleware/require-api-auth.ts",
+    "src/services/git.service.ts"
+  ],
+  "agent": "Cursor",
+  "model": "composer-2",
+  "turn_id": "cab7831a2ff7",
+  "session_metrics": {
+    "turn_count": 2
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-04-30T18:09:43.508862Z",
+    "agent_lines": 36,
+    "agent_removed": 20,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 36,
+    "total_lines_changed": 56,
+    "agent_percentage": 100,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 397,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".claude/agents/entire-search.md": 25,
+        ".claude/settings.json": 84,
+        ".claude/settings.local.json": 18,
+        ".cursor/hooks.json": 40,
+        ".gemini/agents/entire-search.md": 28,
+        ".gemini/settings.json": 141,
+        ".github/hooks/entire.json": 61
+      }
+    }
+  ]
+}

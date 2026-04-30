@@ -1,0 +1,5 @@
+explore the workspace and find any vulernabities
+
+---
+
+switch to a branch and work on fixes

@@ -1,0 +1,20 @@
+{
+  "cli_version": "0.5.6",
+  "checkpoint_id": "8257c66f86be",
+  "strategy": "manual-commit",
+  "branch": "security/auth-and-path-hardening",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "src/controllers/setup.controller.ts",
+    "src/middleware/require-api-auth.ts",
+    "src/services/git.service.ts"
+  ],
+  "sessions": [
+    {
+      "metadata": "/82/57c66f86be/0/metadata.json",
+      "transcript": "/82/57c66f86be/0/full.jsonl",
+      "content_hash": "/82/57c66f86be/0/content_hash.txt",
+      "prompt": "/82/57c66f86be/0/prompt.txt"
+    }
+  ]
+}
