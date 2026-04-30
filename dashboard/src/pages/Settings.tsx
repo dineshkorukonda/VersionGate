@@ -443,7 +443,7 @@ export function Settings() {
               <Row label="Process needs restart" value={boolBadge(setup.needsRestart, "Yes — restart API", "No")} />
             </dl>
             {setup.needsRestart ? (
-              <p className="text-sm leading-relaxed text-amber-200/90">
+              <p className="text-sm leading-relaxed text-amber-900 dark:text-amber-200/90">
                 The .env file contains <code className="rounded bg-muted px-1 py-0.5 font-mono text-xs">DATABASE_URL</code>, but
                 this API process has not loaded it yet. Restart the API and worker (for example{" "}
                 <code className="rounded bg-muted px-1 py-0.5 font-mono text-xs">pm2 restart versiongate-api versiongate-worker</code>
