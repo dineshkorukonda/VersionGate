@@ -174,14 +174,12 @@ export async function applySetupHandler(
   }
 
   const existingDatabaseUrl = readDatabaseUrl();
-  if (existingDatabaseUrl) {
-    const existingDbConnected = await canConnectToDatabase(existingDatabaseUrl);
-    if (existingDbConnected) {
-      return reply.code(409).send({
-        error: "SetupError",
-        message: "Setup is already complete. Update configuration manually if needed.",
-      });
-    }
+  if (existingDatabaseUrl?.trim()) {
+    return reply.code(409).send({
+      error: "SetupError",
+      message:
+        "Setup already has DATABASE_URL in .env. Edit or remove DATABASE_URL manually and restart before re-running the wizard.",
+    });
   }
 
   // 1. Validate database connection
