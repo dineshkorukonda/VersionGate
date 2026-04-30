@@ -15,11 +15,24 @@ export class GitService {
   }
 
   /**
-   * Returns the Docker build context path — the repo root joined with
-   * buildContext (e.g. "." keeps it at root, "server" points to a subdir).
+   * Returns the Docker build context path — resolved under the project repo dir only
+   * (rejects ../ and absolute segments).
    */
   buildContextPath(project: Pick<Project, "id" | "buildContext">): string {
-    return path.join(config.projectsRootPath, project.id, project.buildContext ?? ".");
+    const repoRoot = path.resolve(path.join(config.projectsRootPath, project.id));
+    const raw = (project.buildContext ?? ".").trim() || ".";
+
+    if (path.isAbsolute(raw)) {
+      throw new DeploymentError("buildContext must be a relative path (e.g. . or apps/api).");
+    }
+
+    const resolved = path.resolve(repoRoot, raw);
+    const relativeToRepo = path.relative(repoRoot, resolved);
+    if (relativeToRepo.startsWith("..") || path.isAbsolute(relativeToRepo)) {
+      throw new DeploymentError("buildContext must stay inside the project repository directory.");
+    }
+
+    return resolved;
   }
 
   /**
