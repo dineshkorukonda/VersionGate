@@ -84,10 +84,7 @@ export function Integrations() {
     return g ? g.trim().toLowerCase() : null;
   }, [searchParams]);
 
-  const webhookUrlHint = useMemo(
-    () => (typeof window !== "undefined" ? `${window.location.origin}/api/webhooks/github` : ""),
-    []
-  );
+  const webhookUrlHint = "https://versiongate.tech/api/webhooks/github";
 
   useEffect(() => {
     if (!githubQuery) return;
@@ -123,26 +120,26 @@ export function Integrations() {
         mono
       />
 
-      <Alert className="border-border/80 bg-muted/20">
-        <AlertTitle>GitHub App URLs (self-hosted)</AlertTitle>
+      <Alert className="border-border bg-muted">
+        <AlertTitle className="font-mono text-xs uppercase tracking-wider">Connect only — one official App</AlertTitle>
         <AlertDescription className="space-y-2 text-muted-foreground [&_p]:text-sm">
           <p>
-            The GitHub App <strong className="text-foreground">Callback URL</strong> is fixed for every instance — register this relay on GitHub → App → General:
+            Install the shared <strong className="text-foreground">VersionGate</strong> GitHub App on your account or org.
+            You do <strong className="text-foreground">not</strong> create your own App. Push webhooks go to the public relay,
+            which routes deploys to this instance.
           </p>
-          <code className="block max-w-full overflow-x-auto break-all rounded-md bg-background px-2 py-1.5 font-mono text-xs text-foreground">
+          <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Webhook (fixed)</p>
+          <code className="block max-w-full overflow-x-auto break-all border border-border bg-background px-2 py-1.5 font-mono text-xs text-foreground">
+            {webhookUrlHint}
+          </code>
+          <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Install callback (fixed)</p>
+          <code className="block max-w-full overflow-x-auto break-all border border-border bg-background px-2 py-1.5 font-mono text-xs text-foreground">
             {GITHUB_APP_RELAY_CALLBACK}
           </code>
           <p>
-            Set <strong className="text-foreground">Webhook URL</strong> to your instance (same host as{" "}
-            <span className="font-mono text-xs">PUBLIC_URL</span> in <span className="font-mono text-xs">.env</span>), for example:
-          </p>
-          {webhookUrlHint ? (
-            <code className="block max-w-full overflow-x-auto break-all rounded-md bg-background px-2 py-1.5 font-mono text-xs text-foreground">
-              {webhookUrlHint}
-            </code>
-          ) : null}
-          <p>
-            Use <strong className="text-foreground">Connect GitHub</strong> below while signed in so the installation is linked to your account when GitHub sends you back via the relay.
+            This server needs <span className="font-mono text-xs">PUBLIC_URL</span>, shared App credentials, and{" "}
+            <span className="font-mono text-xs">GITHUB_STATE_SECRET</span> matching the relay. Then use{" "}
+            <strong className="text-foreground">Connect GitHub</strong> while signed in.
           </p>
         </AlertDescription>
       </Alert>

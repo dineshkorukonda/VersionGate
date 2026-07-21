@@ -14,6 +14,7 @@ import { createRelayInstallState, parseRelayInstallState } from "../utils/github
 import { getInstallationAccessToken } from "../utils/github-installation-token";
 import { normalizeGithubRepoUrl } from "../utils/github-repo-url";
 import { verifyGithubWebhookSignature } from "../utils/github-webhook-signature";
+import { registerInstallationWithRelay, verifyRelayHopSignature } from "../utils/github-relay";
 import { dashboardIntegrationsAbsoluteUrl } from "../utils/public-app-origin";
 
 const projectRepo = new ProjectRepository();
@@ -163,6 +164,22 @@ export async function githubCallbackHandler(
       githubAccountType: accountType,
     },
   });
+
+  if (config.publicUrl && config.githubStateSecret) {
+    try {
+      await registerInstallationWithRelay({
+        installationId: installationIdStr,
+        userId,
+        instanceUrl: config.publicUrl,
+        relaySecret: config.githubStateSecret,
+      });
+    } catch (err) {
+      logger.warn(
+        { err: err instanceof Error ? err.message : String(err), installationId: installationIdStr },
+        "githubCallback: failed to register installation with versiongate.tech relay"
+      );
+    }
+  }
 
   reply.redirect(302, dashboardIntegrationsAbsoluteUrl(req, { github: "connected" }));
 }
@@ -409,6 +426,55 @@ export async function githubReposHandler(req: FastifyRequest, reply: FastifyRepl
   });
 }
 
+async function handleGithubPushDeploy(
+  payload: GitHubPushPayload,
+  logPrefix: string
+): Promise<{ triggered: boolean; projects: string[]; skipped?: string }> {
+  const ref = payload.ref ?? "";
+  const pushedBranch = ref.replace("refs/heads/", "");
+  const cloneUrl = payload.repository?.clone_url ?? "";
+  const htmlUrl = payload.repository?.html_url ?? "";
+  const normalized = normalizeGithubRepoUrl(cloneUrl || htmlUrl);
+
+  if (!normalized) {
+    return { triggered: false, projects: [], skipped: "Could not determine repository URL" };
+  }
+
+  const projects = await projectRepo.findAll();
+  const matches = projects.filter((p) => normalizeGithubRepoUrl(p.repoUrl) === normalized);
+
+  if (matches.length === 0) {
+    logger.info({ normalized }, `${logPrefix}: no VersionGate project matches repository`);
+    return { triggered: false, projects: [], skipped: "No matching project for repository" };
+  }
+
+  const triggered: string[] = [];
+  for (const project of matches) {
+    const defaultEnv = await envRepo.findDefaultForProject(project.id);
+    if (!defaultEnv) {
+      logger.error({ projectId: project.id }, `${logPrefix}: no default environment — skipping deploy`);
+      continue;
+    }
+    if (pushedBranch && pushedBranch !== defaultEnv.branch) {
+      logger.info(
+        { projectId: project.id, pushedBranch, configuredBranch: defaultEnv.branch },
+        `${logPrefix}: branch mismatch — skipping`
+      );
+      continue;
+    }
+
+    logger.info(
+      { projectId: project.id, projectName: project.name, environmentId: defaultEnv.id, ref },
+      `${logPrefix}: triggering auto-deploy`
+    );
+
+    await enqueueJob("DEPLOY", project.id, {}, defaultEnv.id);
+    triggered.push(project.name);
+  }
+
+  return { triggered: triggered.length > 0, projects: triggered };
+}
+
 export async function githubAppWebhookHandler(req: ReqWithRaw, reply: FastifyReply): Promise<void> {
   const secret = config.githubWebhookSecret;
   if (!secret) {
@@ -453,50 +519,73 @@ export async function githubAppWebhookHandler(req: ReqWithRaw, reply: FastifyRep
     return;
   }
 
-  const payload = body as GitHubPushPayload;
-  const ref = payload.ref ?? "";
-  const pushedBranch = ref.replace("refs/heads/", "");
-  const cloneUrl = payload.repository?.clone_url ?? "";
-  const htmlUrl = payload.repository?.html_url ?? "";
-  const normalized = normalizeGithubRepoUrl(cloneUrl || htmlUrl);
+  const result = await handleGithubPushDeploy(body as GitHubPushPayload, "GitHub App webhook");
+  if (result.skipped && !result.triggered) {
+    reply.code(200).send({ skipped: true, reason: result.skipped });
+    return;
+  }
+  reply.code(200).send({ triggered: result.triggered, projects: result.projects });
+}
 
-  if (!normalized) {
-    reply.code(200).send({ skipped: true, reason: "Could not determine repository URL" });
+/**
+ * Fan-out ingest from versiongate.tech (official App webhook → relay → this instance).
+ * Verified with X-VG-Relay-Signature (GITHUB_STATE_SECRET), not GitHub's signature.
+ */
+export async function githubAppRelayWebhookHandler(req: ReqWithRaw, reply: FastifyReply): Promise<void> {
+  const secret = config.githubStateSecret;
+  if (!secret) {
+    reply.code(503).send({
+      error: "ServiceUnavailable",
+      message: "GITHUB_STATE_SECRET is not configured (required for relay fan-out).",
+    });
     return;
   }
 
-  const projects = await projectRepo.findAll();
-  const matches = projects.filter((p) => normalizeGithubRepoUrl(p.repoUrl) === normalized);
-
-  if (matches.length === 0) {
-    logger.info({ normalized }, "GitHub App webhook: no VersionGate project matches repository");
-    reply.code(200).send({ skipped: true, reason: "No matching project for repository" });
+  const rawBody = req.rawBody;
+  if (!rawBody?.length) {
+    reply.code(400).send({ error: "BadRequest", message: "Missing raw body for signature verification" });
     return;
   }
 
-  const triggered: string[] = [];
-  for (const project of matches) {
-    const defaultEnv = await envRepo.findDefaultForProject(project.id);
-    if (!defaultEnv) {
-      logger.error({ projectId: project.id }, "GitHub App webhook: no default environment — skipping deploy");
-      continue;
-    }
-    if (pushedBranch && pushedBranch !== defaultEnv.branch) {
-      logger.info(
-        { projectId: project.id, pushedBranch, configuredBranch: defaultEnv.branch },
-        "GitHub App webhook: branch mismatch — skipping"
-      );
-      continue;
-    }
-
-    logger.info(
-      { projectId: project.id, projectName: project.name, environmentId: defaultEnv.id, ref },
-      "GitHub App webhook: triggering auto-deploy"
-    );
-
-    await enqueueJob("DEPLOY", project.id, {}, defaultEnv.id);
-    triggered.push(project.name);
+  const installationHeader = req.headers["x-vg-installation-id"];
+  const installationId = (Array.isArray(installationHeader) ? installationHeader[0] : installationHeader) ?? "";
+  if (!installationId || !/^\d+$/.test(installationId)) {
+    reply.code(400).send({ error: "BadRequest", message: "Missing X-VG-Installation-Id" });
+    return;
   }
 
-  reply.code(200).send({ triggered: triggered.length > 0, projects: triggered });
+  const hop = req.headers["x-vg-relay-signature"];
+  const hopStr = Array.isArray(hop) ? hop[0] : hop;
+  if (!verifyRelayHopSignature(rawBody, installationId, hopStr, secret)) {
+    reply.code(401).send({ error: "Unauthorized", message: "Invalid relay signature" });
+    return;
+  }
+
+  let body: unknown;
+  try {
+    body = JSON.parse(rawBody.toString("utf8"));
+  } catch {
+    reply.code(400).send({ error: "BadRequest", message: "Invalid JSON body" });
+    return;
+  }
+
+  const event = req.headers["x-github-event"];
+  const eventStr = (Array.isArray(event) ? event[0] : event)?.toLowerCase() ?? "";
+
+  if (eventStr === "ping") {
+    reply.code(200).send({ ok: true, ping: true });
+    return;
+  }
+
+  if (eventStr !== "push") {
+    reply.code(200).send({ skipped: true, reason: `Ignoring event: ${eventStr || "unknown"}` });
+    return;
+  }
+
+  const result = await handleGithubPushDeploy(body as GitHubPushPayload, "GitHub relay webhook");
+  if (result.skipped && !result.triggered) {
+    reply.code(200).send({ skipped: true, reason: result.skipped, installationId });
+    return;
+  }
+  reply.code(200).send({ triggered: result.triggered, projects: result.projects, installationId });
 }

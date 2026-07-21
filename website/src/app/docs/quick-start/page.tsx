@@ -46,14 +46,19 @@ pm2 save   # persist across reboots`}</Code>
 
       <H2>5. Connect GitHub &amp; deploy</H2>
       <P>
-        In the dashboard, open <InlineCode>Integrations → Connect GitHub</InlineCode> to install the
-        GitHub App. Then create a project, pick a repository and branch, and push — every commit to
-        the configured branch triggers a zero-downtime deploy.
+        Paste the official shared GitHub App credentials into <InlineCode>.env</InlineCode> once (
+        <InlineCode>GITHUB_APP_ID</InlineCode>, <InlineCode>GITHUB_APP_PRIVATE_KEY</InlineCode>,{" "}
+        <InlineCode>GITHUB_WEBHOOK_SECRET</InlineCode>, <InlineCode>PUBLIC_URL</InlineCode>,{" "}
+        <InlineCode>GITHUB_STATE_SECRET</InlineCode>), restart the engine, then open{" "}
+        <InlineCode>Integrations → Connect GitHub</InlineCode>. You install the official VersionGate
+        App — you do not create your own App. Create a project, pick a repository and branch, and
+        push to auto-deploy.
       </P>
 
-      <Callout title="No manual .env editing required">
-        After the setup wizard finishes, everything else — projects, environments, secrets, HTTPS —
-        is managed from the dashboard.
+      <Callout title="Shared App credentials">
+        After the setup wizard finishes, add the official App env vars (same for every self-hosted
+        instance) and <InlineCode>PUBLIC_URL</InlineCode>. Projects, environments, secrets, and HTTPS
+        are then managed from the dashboard.
       </Callout>
 
       <NextLinks
