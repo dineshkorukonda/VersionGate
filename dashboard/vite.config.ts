@@ -21,8 +21,17 @@ export default defineConfig({
     emptyOutDir: true,
   },
   server: {
+    // Safari blocks credentialed same-origin /api fetches when Vite's default CORS
+    // reflects Origin without Access-Control-Allow-Credentials.
+    cors: {
+      origin: true,
+      credentials: true,
+    },
     proxy: {
-      "/api": "http://localhost:9090",
+      "/api": {
+        target: "http://localhost:9090",
+        changeOrigin: true,
+      },
     },
   },
 });
