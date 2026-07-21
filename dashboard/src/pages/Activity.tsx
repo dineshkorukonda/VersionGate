@@ -143,8 +143,9 @@ export function Activity() {
   return (
     <div className="w-full space-y-8">
       <PageHeader
-        title="Global activity"
-        description="Real-time monitoring of deployment jobs across all projects. Export or filter the loaded sample."
+        title="Activity Log"
+        description="Real-time deployment jobs across all projects"
+        mono
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <select
@@ -171,7 +172,7 @@ export function Activity() {
 
       {!loading && jobs.length > 0 ? (
         <div className="grid gap-4 lg:grid-cols-2">
-          <Card className="border-border/80 bg-card shadow-sm">
+          <Card className="border-border bg-card">
             <CardHeader>
               <CardTitle className="text-base">Jobs by status</CardTitle>
               <CardDescription>Sample up to 200 loaded jobs · {total} total in database</CardDescription>
@@ -180,7 +181,7 @@ export function Activity() {
               <DonutChart data={jobsByStatus} />
             </CardContent>
           </Card>
-          <Card className="border-border/80 bg-card shadow-sm">
+          <Card className="border-border bg-card">
             <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-2">
               <div>
                 <CardTitle className="text-base">Jobs by type (7 days)</CardTitle>
@@ -196,7 +197,7 @@ export function Activity() {
                     onClick={() => setChartMode(m)}
                     className={cn(
                       "rounded-md px-2 py-1 text-[10px] font-semibold uppercase tracking-wide",
-                      chartMode === m ? "bg-card text-primary shadow-sm" : "text-muted-foreground hover:text-foreground"
+                      chartMode === m ? "bg-card text-primary " : "text-muted-foreground hover:text-foreground"
                     )}
                   >
                     {m === "all" ? "All" : m}
@@ -211,7 +212,7 @@ export function Activity() {
         </div>
       ) : null}
 
-      <Card className="border-border/80 bg-card shadow-sm">
+      <Card className="border-border bg-card">
         <CardHeader className="border-b border-border/60">
           <CardTitle>Jobs history</CardTitle>
           <CardDescription>

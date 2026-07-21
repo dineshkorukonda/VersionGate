@@ -14,7 +14,7 @@ export function StatCard({
   hint?: string;
 }) {
   return (
-    <Card className="relative overflow-hidden border-border/80 bg-card shadow-sm ring-0 transition-shadow hover:shadow-md">
+    <Card className="relative overflow-hidden border-border bg-card ring-0 transition-shadow hover:shadow-md">
       <div className="pointer-events-none absolute -right-6 -top-6 size-24 rounded-full bg-primary/[0.04]" />
       <CardHeader className="space-y-0 pb-1">
         <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground/80">{label}</span>

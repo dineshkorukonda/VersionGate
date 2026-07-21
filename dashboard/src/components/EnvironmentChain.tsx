@@ -81,10 +81,10 @@ export function EnvironmentChain({
           return (
             <div key={env.id} className="flex flex-1 min-w-[200px] flex-col gap-3 sm:flex-row sm:items-stretch">
               {index > 0 ? <ChainArrow /> : null}
-              <Card className="flex-1 border-border/40 bg-background/40">
-                <CardHeader className="pb-2">
+              <Card className="flex-1 border-border bg-card">
+                <CardHeader className="border-b border-border pb-2">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <CardTitle className="text-sm font-medium">{env.name}</CardTitle>
+                    <CardTitle className="font-mono text-xs uppercase tracking-wider">{env.name}</CardTitle>
                     {active ? <StatusBadge status={active.status} /> : <StatusBadge status="PENDING" />}
                   </div>
                   <CardDescription className="font-mono text-xs">

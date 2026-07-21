@@ -48,7 +48,7 @@ export function AggregateJobLogStream({
   }, [pollMs]);
 
   return (
-    <div className={cn("overflow-hidden rounded-xl border border-border/80 bg-[#0c1222] shadow-inner", className)}>
+    <div className={cn("overflow-hidden  border border-border/80 bg-[#0c1222] shadow-inner", className)}>
       <div className="flex items-center justify-between border-b border-white/10 px-4 py-2">
         <span className="text-xs font-semibold uppercase tracking-wide text-zinc-300">{title}</span>
         <span className="flex items-center gap-1.5 text-[10px] font-medium text-zinc-400">

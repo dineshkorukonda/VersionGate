@@ -4,20 +4,20 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
-  "group/button inline-flex shrink-0 items-center justify-center rounded-lg border border-transparent bg-clip-padding text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  "group/button inline-flex shrink-0 items-center justify-center rounded-none border bg-clip-padding font-mono text-xs uppercase tracking-wider whitespace-nowrap transition-colors outline-none select-none focus-visible:border-foreground focus-visible:ring-1 focus-visible:ring-foreground/50 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {
         default:
-          "border border-primary/15 bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 [a]:hover:bg-primary/90",
+          "border-foreground/20 bg-primary text-primary-foreground hover:bg-primary/90",
         outline:
-          "border-border bg-card text-foreground hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground",
+          "border-border bg-transparent text-foreground hover:bg-muted hover:text-foreground",
         secondary:
-          "border-border bg-secondary text-secondary-foreground hover:bg-muted aria-expanded:bg-muted",
-        ghost: "hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground",
+          "border-border bg-secondary text-secondary-foreground hover:bg-muted",
+        ghost: "border-transparent hover:bg-muted hover:text-foreground",
         destructive:
-          "bg-destructive/10 text-destructive hover:bg-destructive/15 focus-visible:border-destructive/40 focus-visible:ring-destructive/20 border border-destructive/20",
-        link: "text-primary underline-offset-4 hover:underline",
+          "border-destructive/40 bg-destructive/10 text-destructive hover:bg-destructive/20",
+        link: "border-transparent text-foreground underline-offset-4 hover:underline",
       },
       size: {
         default:

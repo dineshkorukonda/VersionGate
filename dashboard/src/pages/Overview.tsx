@@ -19,7 +19,8 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { SlotBadge } from "@/components/SlotBadge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { StatCard } from "@/components/StatCard";
+import { PageHeader } from "@/components/PageHeader";
+import { MetricBar } from "@/components/brutalist/MetricBar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useLaunchCreateProject } from "@/create-project-launch";
@@ -170,12 +171,12 @@ export function Overview() {
         </div>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {[1, 2, 3, 4].map((i) => (
-            <Skeleton key={i} className="h-28 rounded-xl" />
+            <Skeleton key={i} className="h-28 " />
           ))}
         </div>
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {[1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-52 rounded-xl" />
+            <Skeleton key={i} className="h-52 " />
           ))}
         </div>
       </div>
@@ -184,37 +185,31 @@ export function Overview() {
 
   return (
     <div className="w-full space-y-8">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div className="max-w-2xl space-y-3">
-          <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">Overview</h1>
-          <div className="space-y-2 text-sm leading-relaxed text-muted-foreground">
-            <p>
-              VersionGate runs each project in Docker with two fixed host ports (blue and green). A new image builds on
-              the idle slot; when healthy, traffic switches to that slot so users stay on one URL while the old container
-              is retired.
-            </p>
-            <p>
-              Failed builds and disk exhaustion on the host show up in deploy logs. Keep enough free space on the server
-              for <code className="rounded bg-muted/60 px-1 py-0.5 font-mono text-xs">npm install</code> and image
-              layers during builds.
-            </p>
-          </div>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Link to="/activity" className={buttonVariants({ variant: "outline", size: "sm" })}>
-            Activity
-          </Link>
-          <Link to="/system" className={buttonVariants({ variant: "outline", size: "sm" })}>
-            System health
-          </Link>
-          <Link to="/settings" className={buttonVariants({ variant: "outline", size: "sm" })}>
-            Settings
-          </Link>
-          <Button onClick={launchCreate}>Add project</Button>
-        </div>
+      <PageHeader
+        title="Overview"
+        description="Cluster summary — projects, deploy state, and recent activity"
+        mono
+        actions={
+          <>
+            <Link to="/activity" className={buttonVariants({ variant: "outline", size: "sm" })}>
+              Activity
+            </Link>
+            <Link to="/system" className={buttonVariants({ variant: "outline", size: "sm" })}>
+              System
+            </Link>
+            <Button onClick={launchCreate}>+ New Project</Button>
+          </>
+        }
+      />
+
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <MetricBar label="Projects" value={String(stats.total)} percent={Math.min(100, stats.total * 10)} />
+        <MetricBar label="Active" value={String(stats.running)} percent={stats.total ? (stats.running / stats.total) * 100 : 0} />
+        <MetricBar label="Deploying" value={String(stats.deploying)} percent={stats.total ? (stats.deploying / stats.total) * 100 : 0} warn={stats.deploying > 0} />
+        <MetricBar label="Failed" value={String(stats.failed)} percent={stats.total ? (stats.failed / stats.total) * 100 : 0} warn={stats.failed > 0} />
       </div>
 
-      <Card className="border-border/80 bg-card shadow-sm">
+      <Card className="border-border bg-card">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-base">
             <Globe className="size-5 text-muted-foreground" aria-hidden />
@@ -285,7 +280,7 @@ export function Overview() {
             </a>
           </CardContent>
         </Card>
-        <Card className="border-border/80 bg-card shadow-sm">
+        <Card className="border-border bg-card">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <Terminal className="size-4 text-muted-foreground" />
@@ -299,7 +294,7 @@ export function Overview() {
             </Link>
           </CardContent>
         </Card>
-        <Card className="border-border/80 bg-card shadow-sm">
+        <Card className="border-border bg-card">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <Shield className="size-4 text-muted-foreground" />
@@ -315,31 +310,9 @@ export function Overview() {
         </Card>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Projects" value={stats.total} hint="Registered in this instance" />
-        <StatCard
-          label="Live"
-          value={stats.running}
-          valueClassName="text-emerald-700"
-          hint="ACTIVE deployment"
-        />
-        <StatCard
-          label="Failed"
-          value={stats.failed}
-          valueClassName="text-red-700"
-          hint="Last deploy state"
-        />
-        <StatCard
-          label="Deploying"
-          value={stats.deploying}
-          valueClassName="text-sky-700"
-          hint="Build or rollout in progress"
-        />
-      </div>
-
       {projects.length > 0 ? (
         <div className="grid gap-4 lg:grid-cols-3">
-          <Card className="border-border/50 bg-card/50 ring-1 ring-border/25">
+          <Card className="border-border bg-card">
             <CardHeader className="pb-2">
               <CardTitle className="text-base">Projects by status</CardTitle>
               <CardDescription>Derived from the latest deployment per project.</CardDescription>
@@ -348,7 +321,7 @@ export function Overview() {
               <DonutChart data={projectHealthPie} emptyLabel="No projects" />
             </CardContent>
           </Card>
-          <Card className="border-border/50 bg-card/50 ring-1 ring-border/25">
+          <Card className="border-border bg-card">
             <CardHeader className="pb-2">
               <CardTitle className="text-base">All deployments</CardTitle>
               <CardDescription>Every recorded deployment version.</CardDescription>
@@ -357,7 +330,7 @@ export function Overview() {
               <DonutChart data={deploymentStatusPie} emptyLabel="No deployments" />
             </CardContent>
           </Card>
-          <Card className="border-border/50 bg-card/50 ring-1 ring-border/25">
+          <Card className="border-border bg-card">
             <CardHeader className="pb-2">
               <CardTitle className="text-base">Recent jobs by type</CardTitle>
               <CardDescription>Latest five jobs across the instance.</CardDescription>
@@ -436,7 +409,7 @@ export function Overview() {
                           <StatusBadge status={st} />
                           <DropdownMenu>
                             <DropdownMenuTrigger
-                              className="relative z-20 inline-flex size-7 items-center justify-center rounded-md border border-border/60 bg-card/90 text-muted-foreground shadow-sm hover:bg-muted hover:text-foreground"
+                              className="relative z-20 inline-flex size-7 items-center justify-center rounded-md border border-border/60 bg-card/90 text-muted-foreground  hover:bg-muted hover:text-foreground"
                               onPointerDown={(e) => e.stopPropagation()}
                             >
                               <span className="sr-only">Project actions</span>

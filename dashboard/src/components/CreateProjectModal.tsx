@@ -236,7 +236,7 @@ export function CreateProjectModal({
         </DialogHeader>
         <form onSubmit={(e) => void onSubmit(e)} className="grid gap-4">
           <div
-            className="flex gap-3 rounded-lg border border-sky-200/90 bg-sky-50/90 p-3 text-sm leading-relaxed text-sky-950"
+            className="flex gap-3 border border-border bg-muted p-3 text-sm leading-relaxed text-muted-foreground"
             role="note"
           >
             <Info className="mt-0.5 size-4 shrink-0 text-sky-600" aria-hidden />

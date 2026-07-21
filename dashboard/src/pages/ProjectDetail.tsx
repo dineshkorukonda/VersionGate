@@ -23,7 +23,6 @@ import { SlotBadge } from "@/components/SlotBadge";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { Separator } from "@/components/ui/separator";
 import { BlueGreenTrafficCard } from "@/components/BlueGreenTrafficCard";
 import { getDeployingDeployment, publicServiceUrl } from "@/lib/deployment-display";
 import { AggregateJobLogStream } from "@/components/AggregateJobLogStream";
@@ -184,9 +183,9 @@ export function ProjectDetail() {
   if (loading) {
     return (
       <div className="w-full space-y-6">
-        <Skeleton className="h-24 rounded-xl" />
-        <Skeleton className="h-48 rounded-xl" />
-        <Skeleton className="h-72 rounded-xl" />
+        <Skeleton className="h-24 " />
+        <Skeleton className="h-48 " />
+        <Skeleton className="h-72 " />
       </div>
     );
   }
@@ -220,98 +219,48 @@ export function ProjectDetail() {
   const liveHostPort = active ? active.port : null;
   const liveUrl = liveHostPort != null ? publicServiceUrl(liveHostPort) : null;
   const totalDeploys = productionDeployments.length;
-  const lastDeploy = productionDeployments[0];
 
   return (
     <div className="w-full space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex items-start gap-3">
-          <Link
-            to="/"
-            className="mt-1 inline-flex min-w-[2.25rem] items-center justify-center rounded-lg border border-border/50 bg-card/60 px-2 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-          >
-            Back
-          </Link>
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-3">
-              <h1 className="text-2xl font-semibold tracking-tight">{project.name}</h1>
-              {prodEnvId ? (
-                <Badge className="bg-primary/10 font-medium text-primary hover:bg-primary/15">
-                  {environmentNameById.get(prodEnvId) ?? "Production"}
-                </Badge>
-              ) : null}
-              <StatusBadge status={displayStatus} />
-            </div>
-            <div className="mt-2 space-y-1 text-sm text-muted-foreground">
-              <p className="max-w-2xl text-sm leading-relaxed">
-                Git-backed service on this host. Blue/green slots map to two fixed ports; Nginx (if configured) routes public traffic to the live slot.
-              </p>
-              <a
-                href={project.repoUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="block font-mono text-xs text-primary hover:underline"
-              >
-                {project.repoUrl.replace(/^https?:\/\/(www\.)?/, "")} (open in new tab)
-              </a>
-              <p className="font-mono text-xs">
-                Branch <code className="rounded bg-muted/50 px-1.5 py-0.5">{project.branch}</code>
-              </p>
-            </div>
+      <div className="flex flex-col gap-4 border-b border-border pb-6 lg:flex-row lg:items-start lg:justify-between">
+        <div className="min-w-0 space-y-2">
+          <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+            prj_{project.id.slice(0, 8).toUpperCase()}
+          </p>
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="text-2xl font-bold uppercase tracking-tight">{project.name}</h1>
+            {active ? (
+              <Badge variant="outline" className="font-mono text-[10px] uppercase">
+                v{active.version}
+              </Badge>
+            ) : null}
+            <StatusBadge status={displayStatus} />
           </div>
+          <a
+            href={project.repoUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="block font-mono text-xs text-muted-foreground hover:text-foreground"
+          >
+            {project.repoUrl.replace(/^https?:\/\/(www\.)?/, "")}
+          </a>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button onClick={() => void onDeploy()} title="Deploys the default production environment">
-            Deploy
+          <Button variant="outline" className="border-destructive/50 text-destructive" onClick={() => void onRollback()}>
+            Emergency Rollback
           </Button>
-          <Button variant="secondary" onClick={() => void onRollback()}>
-            Rollback
-          </Button>
-          <Button type="button" variant="outline" className="border-destructive/35 text-destructive hover:bg-destructive/10" onClick={() => setDeleteOpen(true)}>
+          <Button onClick={() => void onDeploy()}>Force Deployment</Button>
+          <Button type="button" variant="ghost" className="text-destructive" onClick={() => setDeleteOpen(true)}>
             Delete
           </Button>
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card className="border-border/50 bg-card/60 ring-1 ring-border/25">
-          <CardContent className="py-4">
-            <p className="text-xs text-muted-foreground">Live URL</p>
-            {liveUrl ? (
-              <a href={liveUrl} target="_blank" rel="noreferrer" className="mt-1 block truncate font-mono text-sm text-primary hover:underline">
-                {liveUrl.replace(/^https?:\/\//, "")}
-              </a>
-            ) : (
-              <span className="mt-1 block text-sm text-muted-foreground/60">Not deployed</span>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card className="border-border/50 bg-card/60 ring-1 ring-border/25">
-          <CardContent className="py-4">
-            <p className="text-xs text-muted-foreground">App port (container)</p>
-            <p className="mt-1 font-mono text-sm tabular-nums">{project.appPort}</p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-border/50 bg-card/60 ring-1 ring-border/25">
-          <CardContent className="py-4">
-            <p className="text-xs text-muted-foreground">Total deploys</p>
-            <p className="mt-1 text-sm font-semibold tabular-nums">{totalDeploys}</p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-border/50 bg-card/60 ring-1 ring-border/25">
-          <CardContent className="py-4">
-            <p className="text-xs text-muted-foreground">Last deploy</p>
-            <p className="mt-1 text-sm">{lastDeploy ? timeAgo(lastDeploy.createdAt) : "Never"}</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card className="border-border/50 bg-card/60 ring-1 ring-border/25">
+      <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
+        <div className="space-y-6 min-w-0">
+      <Card className="border-border bg-card">
         <CardHeader>
-          <CardTitle className="text-base">Environments &amp; promotion</CardTitle>
+          <CardTitle className="font-mono text-sm uppercase tracking-wider">Promotion Pipeline</CardTitle>
           <CardDescription>
             Stages run on different host port ranges. Use <strong>Deploy to …</strong> on the first stage for a fresh build, then{" "}
             <strong>Promote</strong> to reuse the upstream image on the next stage. The top <strong>Deploy</strong> button targets{" "}
@@ -340,7 +289,7 @@ export function ProjectDetail() {
             </div>
           ) : null}
           {!environmentsError && environments.length === 1 && environments[0]?.name === "production" ? (
-            <p className="text-xs text-amber-800">
+            <p className="text-xs text-muted-foreground">
               Only <strong className="font-medium">production</strong> is present. The dev → staging → production chain appears when all three
               environment rows exist.
             </p>
@@ -360,7 +309,7 @@ export function ProjectDetail() {
 
       {deployments.length > 0 || jobs.length > 0 ? (
         <div className="grid gap-4 md:grid-cols-2">
-          <Card className="border-border/50 bg-card/50 ring-1 ring-border/25">
+          <Card className="border-border bg-card">
             <CardHeader className="pb-2">
               <CardTitle className="text-base">Deployments by status</CardTitle>
               <CardDescription>Version history for this project.</CardDescription>
@@ -369,7 +318,7 @@ export function ProjectDetail() {
               <DonutChart data={deploymentPie} emptyLabel="No deployments" />
             </CardContent>
           </Card>
-          <Card className="border-border/50 bg-card/50 ring-1 ring-border/25">
+          <Card className="border-border bg-card">
             <CardHeader className="pb-2">
               <CardTitle className="text-base">Jobs by status</CardTitle>
               <CardDescription>Recent runs (up to 25 loaded).</CardDescription>
@@ -397,7 +346,7 @@ export function ProjectDetail() {
         onCopy={copyText}
       />
 
-      <Card className="border-border/50 bg-card/60 ring-1 ring-border/25">
+      <Card className="border-border bg-card">
         <CardHeader>
           <CardTitle className="text-base">Configuration</CardTitle>
         </CardHeader>
@@ -427,7 +376,7 @@ export function ProjectDetail() {
         </CardContent>
       </Card>
 
-      <Card className="border-border/50 bg-card/50 ring-1 ring-border/30">
+      <Card className="border-border bg-card">
         <CardHeader>
           <CardTitle>Deployment jobs</CardTitle>
           <CardDescription>Build and rollback runs with artifact hints and duration.</CardDescription>
@@ -497,7 +446,7 @@ export function ProjectDetail() {
         </CardContent>
       </Card>
 
-      <Card className="border-border/50 bg-card/50 ring-1 ring-border/30">
+      <Card className="border-border bg-card">
         <CardHeader>
           <CardTitle>Deployments</CardTitle>
           <CardDescription>Each row is one version. The host port is what you open in the browser for that color slot.</CardDescription>
@@ -564,11 +513,62 @@ export function ProjectDetail() {
       </Card>
 
       <section className="space-y-2">
-        <h2 className="text-sm font-medium text-muted-foreground">Live deployment logs</h2>
+        <h2 className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Live Deployment Log</h2>
         <AggregateJobLogStream title="Recent jobs on this instance" pollMs={8000} />
       </section>
+        </div>
 
-      <Separator className="opacity-40" />
+        <aside className="space-y-4">
+          <Card className="border-border bg-card">
+            <CardHeader className="pb-2">
+              <CardTitle className="font-mono text-xs uppercase tracking-wider">Project Resources</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4 font-mono text-xs">
+              <div>
+                <p className="text-[10px] uppercase text-muted-foreground">Live URL</p>
+                {liveUrl ? (
+                  <a href={liveUrl} target="_blank" rel="noreferrer" className="mt-1 block truncate text-foreground hover:underline">
+                    {liveUrl.replace(/^https?:\/\//, "")}
+                  </a>
+                ) : (
+                  <span className="text-muted-foreground">Not deployed</span>
+                )}
+              </div>
+              <div>
+                <p className="text-[10px] uppercase text-muted-foreground">App Port</p>
+                <p className="mt-1 tabular-nums">{project.appPort}</p>
+              </div>
+              <div>
+                <p className="text-[10px] uppercase text-muted-foreground">Host Ports</p>
+                <p className="mt-1 tabular-nums">
+                  {project.basePort}–{project.basePort + 1}
+                </p>
+              </div>
+              <div>
+                <p className="text-[10px] uppercase text-muted-foreground">Branch</p>
+                <p className="mt-1">{project.branch}</p>
+              </div>
+              <div>
+                <p className="text-[10px] uppercase text-muted-foreground">Health Path</p>
+                <p className="mt-1">{project.healthPath}</p>
+              </div>
+              <div>
+                <p className="text-[10px] uppercase text-muted-foreground">Env Vars</p>
+                <p className="mt-1 text-muted-foreground">•••••••• (encrypted)</p>
+              </div>
+            </CardContent>
+          </Card>
+        </aside>
+      </div>
+
+      <div className="hidden gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <Card className="border-border bg-card">
+          <CardContent className="py-4">
+            <p className="text-xs text-muted-foreground">Total deploys</p>
+            <p className="mt-1 text-sm font-semibold tabular-nums">{totalDeploys}</p>
+          </CardContent>
+        </Card>
+      </div>
 
       <DeleteProjectDialog
         open={deleteOpen}

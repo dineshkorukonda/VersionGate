@@ -61,7 +61,7 @@ const nav = [
 ] as const;
 
 const navBtn =
-  "peer/menu-button flex w-full items-center gap-3 overflow-hidden rounded-lg px-3 py-2 text-left text-sm text-sidebar-foreground ring-sidebar-ring outline-hidden transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground [&>span:last-child]:truncate";
+  "peer/menu-button flex w-full items-center gap-3 overflow-hidden rounded-none px-3 py-2.5 text-left font-mono text-[11px] uppercase tracking-wider text-sidebar-foreground outline-hidden transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground [&>span:last-child]:truncate";
 
 export function Layout() {
   const navigate = useNavigate();
@@ -181,12 +181,9 @@ export function Layout() {
           <Sidebar collapsible="icon" className="border-r border-sidebar-border bg-sidebar">
             <SidebarHeader className="gap-3 border-b border-sidebar-border px-3 py-4">
               <div className="flex flex-col gap-0.5 group-data-[collapsible=icon]:items-center">
-                <span className="text-base font-semibold tracking-tight text-sidebar-foreground">VersionGate</span>
-                <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground group-data-[collapsible=icon]:hidden">
-                  Control plane
-                </span>
-                <span className="text-[10px] font-mono text-muted-foreground/90 group-data-[collapsible=icon]:hidden">
-                  {typeof __DASHBOARD_VERSION__ !== "undefined" ? __DASHBOARD_VERSION__ : "dev"}
+                <span className="font-mono text-sm font-bold uppercase tracking-widest text-sidebar-foreground">VersionGate</span>
+                <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground group-data-[collapsible=icon]:hidden">
+                  v1.0-stable
                 </span>
               </div>
             </SidebarHeader>
@@ -208,7 +205,7 @@ export function Layout() {
                               cn(
                                 navBtn,
                                 isActive &&
-                                  "border-l-2 border-primary bg-sidebar-accent font-medium text-primary"
+                                  "border-l-2 border-foreground bg-sidebar-accent font-medium text-foreground"
                               )
                             }
                           >
@@ -272,7 +269,7 @@ export function Layout() {
               </div>
               <Button
                 type="button"
-                className="w-full gap-2 shadow-sm group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:p-0"
+                className="w-full gap-2  group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:p-0"
                 onClick={() => setCreateProjectOpen(true)}
               >
                 <Plus className="size-4" />
@@ -281,12 +278,12 @@ export function Layout() {
             </SidebarFooter>
           </Sidebar>
 
-          <SidebarInset className="min-h-svh bg-background">
-            <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-3 border-b border-border bg-card px-3 shadow-sm sm:px-4">
+          <SidebarInset className="flex min-h-svh flex-col bg-background">
+            <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-3 border-b border-border bg-surface px-3 sm:px-4">
               <SidebarTrigger className="md:hidden" />
               <div className="hidden min-w-0 flex-col gap-0.5 sm:flex md:max-w-[min(40%,20rem)]">
-                <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                  <span>Control plane</span>
+                <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                  <span>System Status</span>
                   <span
                     className={cn(
                       "inline-block size-1.5 rounded-full",
@@ -307,7 +304,7 @@ export function Layout() {
                     title="Open search (⌘K or Ctrl+K)"
                     placeholder="Search projects…"
                     onClick={() => setSearchOpen(true)}
-                    className="h-9 cursor-pointer border-border/80 bg-muted/40 pl-9 text-sm"
+                    className="h-9 cursor-pointer border-border bg-muted pl-9 font-mono text-xs"
                   />
                 </div>
               </div>
@@ -401,7 +398,7 @@ export function Layout() {
             <UpdateAvailableBanner />
             {needsRestartBanner ? (
               <div
-                className="border-b border-amber-300/80 bg-amber-50 px-4 py-2.5 text-center text-sm text-amber-950"
+                className="border-b border-amber-500/40 bg-card px-4 py-2.5 text-center font-mono text-xs uppercase tracking-wider text-amber-400"
                 role="status"
               >
                 <strong className="font-semibold">Restart required:</strong>{" "}
@@ -413,13 +410,32 @@ export function Layout() {
                 </code>
               </div>
             ) : null}
-            <div className="flex w-full min-w-0 flex-1 flex-col gap-4 bg-muted/30 px-4 py-4 md:px-6 md:py-6 lg:px-8">
+            <div className="flex flex-1 flex-col gap-4 bg-background px-4 py-4 md:px-6 md:py-6 lg:px-8">
               {setupGate === "loading" ? (
-                <div className="flex flex-1 items-center justify-center text-muted-foreground">Loading…</div>
+                <div className="flex flex-1 items-center justify-center font-mono text-xs uppercase tracking-wider text-muted-foreground">
+                  Loading…
+                </div>
               ) : (
                 <Outlet />
               )}
             </div>
+            <footer className="mt-auto flex flex-wrap items-center justify-between gap-3 border-t border-border bg-surface px-4 py-3 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+              <span>© {new Date().getFullYear()} VersionGate Terminal</span>
+              <div className="flex flex-wrap gap-4">
+                <a href={DOCS_HREF} target="_blank" rel="noreferrer" className="hover:text-foreground">
+                  Documentation
+                </a>
+                <a href={API_HREF} target="_blank" rel="noreferrer" className="hover:text-foreground">
+                  API Docs
+                </a>
+                <a href={SUPPORT_HREF} target="_blank" rel="noreferrer" className="hover:text-foreground">
+                  Support
+                </a>
+                <NavLink to="/activity" className="hover:text-foreground">
+                  Logs
+                </NavLink>
+              </div>
+            </footer>
             <CreateProjectModal
               open={createProjectOpen}
               onOpenChange={setCreateProjectOpen}
@@ -435,7 +451,7 @@ export function Layout() {
           </SidebarInset>
         </SidebarProvider>
       </CreateProjectLaunchContext.Provider>
-      <Toaster position="top-center" richColors theme="light" />
+      <Toaster position="top-center" richColors theme="dark" />
     </TooltipProvider>
   );
 }

@@ -75,14 +75,14 @@ export function Setup() {
 
   if (loading && !status) {
     return (
-      <div className="flex min-h-svh items-center justify-center bg-muted/40 text-muted-foreground">
+      <div className="flex min-h-svh items-center justify-center bg-background text-muted-foreground">
         Loading setup…
       </div>
     );
   }
 
   return (
-    <div className="relative min-h-svh overflow-hidden bg-muted/40">
+    <div className="relative min-h-svh overflow-hidden bg-background">
       <div
         className="pointer-events-none absolute inset-0 opacity-[0.35]"
         style={{
@@ -101,7 +101,7 @@ export function Setup() {
         </div>
 
         {status?.needsRestart && (
-          <Card className="mb-6 border-amber-500/40 bg-amber-50">
+          <Card className="mb-6 border-amber-500/40 bg-card">
             <CardHeader className="pb-2">
               <CardTitle className="text-base text-amber-950">Restart required</CardTitle>
               <CardDescription className="text-amber-900/90">
@@ -201,7 +201,7 @@ export function Setup() {
           </CardContent>
         </Card>
       </div>
-      <Toaster position="top-center" richColors theme="light" />
+      <Toaster position="top-center" richColors theme="dark" />
     </div>
   );
 }

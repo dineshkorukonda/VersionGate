@@ -1,16 +1,13 @@
 import Link from "next/link";
-import { LogoMark } from "./logo";
 
 const GITHUB_REPO = "https://github.com/dinexh/VersionGate";
 
-export function SiteHeader({ active }: { active?: "features" | "pricing" | "docs" }) {
+export function SiteHeader({ active }: { active?: "features" | "architecture" | "docs" | "get-started" }) {
   const link = (href: string, label: string, key: string) => (
     <Link
       href={href}
-      className={`rounded-full px-4 py-1.5 text-sm font-medium transition ${
-        active === key
-          ? "text-primary underline decoration-2 underline-offset-8"
-          : "text-muted-foreground hover:text-foreground"
+      className={`font-mono text-[11px] lowercase tracking-wide transition ${
+        active === key ? "text-foreground" : "text-muted-foreground hover:text-foreground"
       }`}
     >
       {label}
@@ -18,31 +15,29 @@ export function SiteHeader({ active }: { active?: "features" | "pricing" | "docs
   );
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border bg-white/90 backdrop-blur-md">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
-        <Link href="/" className="flex items-center gap-2.5">
-          <LogoMark className="size-8" />
-          <span className="text-lg font-bold tracking-tight text-foreground">
-            Version<span className="text-primary">Gate</span>
-          </span>
+    <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur-sm">
+      <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:px-6">
+        <Link href="/" className="font-mono text-sm font-bold uppercase tracking-[0.2em] text-foreground">
+          VersionGate
         </Link>
 
-        <nav className="hidden items-center gap-1 md:flex">
-          {link("/#features", "Features", "features")}
-          {link("/#pricing", "Pricing", "pricing")}
-          {link("/docs", "Docs", "docs")}
+        <nav className="hidden items-center gap-6 md:flex">
+          {link("/#features", "features", "features")}
+          {link("/#architecture", "architecture", "architecture")}
+          {link("/docs", "docs", "docs")}
+          {link("/#get-started", "get started", "get-started")}
         </nav>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2">
           <Link
             href={GITHUB_REPO}
-            className="hidden rounded-full border border-border px-4 py-1.5 text-sm font-medium text-foreground transition hover:border-primary hover:text-primary sm:inline-flex"
+            className="hidden border border-border px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider text-foreground transition hover:bg-muted sm:inline-flex"
           >
-            Log In
+            Login
           </Link>
           <Link
-            href={GITHUB_REPO}
-            className="rounded-full bg-primary px-4 py-1.5 text-sm font-semibold text-primary-foreground shadow-sm transition hover:opacity-90"
+            href="/#get-started"
+            className="bg-primary px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider text-primary-foreground transition hover:opacity-90"
           >
             Get Started
           </Link>
