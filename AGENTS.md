@@ -20,6 +20,7 @@ VersionGate is a self-hosted zero-downtime Docker deployment engine with two mai
 |---------|---------|------|
 | Backend API | `bun --watch src/server.ts` | 9090 |
 | Dashboard dev | `cd dashboard && bun run dev` | 5173 |
+| Website dev | `cd website && bun run dev` | 3000 |
 | PostgreSQL | `sudo pg_ctlcluster 16 main start` | 5432 |
 | Docker daemon | `sudo dockerd &` | socket |
 

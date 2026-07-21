@@ -7,6 +7,8 @@ dashboard/package-lock.json
 dist/
 dashboard/.next/
 dashboard/out/
+website/.next/
+website/out/
 
 # Environment
 .env
