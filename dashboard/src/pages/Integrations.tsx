@@ -119,7 +119,8 @@ export function Integrations() {
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-8">
       <PageHeader
         title="Integrations"
-        description="Connect external services to streamline project setup and automation."
+        description="Connect external services for project setup and automation"
+        mono
       />
 
       <Alert className="border-border/80 bg-muted/20">

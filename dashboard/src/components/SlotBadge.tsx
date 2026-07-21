@@ -9,8 +9,8 @@ export function SlotBadge({ color }: { color: string }) {
       variant="outline"
       className={cn(
         "font-mono text-xs font-semibold uppercase",
-        color === "BLUE" && "border-sky-500/50 bg-sky-500/10 text-sky-900",
-        color === "GREEN" && "border-emerald-500/45 bg-emerald-500/10 text-emerald-800",
+        color === "BLUE" && "border-border bg-muted text-foreground",
+        color === "GREEN" && "border-foreground/40 bg-foreground/10 text-foreground",
         !valid && "border-muted-foreground/40 text-muted-foreground"
       )}
     >

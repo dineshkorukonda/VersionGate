@@ -73,7 +73,7 @@ export function BlueGreenTrafficCard({
     "Nginx upstream points at the live slot’s host port. Direct links below hit each slot even when idle.";
 
   return (
-    <Card className="border-border/50 bg-card/60 ring-1 ring-border/25">
+    <Card className="border-border bg-card">
       <CardHeader className="space-y-3">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <div>
@@ -86,7 +86,7 @@ export function BlueGreenTrafficCard({
         </div>
 
         {/* Traffic flow */}
-        <div className="rounded-xl border border-border/50 bg-muted/20 px-4 py-3">
+        <div className=" border border-border/50 bg-muted/20 px-4 py-3">
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Traffic flow</p>
           <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
             <span className="rounded-md border border-border/60 bg-background/80 px-2 py-1 font-mono text-xs">Clients</span>
@@ -146,7 +146,7 @@ export function BlueGreenTrafficCard({
             <div
               key={color}
               className={cn(
-                "relative overflow-hidden rounded-xl border p-4 transition-colors",
+                "relative overflow-hidden  border p-4 transition-colors",
                 color === "BLUE" && "border-sky-500/30 bg-gradient-to-br from-sky-500/[0.07] to-transparent",
                 color === "GREEN" && "border-emerald-500/30 bg-gradient-to-br from-emerald-500/[0.07] to-transparent",
                 isLive && "ring-1 ring-emerald-500/35",

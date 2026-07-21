@@ -30,12 +30,6 @@ function formatUptime(projectId: string, deployments: Deployment[]): string {
   return `${m}m`;
 }
 
-function regionLabel(p: Project): string {
-  const r = p.env?.AWS_REGION ?? p.env?.REGION ?? p.env?.FLY_REGION;
-  if (typeof r === "string" && r.trim()) return r.trim();
-  return typeof window !== "undefined" && window.location.hostname ? window.location.hostname : "local";
-}
-
 export function Projects() {
   const launchCreate = useLaunchCreateProject();
   const [projects, setProjects] = useState<Project[]>([]);
@@ -104,17 +98,18 @@ export function Projects() {
   return (
     <div className="w-full space-y-8">
       <PageHeader
-        title="Projects"
-        description="Manage registered applications, rollout state, service links, and host capacity at a glance."
+        title="Projects Matrix"
+        description="Manage and monitor active docker deployments across all clusters."
+        mono
         actions={
-          <Button type="button" size="sm" onClick={() => launchCreate()}>
-            New project
+          <Button type="button" onClick={() => launchCreate()}>
+            + New Project
           </Button>
         }
       />
 
       {loading ? (
-        <Skeleton className="h-64 w-full rounded-xl" />
+        <Skeleton className="h-64 w-full " />
       ) : projects.length === 0 ? (
         <p className="text-sm text-muted-foreground">
           No projects yet.{" "}
@@ -125,11 +120,11 @@ export function Projects() {
         </p>
       ) : (
         <>
-          <Card className="overflow-hidden border-border/80 bg-card shadow-sm">
-            <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 border-b border-border/60 py-4">
+          <Card className="overflow-hidden border-border bg-card">
+            <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 border-b border-border py-4">
               <div>
-                <CardTitle className="text-lg">Active clusters</CardTitle>
-                <CardDescription>Projects on this VersionGate node.</CardDescription>
+                <CardTitle className="font-mono text-sm uppercase tracking-wider">Active Deployments</CardTitle>
+                <CardDescription className="font-mono text-[10px] uppercase">Projects on this node</CardDescription>
               </div>
               <Button type="button" variant="outline" size="sm" onClick={() => void load()}>
                 Refresh
@@ -139,12 +134,12 @@ export function Projects() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="pl-6">Name</TableHead>
-                    <TableHead>Region</TableHead>
-                    <TableHead>State</TableHead>
-                    <TableHead>Uptime</TableHead>
-                    <TableHead>Service link</TableHead>
-                    <TableHead className="pr-6 text-right">Actions</TableHead>
+                    <TableHead className="pl-6 font-mono text-[10px] uppercase">Project Name</TableHead>
+                    <TableHead className="font-mono text-[10px] uppercase">Status</TableHead>
+                    <TableHead className="font-mono text-[10px] uppercase">Environment</TableHead>
+                    <TableHead className="font-mono text-[10px] uppercase">Uptime</TableHead>
+                    <TableHead className="font-mono text-[10px] uppercase">Service</TableHead>
+                    <TableHead className="pr-6 text-right font-mono text-[10px] uppercase">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -158,14 +153,17 @@ export function Projects() {
                     const jobId = latestJobByProject.get(proj.id);
                     return (
                       <TableRow key={proj.id}>
-                        <TableCell className="pl-6 font-medium">
-                          <Link to={`/projects/${proj.id}`} className="text-primary hover:underline">
+                        <TableCell className="pl-6">
+                          <Link to={`/projects/${proj.id}`} className="font-medium text-foreground hover:underline">
                             {proj.name}
                           </Link>
+                          <div className="font-mono text-[10px] text-muted-foreground">prj_{proj.id.slice(0, 6)}</div>
                         </TableCell>
-                        <TableCell className="text-xs text-muted-foreground">{regionLabel(proj)}</TableCell>
                         <TableCell>
                           <StatusBadge status={state} />
+                        </TableCell>
+                        <TableCell className="font-mono text-xs text-muted-foreground">
+                          {disp ? `v${disp.version}` : "—"}
                         </TableCell>
                         <TableCell className="text-sm tabular-nums text-muted-foreground">
                           {formatUptime(proj.id, deployments)}
@@ -191,7 +189,7 @@ export function Projects() {
                                 to={`/projects/${proj.id}/deploy/${jobId}`}
                                 className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
                               >
-                                View log
+                                {"[>_ Log]"}
                               </Link>
                             ) : null}
                             <Link to={`/projects/${proj.id}`} className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
@@ -232,7 +230,7 @@ export function Projects() {
 
           <div className="grid gap-4 lg:grid-cols-2">
             <AggregateJobLogStream title="System live logs" pollMs={7000} />
-            <Card className="border-border/80 bg-card shadow-sm">
+            <Card className="border-border bg-card">
               <CardHeader>
                 <CardTitle className="text-base">Resource usage</CardTitle>
                 <CardDescription>Host running VersionGate API + worker.</CardDescription>

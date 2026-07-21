@@ -244,11 +244,12 @@ export function DeployLog() {
           )}
           <PageHeader
             title={jobTitle}
-            description="Streaming pipeline output with WebSocket updates when available."
+            description="Live deployment pipeline output"
+            mono
           />
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <span className="flex items-center gap-1.5 rounded-full border border-border/80 bg-muted/40 px-2.5 py-1 text-[10px] font-medium text-muted-foreground">
+          <span className="flex items-center gap-1.5 border border-border bg-muted px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
             <span className={cn("size-1.5 rounded-full", wsConnected ? "bg-emerald-500" : "bg-amber-500")} />
             {wsConnected ? "WS connected" : "WS reconnecting…"}
           </span>
@@ -296,7 +297,7 @@ export function DeployLog() {
       <div className="grid gap-6 lg:grid-cols-[1fr_min(100%,320px)]">
         <div className="min-w-0 space-y-4">
           {lines.length > 0 ? (
-            <Card className="border-border/80 bg-card shadow-sm">
+            <Card className="border-border bg-card">
               <CardHeader className="pb-2">
                 <CardTitle className="text-base">Log line mix</CardTitle>
                 <p className="text-sm text-muted-foreground">Heuristic grouping of streamed lines.</p>
@@ -389,7 +390,7 @@ export function DeployLog() {
         </div>
 
         <aside className="flex min-w-0 flex-col gap-4">
-          <Card className="border-border/80 bg-card shadow-sm">
+          <Card className="border-border bg-card">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm">Host resources</CardTitle>
               <CardDescription>Live host snapshot (not per-job cgroup).</CardDescription>
@@ -417,7 +418,7 @@ export function DeployLog() {
             </CardContent>
           </Card>
 
-          <Card className="border-border/80 bg-card shadow-sm">
+          <Card className="border-border bg-card">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm">Network</CardTitle>
               <CardDescription>Host interface totals (approximate).</CardDescription>

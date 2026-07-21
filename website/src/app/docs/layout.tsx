@@ -13,11 +13,11 @@ export default function DocsLayout({ children }: { children: React.ReactNode }) 
     <div className="min-h-screen bg-background">
       <SiteHeader active="docs" />
       <div className="mx-auto flex max-w-6xl gap-10 px-4 py-10 sm:px-6">
-        <aside className="hidden w-56 shrink-0 lg:block">
-          <div className="sticky top-24">
-            <div className="mb-4 px-3">
-              <div className="text-sm font-semibold">Documentation</div>
-              <div className="font-mono text-[11px] text-muted-foreground">v1.0 (Stable)</div>
+        <aside className="hidden w-56 shrink-0 border-r border-border lg:block">
+          <div className="sticky top-24 pr-6">
+            <div className="mb-4">
+              <div className="font-mono text-xs uppercase tracking-wider">Documentation</div>
+              <div className="font-mono text-[10px] text-muted-foreground">v1.0-stable</div>
             </div>
             <DocsNav />
           </div>

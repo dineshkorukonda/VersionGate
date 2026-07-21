@@ -64,9 +64,9 @@ export function Login() {
 
   if (loading) {
     return (
-      <div className="flex min-h-svh items-center justify-center bg-muted/40 text-muted-foreground">
+      <div className="flex min-h-svh items-center justify-center bg-background font-mono text-xs uppercase tracking-wider text-muted-foreground">
         Loading…
-        <Toaster position="top-center" richColors theme="light" />
+        <Toaster position="top-center" richColors theme="dark" />
       </div>
     );
   }
@@ -77,7 +77,7 @@ export function Login() {
     : "Sign in to manage projects and deployments.";
 
   return (
-    <div className="relative min-h-svh overflow-hidden bg-muted/40">
+    <div className="relative min-h-svh overflow-hidden bg-background">
       <div
         className="pointer-events-none absolute inset-0 opacity-[0.35]"
         style={{
@@ -88,12 +88,12 @@ export function Login() {
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,oklch(0.55_0.15_255/0.12),transparent)]" />
       <div className="relative mx-auto flex min-h-svh max-w-lg flex-col justify-center px-4 py-12">
         <div className="mb-8 space-y-2 text-center">
-          <p className="text-xs font-semibold uppercase tracking-[0.25em] text-primary">VersionGate</p>
-          <h1 className="text-3xl font-semibold tracking-tight">{title}</h1>
+          <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">VersionGate</p>
+          <h1 className="text-3xl font-bold uppercase tracking-tight">{title}</h1>
           <p className="text-sm text-muted-foreground">{subtitle}</p>
         </div>
 
-        <Card className="border-border/80 bg-card shadow-lg">
+        <Card className="border-border bg-card">
           <CardHeader>
             <CardTitle>{bootstrapPending ? "Bootstrap (one-time)" : "Credentials"}</CardTitle>
             <CardDescription>
@@ -144,17 +144,17 @@ export function Login() {
         </Card>
 
         <div className="mt-6 flex justify-center">
-          <div className="rounded-full border border-border/80 bg-card/90 px-4 py-2 text-xs text-muted-foreground shadow-sm">
+          <div className="border border-border bg-card px-4 py-2 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
             Dashboard{" "}
-            <span className="font-mono text-foreground">{typeof __DASHBOARD_VERSION__ !== "undefined" ? __DASHBOARD_VERSION__ : "dev"}</span>
+            <span className="text-foreground">{typeof __DASHBOARD_VERSION__ !== "undefined" ? __DASHBOARD_VERSION__ : "dev"}</span>
             <span className="mx-2 text-border">|</span>
-            Status: <span className="font-medium text-emerald-700">Operational</span>
+            Status: <span className="text-foreground">Operational</span>
           </div>
         </div>
 
-        <div className="mt-4 rounded-lg border border-sky-200/80 bg-sky-50/90 px-4 py-3 text-center text-xs text-sky-950">
-          <p className="font-semibold uppercase tracking-wide text-sky-900">New installation?</p>
-          <p className="mt-1 text-sky-900/90">
+        <div className="mt-4 border border-border bg-muted px-4 py-3 text-center font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+          <p className="text-foreground">New installation?</p>
+          <p className="mt-1 normal-case">
             Use the setup wizard on the host if PostgreSQL is not configured yet, then return here to sign in.
           </p>
         </div>
@@ -171,7 +171,7 @@ export function Login() {
           </a>
         </footer>
       </div>
-      <Toaster position="top-center" richColors theme="light" />
+      <Toaster position="top-center" richColors theme="dark" />
     </div>
   );
 }

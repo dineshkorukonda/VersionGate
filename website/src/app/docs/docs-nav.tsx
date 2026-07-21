@@ -76,10 +76,10 @@ export function DocsNav() {
           <Link
             key={item.href}
             href={item.href}
-            className={`flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition ${
+            className={`flex items-center gap-2.5 border-l-2 px-3 py-2 font-mono text-xs transition ${
               active
-                ? "bg-primary-soft text-primary"
-                : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                ? "border-foreground bg-muted text-foreground"
+                : "border-transparent text-muted-foreground hover:border-border hover:bg-muted hover:text-foreground"
             }`}
           >
             {item.icon}

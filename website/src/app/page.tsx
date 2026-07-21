@@ -4,80 +4,106 @@ import { SiteFooter } from "@/components/site-footer";
 
 const GITHUB_REPO = "https://github.com/dinexh/VersionGate";
 
+const STATS = [
+  { label: "Deploy Speed", value: "< 90s" },
+  { label: "Uptime SLA", value: "99.9%" },
+  { label: "Zero Downtime", value: "Blue/Green" },
+  { label: "Self-Hosted", value: "MIT" },
+] as const;
+
 const FEATURES = [
   {
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" className="size-5" stroke="currentColor" strokeWidth="1.7">
-        <path d="M12 3v3m0 12v3m9-9h-3M6 12H3m13.4-6.4-2.1 2.1M9.7 14.3l-2.1 2.1m0-8.8 2.1 2.1m4.6 4.6 2.1 2.1" strokeLinecap="round" />
-      </svg>
-    ),
+    mod: "MOD_01",
     title: "Zero-Downtime Deploys",
-    text: "Seamless swaps between blue and green slots. Nginx traffic only switches once the new container passes health checks.",
+    text: "Blue-green slot swaps with health checks before traffic moves. Nginx upstream rewrites keep users on one URL.",
   },
   {
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" className="size-5" stroke="currentColor" strokeWidth="1.7">
-        <path d="M7 8l-4 4 4 4m10-8 4 4-4 4M14 4l-4 16" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    ),
+    mod: "MOD_02",
     title: "Git-Backed Workflow",
-    text: "Connect the GitHub App, pick a repo and branch, and every push auto-deploys. Signed webhooks, no manual URLs.",
+    text: "Connect the GitHub App, pick a repo and branch, and every push auto-deploys with signed webhooks.",
   },
   {
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" className="size-5" stroke="currentColor" strokeWidth="1.7">
-        <rect x="4" y="4" width="16" height="16" rx="3" />
-        <path d="M9 12l2 2 4-4" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    ),
+    mod: "MOD_03",
     title: "Self-Hosted Control",
     text: "Your VPS, your data. Postgres state, Docker containers, and encrypted secrets never leave your server.",
   },
   {
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" className="size-5" stroke="currentColor" strokeWidth="1.7">
-        <path d="M12 3l1.9 5.6L19.5 10l-5.6 1.9L12 17.5l-1.9-5.6L4.5 10l5.6-1.4L12 3z" strokeLinejoin="round" />
-        <path d="M19 16l.9 2.6L22.5 19l-2.6.9L19 22.5l-.9-2.6L15.5 19l2.6-.4L19 16z" strokeLinejoin="round" />
-      </svg>
-    ),
-    title: "AI-Powered CI",
-    text: "Generate a GitHub Actions pipeline for any project with one API call, powered by Gemini. Optional and bring-your-own-key.",
+    mod: "MOD_04",
+    title: "Environment Promotion",
+    text: "Dev → staging → production chain. Promote upstream images without rebuilding on each stage.",
   },
 ] as const;
 
-const CHECKLIST = [
-  "Built-in job queue & live log streaming",
-  "Automatic rollback on failed deploys",
-  "Crash recovery reconciles state on restart",
+const COMPONENTS = [
+  {
+    tag: "API",
+    title: "Fastify Engine",
+    text: "REST API on :9090. Handles projects, deploy triggers, webhooks, setup wizard, and serves the built dashboard as static files.",
+  },
+  {
+    tag: "Worker",
+    title: "Job Queue",
+    text: "Background worker runs build/deploy/rollback jobs. Streams live logs to the dashboard over WebSockets.",
+  },
+  {
+    tag: "DB",
+    title: "PostgreSQL + Prisma",
+    text: "Source of truth for projects, deployments, environments, jobs, and encrypted env vars. Crash-safe state markers.",
+  },
+  {
+    tag: "Runtime",
+    title: "Docker + Nginx",
+    text: "Docker CLI builds and runs containers on blue/green slots. Nginx upstream rewrites switch traffic atomically.",
+  },
 ] as const;
 
-const CLI_LINES = [
-  { text: "$ bun run preflight", cls: "text-white" },
+const PIPELINE_STEPS = [
+  { step: "01", label: "Acquire lock", detail: "409 if a deploy is already running for this project" },
+  { step: "02", label: "Git clone / pull", detail: "Fetch the configured branch into the project workspace" },
+  { step: "03", label: "Pick idle slot", detail: "ACTIVE=BLUE → deploy GREEN on basePort+1, and vice versa" },
+  { step: "04", label: "Docker build & run", detail: "Image tagged versiongate-<name>:<timestamp>, container on idle port" },
+  { step: "05", label: "Health check", detail: "GET :port/health with retries — traffic only moves on PASS" },
+  { step: "06", label: "Traffic switch", detail: "Nginx upstream rewrite + reload; old slot marked ROLLED_BACK" },
+] as const;
+
+const GET_STARTED_STEPS = [
+  {
+    step: "01",
+    title: "Clone & install",
+    code: "git clone https://github.com/dinexh/VersionGate\ncd VersionGate && bun install\ncd dashboard && bun run build && cd ..",
+  },
+  {
+    step: "02",
+    title: "Verify the host",
+    code: "docker network create versiongate-net\nbun run preflight",
+  },
+  {
+    step: "03",
+    title: "Start the engine",
+    code: "pm2 start ecosystem.config.cjs\npm2 save",
+  },
+  {
+    step: "04",
+    title: "Run setup wizard",
+    code: "Open http://your-server:9090/setup\n→ PostgreSQL URL, domain, admin account",
+  },
+  {
+    step: "05",
+    title: "Connect GitHub & deploy",
+    code: "Integrations → Connect GitHub\n→ Create project → push to branch",
+  },
+] as const;
+
+const TERMINAL_LINES = [
+  { text: "$ versiongate preflight", cls: "text-foreground" },
   { text: "[✔] docker daemon reachable", cls: "text-emerald-400" },
-  { text: "[✔] versiongate-net network exists", cls: "text-emerald-400" },
+  { text: "[✔] postgres connected", cls: "text-emerald-400" },
   { text: "[✔] nginx config writable", cls: "text-emerald-400" },
-  { text: "$ pm2 start ecosystem.config.cjs", cls: "text-white" },
-  { text: "VersionGate ▸ engine listening on :9090", cls: "text-sky-300" },
-  { text: "VersionGate ▸ reconciliation complete", cls: "text-sky-300" },
-  { text: "VersionGate ▸ ready — open /setup", cls: "text-emerald-400" },
+  { text: "$ versiongate deploy api-backend", cls: "text-foreground" },
+  { text: "[INFO] building slot green…", cls: "text-muted-foreground" },
+  { text: "[INFO] health check passed :3101", cls: "text-emerald-400" },
+  { text: "[INFO] traffic switched — zero downtime", cls: "text-emerald-400" },
 ] as const;
-
-const PRICING_FEATURES = [
-  "Unlimited projects",
-  "Zero-downtime deploys",
-  "GitHub App integration",
-  "Environment promotion chain",
-  "Community support",
-] as const;
-
-function CheckIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" className="size-5 shrink-0 text-success" stroke="currentColor" strokeWidth="2">
-      <circle cx="12" cy="12" r="9" strokeWidth="1.5" />
-      <path d="M8.5 12.2l2.3 2.3 4.7-4.8" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
 
 export default function Home() {
   return (
@@ -85,98 +111,92 @@ export default function Home() {
       <SiteHeader active="features" />
 
       {/* Hero */}
-      <section className="relative overflow-hidden">
-        <div
-          className="pointer-events-none absolute inset-0"
-          style={{
-            background:
-              "radial-gradient(ellipse 70% 55% at 50% -10%, #dbe7ff 0%, rgba(219,231,255,0.35) 45%, transparent 75%)",
-          }}
-        />
-        <div className="relative mx-auto max-w-4xl px-4 pb-10 pt-16 text-center sm:px-6 sm:pt-24">
-          <div className="animate-fade-up mx-auto mb-6 inline-flex items-center gap-2 rounded-full border border-border bg-white px-4 py-1.5 font-mono text-[11px] font-medium tracking-wide text-muted-foreground shadow-sm">
-            <span className="size-1.5 rounded-full bg-success animate-pulse-dot" />
-            v1.0 · STABLE · MIT LICENSED
-          </div>
-          <h1 className="animate-fade-up text-4xl font-bold leading-[1.12] tracking-tight sm:text-6xl">
-            Self-hosted zero-downtime Docker deploys on{" "}
-            <span className="text-primary">your own server.</span>
-          </h1>
-          <p className="animate-fade-up mx-auto mt-6 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg [animation-delay:80ms]">
-            The power of Vercel-style workflows without the cloud lock-in. Git-backed,
-            blue-green routing, and built-in health checks for your VPS.
-          </p>
-          <div className="animate-fade-up mt-8 flex flex-wrap items-center justify-center gap-3 [animation-delay:140ms]">
-            <Link
-              href={GITHUB_REPO}
-              className="rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-md shadow-primary/25 transition hover:opacity-90"
-            >
-              Get Started for Free
-            </Link>
-            <Link
-              href="/docs"
-              className="rounded-full border border-border bg-white px-6 py-3 text-sm font-semibold text-foreground transition hover:border-primary hover:text-primary"
-            >
-              View Documentation
-            </Link>
-          </div>
-        </div>
-
-        {/* Blue-green slot strip (mirrors real dashboard slot badges) */}
-        <div className="relative mx-auto max-w-5xl px-4 pb-20 sm:px-6">
-          <div className="animate-fade-up rounded-2xl border border-border bg-white p-4 shadow-xl shadow-primary/5 sm:p-6 [animation-delay:200ms]">
-            <div className="mb-4 flex items-center justify-between px-1">
-              <span className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
-                projects / api-backend / production
-              </span>
-              <span className="inline-flex items-center gap-1.5 font-mono text-[11px] font-semibold text-success">
-                <span className="size-1.5 rounded-full bg-success animate-pulse-dot" />
-                LIVE
-              </span>
+      <section className="border-b border-border">
+        <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-24">
+          <div className="grid items-center gap-12 lg:grid-cols-2">
+            <div>
+              <div className="mb-6 inline-flex border border-border bg-card px-3 py-1 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                v1.0 · Stable · MIT Licensed
+              </div>
+              <h1 className="text-4xl font-bold uppercase leading-[1.05] tracking-tight sm:text-5xl lg:text-6xl">
+                Command
+                <br />
+                The Cluster.
+              </h1>
+              <p className="mt-6 max-w-lg text-sm leading-relaxed text-muted-foreground">
+                Self-hosted zero-downtime Docker deploys on your own server. Git-backed workflows, blue-green routing,
+                and built-in health checks — without cloud lock-in.
+              </p>
+              <div className="mt-8 flex flex-wrap gap-3">
+                <Link
+                  href="#get-started"
+                  className="bg-primary px-5 py-2.5 font-mono text-[10px] uppercase tracking-wider text-primary-foreground transition hover:opacity-90"
+                >
+                  Get Started
+                </Link>
+                <Link
+                  href="/docs"
+                  className="border border-border px-5 py-2.5 font-mono text-[10px] uppercase tracking-wider text-foreground transition hover:bg-muted"
+                >
+                  Documentation
+                </Link>
+              </div>
             </div>
-            <div className="grid gap-3 sm:grid-cols-3">
-              <div className="rounded-xl border border-border bg-surface p-5">
-                <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Project</div>
-                <div className="mt-2 text-lg font-semibold">api-backend</div>
-                <div className="mt-1 font-mono text-xs text-muted-foreground">main · webhook auto-deploy</div>
+
+            <div className="border border-border bg-terminal">
+              <div className="flex items-center justify-between border-b border-border px-4 py-2">
+                <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                  deploy / api-backend
+                </span>
+                <span className="font-mono text-[10px] uppercase text-emerald-400">Live</span>
               </div>
-              <div className="rounded-xl border-2 border-primary bg-primary-soft/60 p-5 shadow-sm">
-                <div className="flex items-center justify-between">
-                  <div className="font-mono text-[10px] uppercase tracking-widest text-primary">Active</div>
-                  <span className="rounded-full bg-primary px-2 py-0.5 text-[10px] font-semibold text-white">:3101</span>
-                </div>
-                <div className="mt-2 text-lg font-semibold text-primary">Slot Green</div>
-                <div className="mt-1 font-mono text-xs text-muted-foreground">v2.0.4 · healthy · serving traffic</div>
+              <div className="space-y-1.5 p-4 font-mono text-[12px] leading-relaxed">
+                {TERMINAL_LINES.map((l, i) => (
+                  <div key={i} className={l.cls}>
+                    {l.text}
+                  </div>
+                ))}
               </div>
-              <div className="rounded-xl border border-dashed border-border bg-white p-5">
-                <div className="flex items-center justify-between">
-                  <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Stand by</div>
-                  <span className="rounded-full bg-muted px-2 py-0.5 font-mono text-[10px] font-medium text-muted-foreground">:3100</span>
+              <div className="border-t border-border px-4 py-3">
+                <div className="mb-1 flex justify-between font-mono text-[10px] uppercase text-muted-foreground">
+                  <span>Progress</span>
+                  <span>87%</span>
                 </div>
-                <div className="mt-2 text-lg font-semibold text-muted-foreground">Slot Blue</div>
-                <div className="mt-1 font-mono text-xs text-muted-foreground">idle · waiting for next deploy</div>
+                <div className="h-1 bg-muted">
+                  <div className="h-full w-[87%] bg-foreground" />
+                </div>
               </div>
             </div>
           </div>
         </div>
       </section>
 
+      {/* Stats bar */}
+      <section className="border-b border-border bg-card">
+        <div className="mx-auto grid max-w-6xl grid-cols-2 divide-x divide-border sm:grid-cols-4">
+          {STATS.map((s) => (
+            <div key={s.label} className="px-4 py-8 text-center sm:px-6">
+              <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">{s.label}</p>
+              <p className="mt-2 text-2xl font-bold tabular-nums">{s.value}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
       {/* Features */}
-      <section id="features" className="bg-surface py-20">
+      <section id="features" className="py-20">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
-          <div className="mx-auto mb-12 max-w-2xl text-center">
-            <h2 className="text-3xl font-bold tracking-tight">Built for Production Scale</h2>
-            <p className="mt-3 text-muted-foreground">
-              Enterprise-grade deployment features, simplified for individual servers and small clusters.
+          <div className="mb-12">
+            <h2 className="text-2xl font-bold uppercase tracking-tight">Built for Production</h2>
+            <p className="mt-2 font-mono text-xs uppercase tracking-wider text-muted-foreground">
+              Enterprise deployment features for individual servers
             </p>
           </div>
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {FEATURES.map((f) => (
-              <article key={f.title} className="rounded-2xl border border-border bg-white p-6 transition hover:shadow-md hover:shadow-primary/5">
-                <div className="mb-4 flex size-10 items-center justify-center rounded-full bg-primary-soft text-primary">
-                  {f.icon}
-                </div>
-                <h3 className="mb-2 font-semibold">{f.title}</h3>
+              <article key={f.mod} className="relative border border-border bg-card p-6">
+                <span className="absolute right-4 top-4 font-mono text-[10px] text-muted-foreground">{f.mod}</span>
+                <h3 className="mb-2 font-mono text-xs uppercase tracking-wider">{f.title}</h3>
                 <p className="text-sm leading-relaxed text-muted-foreground">{f.text}</p>
               </article>
             ))}
@@ -184,131 +204,159 @@ export default function Home() {
         </div>
       </section>
 
-      {/* High availability */}
-      <section className="py-20">
-        <div className="mx-auto grid max-w-6xl items-center gap-12 px-4 sm:px-6 lg:grid-cols-2">
-          <div>
-            <div className="mb-3 font-mono text-[11px] font-semibold uppercase tracking-widest text-primary">
-              Architecture
-            </div>
-            <h2 className="text-3xl font-bold leading-tight tracking-tight">
-              Built for High-Availability
-            </h2>
-            <p className="mt-4 leading-relaxed text-muted-foreground">
-              VersionGate orchestrates Docker containers using blue-green slots and Nginx upstream
-              rewrites. Deploys target the idle slot — live traffic never moves until the new
-              container is confirmed healthy.
-            </p>
-            <ul className="mt-6 space-y-3">
-              {CHECKLIST.map((item) => (
-                <li key={item} className="flex items-center gap-3 text-sm font-medium">
-                  <CheckIcon />
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div className="space-y-4">
-            <div className="overflow-hidden rounded-2xl border border-border shadow-lg shadow-primary/5">
-              <div className="flex items-center gap-2 bg-navy px-4 py-2.5">
-                <span className="size-2.5 rounded-full bg-red-400/90" />
-                <span className="size-2.5 rounded-full bg-amber-300/90" />
-                <span className="size-2.5 rounded-full bg-emerald-400/90" />
-                <span className="ml-2 font-mono text-[11px] text-white/50">Command Line Interface</span>
-              </div>
-              <div className="space-y-1.5 bg-terminal p-5 font-mono text-[12.5px] leading-relaxed">
-                {CLI_LINES.map((l, i) => (
-                  <div key={i} className={l.cls}>
-                    {l.text}
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="rounded-2xl border border-border bg-white p-5">
-                <h3 className="mb-1.5 text-sm font-semibold">Built-in Metrics</h3>
-                <p className="text-xs leading-relaxed text-muted-foreground">
-                  Host CPU, memory, disk, and per-project deploy history right in the dashboard.
-                </p>
-              </div>
-              <div className="rounded-2xl border border-border bg-white p-5">
-                <h3 className="mb-1.5 text-sm font-semibold">Encrypted Secrets</h3>
-                <p className="text-xs leading-relaxed text-muted-foreground">
-                  Project env vars encrypted at rest with AES-256. Keys never leave your server.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Pricing */}
-      <section id="pricing" className="bg-surface py-20">
+      {/* Architecture — expanded */}
+      <section id="architecture" className="border-y border-border bg-card py-20">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
-          <div className="mx-auto mb-12 max-w-2xl text-center">
-            <h2 className="text-3xl font-bold tracking-tight">Simple, Transparent Pricing</h2>
-            <p className="mt-3 text-muted-foreground">
-              We believe in the power of open-source. Start self-hosting today.
+          <div className="mb-12 max-w-2xl">
+            <p className="mb-3 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Architecture</p>
+            <h2 className="text-2xl font-bold uppercase tracking-tight">How VersionGate Works</h2>
+            <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
+              A Fastify API plus background worker, backed by PostgreSQL. The engine orchestrates Docker builds and
+              Nginx upstream rewrites — deploys always target the idle blue/green slot so live traffic never hits a
+              cold container.
             </p>
           </div>
-          <div className="mx-auto max-w-md">
-            <div className="relative rounded-3xl border-2 border-primary bg-white p-8 shadow-xl shadow-primary/10">
-              <span className="absolute -top-3.5 right-8 rounded-full bg-primary px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-white">
-                Recommended
-              </span>
-              <div className="font-mono text-[11px] font-semibold uppercase tracking-widest text-primary">
-                Open Source
+
+          {/* Component grid */}
+          <div className="mb-16 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {COMPONENTS.map((c) => (
+              <div key={c.tag} className="border border-border bg-background p-5">
+                <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">{c.tag}</span>
+                <h3 className="mt-2 font-mono text-xs uppercase tracking-wider">{c.title}</h3>
+                <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{c.text}</p>
               </div>
-              <div className="mt-1 text-sm text-muted-foreground">Self-hosted</div>
-              <div className="mt-4 flex items-baseline gap-1">
-                <span className="text-5xl font-bold tracking-tight">$0</span>
-                <span className="text-muted-foreground">/ forever</span>
-              </div>
-              <ul className="mt-6 space-y-3">
-                {PRICING_FEATURES.map((f) => (
-                  <li key={f} className="flex items-center gap-3 text-sm font-medium">
-                    <CheckIcon />
-                    {f}
-                  </li>
-                ))}
-              </ul>
-              <Link
-                href={GITHUB_REPO}
-                className="mt-8 block rounded-full bg-primary py-3 text-center text-sm font-semibold text-white shadow-md shadow-primary/25 transition hover:opacity-90"
-              >
-                Install Now
-              </Link>
-              <p className="mt-4 text-center font-mono text-[11px] text-muted-foreground">
-                git clone github.com/dinexh/VersionGate
+            ))}
+          </div>
+
+          {/* Request flow diagram */}
+          <div className="mb-16 grid gap-6 lg:grid-cols-2">
+            <div className="border border-border bg-terminal p-5 font-mono text-[11px] leading-relaxed">
+              <p className="mb-3 text-[10px] uppercase tracking-wider text-muted-foreground">Request flow</p>
+              <p className="text-muted-foreground"># incoming deploy trigger</p>
+              <p className="mt-1 text-foreground">GitHub webhook / POST /api/v1/deploy</p>
+              <p className="mt-3 text-muted-foreground">↓</p>
+              <p className="text-foreground">Fastify router → controller → service</p>
+              <p className="mt-3 text-muted-foreground">↓</p>
+              <p className="text-foreground">Prisma (state lock) + Job queue enqueue</p>
+              <p className="mt-3 text-muted-foreground">↓</p>
+              <p className="text-foreground">Worker: git pull → docker build → docker run</p>
+              <p className="mt-3 text-muted-foreground">↓</p>
+              <p className="text-emerald-400">Health check PASS → nginx upstream rewrite</p>
+              <p className="mt-3 text-muted-foreground">↓</p>
+              <p className="text-foreground">WebSocket log stream → Dashboard UI</p>
+            </div>
+
+            <div className="border border-border bg-terminal p-5 font-mono text-[11px] leading-relaxed">
+              <p className="mb-3 text-[10px] uppercase tracking-wider text-muted-foreground">Blue-green slots</p>
+              <p className="text-muted-foreground"># per environment (e.g. production)</p>
+              <p className="mt-2 text-foreground">slot_blue  :3100  [idle · waiting]</p>
+              <p className="text-emerald-400">slot_green :3101  [active · serving traffic]</p>
+              <p className="mt-4 text-muted-foreground"># nginx upstream (live)</p>
+              <p className="text-foreground">proxy_pass http://127.0.0.1:3101;</p>
+              <p className="mt-4 text-muted-foreground"># next deploy targets :3100</p>
+              <p className="text-foreground">build → health → switch → retire green</p>
+              <p className="mt-4 text-muted-foreground"># status lifecycle</p>
+              <p className="text-foreground">PENDING → DEPLOYING → ACTIVE</p>
+              <p className="text-amber-400">         └→ FAILED (rollback available)</p>
+            </div>
+          </div>
+
+          {/* Pipeline steps */}
+          <div className="mb-16">
+            <h3 className="mb-6 font-mono text-xs uppercase tracking-wider">Deployment Pipeline</h3>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {PIPELINE_STEPS.map((s) => (
+                <div key={s.step} className="flex gap-4 border border-border bg-background p-4">
+                  <span className="shrink-0 font-mono text-lg font-bold text-muted-foreground">{s.step}</span>
+                  <div>
+                    <p className="font-mono text-xs uppercase tracking-wider">{s.label}</p>
+                    <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{s.detail}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Crash recovery + promotion */}
+          <div className="grid gap-6 lg:grid-cols-2">
+            <div className="border border-border bg-background p-6">
+              <h3 className="font-mono text-xs uppercase tracking-wider">Crash Recovery</h3>
+              <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+                On startup, reconciliation scans for deployments stuck in <code className="border border-border bg-muted px-1 font-mono text-xs">DEPLOYING</code>,
+                stops orphaned containers, and marks them <code className="border border-border bg-muted px-1 font-mono text-xs">FAILED</code>.
+                Active deployments are verified against <code className="border border-border bg-muted px-1 font-mono text-xs">docker inspect</code> — if the
+                container is not running, state is corrected before the engine accepts requests.
               </p>
+              <ul className="mt-4 space-y-2 font-mono text-xs text-muted-foreground">
+                <li className="flex gap-2"><span className="text-foreground">→</span> Job queue survives worker restarts</li>
+                <li className="flex gap-2"><span className="text-foreground">→</span> Automatic rollback on failed health checks</li>
+                <li className="flex gap-2"><span className="text-foreground">→</span> Encrypted env vars persisted across reboots</li>
+              </ul>
+            </div>
+
+            <div className="border border-border bg-background p-6">
+              <h3 className="font-mono text-xs uppercase tracking-wider">Environment Promotion</h3>
+              <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+                New projects get development, staging, and production environments on separate host port ranges.
+                Deploy to the first stage for a fresh build; <strong className="text-foreground">Promote</strong> reuses
+                the upstream Docker image on the next stage without rebuilding.
+              </p>
+              <div className="mt-4 border border-border bg-terminal p-4 font-mono text-[11px] leading-relaxed">
+                <p className="text-muted-foreground">dev :3000–3001</p>
+                <p className="text-muted-foreground">  ↓ promote (reuse image)</p>
+                <p className="text-muted-foreground">staging :3010–3011</p>
+                <p className="text-muted-foreground">  ↓ promote (reuse image)</p>
+                <p className="text-emerald-400">production :3100–3101  [live traffic]</p>
+              </div>
+              <Link
+                href="/docs/architecture"
+                className="mt-4 inline-flex font-mono text-[10px] uppercase tracking-wider text-foreground underline underline-offset-4 hover:opacity-80"
+              >
+                Full architecture docs →
+              </Link>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Dark CTA */}
-      <section className="bg-navy py-20">
-        <div className="mx-auto max-w-3xl px-4 text-center sm:px-6">
-          <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
-            Ready to reclaim your servers?
-          </h2>
-          <p className="mx-auto mt-4 max-w-xl leading-relaxed text-white/60">
-            Stop paying for cloud overhead. Get the Vercel developer experience on your own
-            hardware in under 5 minutes.
-          </p>
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+      {/* Get Started */}
+      <section id="get-started" className="py-20">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6">
+          <div className="mb-12 max-w-2xl">
+            <p className="mb-3 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Get Started</p>
+            <h2 className="text-2xl font-bold uppercase tracking-tight">Running in Under 5 Minutes</h2>
+            <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
+              You need Bun, Docker, PostgreSQL, Nginx, and Git on a Linux VPS. The setup wizard handles database
+              migrations, encryption keys, and Nginx configuration — no manual <code className="border border-border bg-muted px-1 font-mono text-xs">.env</code> editing required.
+            </p>
+          </div>
+
+          <div className="grid gap-4 lg:grid-cols-2">
+            {GET_STARTED_STEPS.map((s) => (
+              <div key={s.step} className="border border-border bg-card">
+                <div className="flex items-center gap-3 border-b border-border px-4 py-3">
+                  <span className="font-mono text-lg font-bold text-muted-foreground">{s.step}</span>
+                  <h3 className="font-mono text-xs uppercase tracking-wider">{s.title}</h3>
+                </div>
+                <pre className="overflow-x-auto bg-terminal p-4 font-mono text-[11px] leading-relaxed text-foreground/90">
+                  {s.code}
+                </pre>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-10 flex flex-wrap items-center gap-4">
             <Link
               href={GITHUB_REPO}
-              className="rounded-full bg-white px-6 py-3 text-sm font-semibold text-navy transition hover:bg-white/90"
+              className="bg-primary px-6 py-3 font-mono text-[10px] uppercase tracking-wider text-primary-foreground transition hover:opacity-90"
             >
-              Get Started for Free
+              Clone on GitHub
             </Link>
             <Link
               href="/docs/quick-start"
-              className="rounded-full border border-white/25 px-6 py-3 text-sm font-semibold text-white transition hover:border-white/60"
+              className="border border-border px-6 py-3 font-mono text-[10px] uppercase tracking-wider text-foreground transition hover:bg-muted"
             >
-              Read the Quick Start
+              Full Quick Start Guide
             </Link>
           </div>
         </div>

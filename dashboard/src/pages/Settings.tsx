@@ -395,8 +395,8 @@ export function Settings() {
     return (
       <div className="w-full max-w-4xl space-y-8">
         <Skeleton className="h-10 w-64" />
-        <Skeleton className="h-48 rounded-xl" />
-        <Skeleton className="h-64 rounded-xl" />
+        <Skeleton className="h-48 " />
+        <Skeleton className="h-64 " />
       </div>
     );
   }
@@ -413,12 +413,13 @@ export function Settings() {
   return (
     <div className="w-full max-w-4xl space-y-10">
       <PageHeader
-        title="System settings"
-        description="Manage instance configuration, self-update, and environment variables. Secret values are never read back from the API."
+        title="System Settings"
+        description="Instance configuration, self-update, and environment variables"
+        mono
       />
 
       <div className="grid gap-4 lg:grid-cols-3">
-        <Card className="border-border/80 bg-card shadow-sm lg:col-span-2">
+        <Card className="border-border bg-card lg:col-span-2">
           <CardHeader>
             <CardTitle>Instance summary</CardTitle>
             <CardDescription>Engine build, runtime mode, and paths used by the control plane.</CardDescription>
@@ -522,7 +523,7 @@ export function Settings() {
               </p>
             ) : null}
             {normalizePublicBasePath(publicBasePathDraft) !== "/" ? (
-              <p className="rounded-md border border-amber-300/80 bg-amber-50 px-3 py-2 text-sm text-amber-950">
+              <p className="border border-amber-500/40 bg-card px-3 py-2 text-sm text-amber-400">
                 Subpath URLs need the dashboard built with the same Vite <code className="font-mono text-xs">base</code>; otherwise static assets may
                 break. Using <code className="font-mono text-xs">/</code> is simplest.
               </p>
@@ -951,7 +952,7 @@ export function Settings() {
         </CardContent>
       </Card>
 
-      <Card className="border-destructive/40 bg-destructive/5 shadow-sm">
+      <Card className="border-destructive/40 bg-destructive/5 ">
         <CardHeader>
           <CardTitle className="text-destructive">Danger zone</CardTitle>
           <CardDescription>
