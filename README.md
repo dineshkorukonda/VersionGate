@@ -114,4 +114,5 @@ Self-hosted instances use a **fixed callback** on the public relay: register **C
 
 - [Setup & API](docs/SETUP.md) — detailed setup, environment variables, full API reference
 - [Architecture](docs/ARCHITECTURE.md) — deployment pipeline, blue-green state diagrams, rollback flow, crash recovery
+- [Website](website/) — marketing site + GitHub App relay (deployed to versiongate.tech)
 

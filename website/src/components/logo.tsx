@@ -1,0 +1,11 @@
+export function LogoMark({ className = "size-8" }: { className?: string }) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" className={className} aria-hidden>
+      <rect width="32" height="32" rx="9" fill="#2257e7" />
+      <path
+        d="M9 22V10h4.2c2.4 0 4 1.4 4 3.4 0 1.2-.6 2.2-1.6 2.8L21 22h-3.2l-4.2-5.2h-.8V22H9zm4-8.8V14h.6c1 0 1.6-.5 1.6-1.3 0-.8-.6-1.3-1.6-1.3h-.6v1.2z"
+        fill="white"
+      />
+    </svg>
+  );
+}
