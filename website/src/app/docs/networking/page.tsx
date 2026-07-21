@@ -43,9 +43,14 @@ export default function Networking() {
 
       <H2>Webhook endpoints</H2>
       <P>
-        GitHub App webhooks arrive at <InlineCode>{`{PUBLIC_URL}`}/api/webhooks/github</InlineCode>{" "}
-        and are verified with <InlineCode>GITHUB_WEBHOOK_SECRET</InlineCode>. Legacy per-project
-        webhooks (<InlineCode>/api/v1/webhooks/:secret</InlineCode>) continue to work.
+        The official VersionGate GitHub App sends webhooks to{" "}
+        <InlineCode>https://versiongate.tech/api/webhooks/github</InlineCode>. The public relay
+        looks up your installation and forwards the event to{" "}
+        <InlineCode>{`{PUBLIC_URL}`}/api/webhooks/github/relay</InlineCode> on your VPS (verified with{" "}
+        <InlineCode>GITHUB_STATE_SECRET</InlineCode>). Direct{" "}
+        <InlineCode>{`{PUBLIC_URL}`}/api/webhooks/github</InlineCode> remains available for local
+        testing. Legacy per-project webhooks (<InlineCode>/api/v1/webhooks/:secret</InlineCode>) continue
+        to work without the App.
       </P>
 
       <Callout title="Behind PM2 with a minimal PATH?">

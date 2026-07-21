@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { requireDatabaseConfigured } from "../middleware/require-database";
 import {
+  githubAppRelayWebhookHandler,
   githubAppWebhookHandler,
   githubCallbackHandler,
   githubInstallationRecordHandler,
@@ -19,4 +20,5 @@ export async function githubAppRoutes(app: FastifyInstance): Promise<void> {
   app.get("/github/repos/:owner/:repo/branches", githubRepoBranchesHandler);
   app.get("/github/repos", githubReposHandler);
   app.post("/webhooks/github", githubAppWebhookHandler);
+  app.post("/webhooks/github/relay", githubAppRelayWebhookHandler);
 }

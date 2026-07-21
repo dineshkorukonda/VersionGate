@@ -103,16 +103,31 @@ No manual `.env` edits or Prisma commands are required after opening `/setup`.
 
 ### GitHub App (Integrations)
 
-Self-hosted instances use a **fixed callback** on the public relay: register **Callback URL** `https://versiongate.tech/api/github/callback` in the GitHub App settings (same for every deployment).
+VersionGate uses **one official GitHub App** (`VersionGate-App`). Self-hosted users only click **Connect GitHub** — they do not create their own App.
 
-- Set **`PUBLIC_URL`** in `.env` to this instance’s public base URL (no trailing slash) and **`GITHUB_STATE_SECRET`** to the same value as the relay’s `RELAY_SECRET` (used to sign the install `state`).
-- Set the app’s **Webhook URL** to `{PUBLIC_URL}/api/webhooks/github` (push events, etc. go to your server). **POST** `/api/webhooks/github` is unchanged and still verified with **`GITHUB_WEBHOOK_SECRET`**.
+**Official App URLs (ops-owned, fixed for everyone):**
 
+| Setting | URL |
+|---------|-----|
+| Callback URL | `https://versiongate.tech/api/github/callback` |
+| Webhook URL | `https://versiongate.tech/api/webhooks/github` |
+
+**On each VPS `.env` (shared App credentials + instance identity):**
+
+- `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY`, `GITHUB_WEBHOOK_SECRET` — same values as the official App
+- `PUBLIC_URL` — this instance’s public base URL (no trailing slash)
+- `GITHUB_STATE_SECRET` — same value as the website relay’s `RELAY_SECRET`
+
+Flow: Connect → install App → relay stores `installation_id → PUBLIC_URL` → push events hit versiongate.tech → fan-out to `POST {PUBLIC_URL}/api/webhooks/github/relay` → deploy.
+
+Legacy per-project webhooks (`POST /api/v1/webhooks/:secret`) still work without the App.
 ---
 
 ## Docs
 
 - [Setup & API](docs/SETUP.md) — detailed setup, environment variables, full API reference
 - [Architecture](docs/ARCHITECTURE.md) — deployment pipeline, blue-green state diagrams, rollback flow, crash recovery
-- [Website](website/) — marketing site + GitHub App relay (deployed to versiongate.tech)
+- [Website](website/) — marketing site + GitHub App install/webhook relay (versiongate.tech)
+- [GitHub App advanced (Phase 2)](docs/github-app-advanced.md) — future per-instance App Manifest (not shipped yet)
+- [Ops: App webhook URL](docs/github-app-ops-webhook.md) — point official App webhook at versiongate.tech
 

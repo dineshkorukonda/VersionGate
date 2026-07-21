@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { parseRelayInstallState } from "@/lib/github-install-state";
+import { isValidInstanceUrl, setInstallMapping } from "@/lib/install-registry";
 
 function badRequest(message: string) {
   const body = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/><title>GitHub relay error</title></head><body><p>${escapeHtml(message)}</p></body></html>`;
@@ -17,22 +18,11 @@ function escapeHtml(s: string) {
     .replace(/"/g, "&quot;");
 }
 
-function isValidInstanceUrl(instanceUrl: string): boolean {
-  const t = instanceUrl.trim();
-  if (!t) return false;
-  try {
-    const u = new URL(t);
-    if (u.protocol !== "http:" && u.protocol !== "https:") return false;
-    if (!u.hostname) return false;
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 /**
  * GitHub App install relay for self-hosted VersionGate instances.
  * GitHub App callback URL (fixed): https://versiongate.tech/api/github/callback
+ *
+ * Persists installation_id → instanceUrl in Redis so push webhooks can fan out.
  */
 export async function GET(request: NextRequest) {
   const secret = process.env.RELAY_SECRET;
@@ -58,6 +48,18 @@ export async function GET(request: NextRequest) {
 
   if (!isValidInstanceUrl(decoded.instanceUrl)) {
     return badRequest("Invalid instance URL in state.");
+  }
+
+  if (installationId && /^\d+$/.test(installationId)) {
+    try {
+      await setInstallMapping(installationId, {
+        instanceUrl: decoded.instanceUrl,
+        userId: decoded.userId,
+      });
+    } catch (err) {
+      console.error("[github/callback] failed to persist install mapping", err);
+      // Still redirect — engine register API is a backup
+    }
   }
 
   const target = new URL("/api/auth/github/callback", decoded.instanceUrl.trim().replace(/\/+$/, ""));

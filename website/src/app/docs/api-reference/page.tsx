@@ -41,14 +41,19 @@ export default function ApiReference() {
       <Table
         head={["Method", "Path", "Description"]}
         rows={[
-          ["GET", "/api/auth/github/install", "Start GitHub App install (redirects to GitHub)"],
+          ["GET", "/api/auth/github/install", "Start official App install (redirects to GitHub)"],
           ["GET", "/api/auth/github/callback", "Install callback (via versiongate.tech relay)"],
           ["GET", "/api/github/repos", "List repositories for the installation"],
           ["GET", "/api/github/repos/:owner/:repo/branches", "List branches"],
-          ["POST", "/api/webhooks/github", "Signed push webhook (auto-deploy)"],
+          ["POST", "/api/webhooks/github", "Direct GitHub signature webhook (dev / advanced)"],
+          ["POST", "/api/webhooks/github/relay", "Fan-out from versiongate.tech (hop-signed)"],
         ]}
       />
-
+      <P>
+        Public relay routes on versiongate.tech:{" "}
+        <InlineCode>GET /api/github/callback</InlineCode>, <InlineCode>POST /api/github/register</InlineCode>,{" "}
+        <InlineCode>POST /api/webhooks/github</InlineCode>.
+      </P>
       <H2>System</H2>
       <Table
         head={["Method", "Path", "Description"]}
