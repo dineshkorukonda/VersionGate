@@ -69,23 +69,23 @@ const PIPELINE_STEPS = [
 const GET_STARTED_STEPS = [
   {
     step: "01",
-    title: "Clone & install",
-    code: "git clone https://github.com/dinexh/VersionGate\ncd VersionGate && bun install\ncd dashboard && bun run build && cd ..",
+    title: "Clone",
+    code: "git clone https://github.com/dinexh/VersionGate\ncd VersionGate",
   },
   {
     step: "02",
-    title: "Verify the host",
-    code: "docker network create versiongate-net\nbun run preflight",
+    title: "Bootstrap host (Ubuntu/Debian)",
+    code: "sudo bash scripts/bootstrap-host.sh\nnewgrp docker\nnpm run check-deps",
   },
   {
     step: "03",
-    title: "Start the engine",
-    code: "pm2 start ecosystem.config.cjs\npm2 save",
+    title: "Install & verify",
+    code: "bun install\ncd dashboard && bun run build && cd ..\nbun run preflight",
   },
   {
     step: "04",
-    title: "Run setup wizard",
-    code: "Open http://your-server:9090/setup\n→ PostgreSQL URL, domain, admin account",
+    title: "Start & setup wizard",
+    code: "pm2 start ecosystem.config.cjs\nOpen http://your-server:9090/setup",
   },
   {
     step: "05",
@@ -326,8 +326,11 @@ export default function Home() {
             <p className="mb-3 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Get Started</p>
             <h2 className="text-2xl font-bold uppercase tracking-tight">Running in Under 5 Minutes</h2>
             <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
-              You need Bun, Docker, PostgreSQL, Nginx, and Git on a Linux VPS. The setup wizard handles database
-              migrations, encryption keys, and Nginx configuration — no manual <code className="border border-border bg-muted px-1 font-mono text-xs">.env</code> editing required.
+              On a fresh Ubuntu/Debian VPS, bootstrap installs Docker and host deps, then you build
+              and open the setup wizard. You need a public HTTPS URL for GitHub push deploys. The
+              wizard handles the database and admin account — no hand-edited{" "}
+              <code className="border border-border bg-muted px-1 font-mono text-xs">.env</code> for
+              core setup (GitHub App credentials are pasted once after).
             </p>
           </div>
 
