@@ -67,8 +67,13 @@ If Docker is installed but PM2 provides a minimal `PATH`, set `DOCKER_BIN=/usr/b
 ```bash
 git clone https://github.com/dinexh/VersionGate
 cd VersionGate
+# Fresh Ubuntu/Debian VM — installs Docker, network, /var/versiongate/projects, nginx, …
+sudo bash scripts/bootstrap-host.sh
+newgrp docker
+npm run check-deps
 bun install
 cd dashboard && bun install && bun run build && cd ..
+bun run preflight
 ```
 
 ### 2. Start the engine
