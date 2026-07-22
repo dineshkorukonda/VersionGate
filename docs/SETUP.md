@@ -9,6 +9,29 @@
 - PM2 — `npm i -g pm2`
 - Git
 
+### Check host deps (before install)
+
+After cloning, **before** `bun install`:
+
+```bash
+# On a fresh Ubuntu/Debian VM — install Docker, network, dirs, nginx, etc.:
+sudo bash scripts/bootstrap-host.sh
+# or: sudo npm run bootstrap-host
+# options: --minimal | --with-postgres | --skip-docker
+
+# Then verify (no sudo):
+newgrp docker          # or log out/in so docker group applies
+npm run check-deps
+```
+
+`check-deps` verifies git, curl, bun, and Docker. Recommended tools (nginx, pm2, certbot, psql) warn but do not fail.
+
+After packages are installed, run the full check:
+
+```bash
+bun run preflight
+```
+
 ---
 
 ## Setup
@@ -18,6 +41,8 @@
 ```bash
 git clone https://github.com/dinexh/VersionGate
 cd VersionGate
+npm run check-deps    # fix anything marked [NO] first — or run bootstrap below
+# Fresh VM (Ubuntu/Debian): sudo bash scripts/bootstrap-host.sh && newgrp docker
 bun install
 ```
 
