@@ -247,9 +247,9 @@ export function ProjectDetail() {
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" className="border-destructive/50 text-destructive" onClick={() => void onRollback()}>
-            Emergency Rollback
+            Rollback
           </Button>
-          <Button onClick={() => void onDeploy()}>Force Deployment</Button>
+          <Button onClick={() => void onDeploy()}>Deploy production</Button>
           <Button type="button" variant="ghost" className="text-destructive" onClick={() => setDeleteOpen(true)}>
             Delete
           </Button>
@@ -260,11 +260,9 @@ export function ProjectDetail() {
         <div className="space-y-6 min-w-0">
       <Card className="border-border bg-card">
         <CardHeader>
-          <CardTitle className="font-mono text-sm uppercase tracking-wider">Promotion Pipeline</CardTitle>
+          <CardTitle className="font-mono text-sm uppercase tracking-wider">Environments</CardTitle>
           <CardDescription>
-            Stages run on different host port ranges. Use <strong>Deploy to …</strong> on the first stage for a fresh build, then{" "}
-            <strong>Promote</strong> to reuse the upstream image on the next stage. The top <strong>Deploy</strong> button targets{" "}
-            <strong>production</strong> only.
+            Deploy on development, then promote to staging and production.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -278,20 +276,13 @@ export function ProjectDetail() {
             </div>
           ) : null}
           {!environmentsError && environments.length === 0 ? (
-            <div className="space-y-2 text-sm text-muted-foreground">
-              <p>No environments were returned for this project.</p>
-              <p>
-                New projects get <span className="font-medium text-foreground">development</span>,{" "}
-                <span className="font-medium text-foreground">staging</span>, and{" "}
-                <span className="font-medium text-foreground">production</span>. If this project was created on an older release, upgrade the
-                engine and apply migrations, or create a new project to get the full chain.
-              </p>
-            </div>
+            <p className="text-sm text-muted-foreground">
+              No environments yet. Create a new project to get development → staging → production.
+            </p>
           ) : null}
           {!environmentsError && environments.length === 1 && environments[0]?.name === "production" ? (
             <p className="text-xs text-muted-foreground">
-              Only <strong className="font-medium">production</strong> is present. The dev → staging → production chain appears when all three
-              environment rows exist.
+              Only production exists on this project (legacy). New projects include the full chain.
             </p>
           ) : null}
           {!environmentsError && environments.length > 0 ? (

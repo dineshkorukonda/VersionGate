@@ -69,18 +69,16 @@ export function BlueGreenTrafficCard({
   const latestBlue = latestDeploymentForColor(deployments, "BLUE");
   const latestGreen = latestDeploymentForColor(deployments, "GREEN");
 
-  const nginxNote =
-    "Nginx upstream points at the live slot’s host port. Direct links below hit each slot even when idle.";
+  const nginxNote = "Open the live URL after promote — development can stay running on its own ports.";
 
   return (
     <Card className="border-border bg-card">
       <CardHeader className="space-y-3">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <CardTitle>Blue / green slots</CardTitle>
-            <CardDescription className="mt-1 max-w-2xl">
-              Two fixed host ports per project. A deploy builds into the <span className="font-medium text-foreground">idle</span> slot;
-              after the health check passes, traffic switches and the old container is stopped.
+            <CardTitle>Blue / green</CardTitle>
+            <CardDescription className="mt-1">
+              Production slots. Live traffic uses the active port below.
             </CardDescription>
           </div>
         </div>

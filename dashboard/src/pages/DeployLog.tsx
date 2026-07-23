@@ -278,11 +278,9 @@ export function DeployLog() {
 
       {showWorkerHint && (
         <Alert className="border-amber-500/40 bg-amber-50">
-          <AlertTitle>Job still queued</AlertTitle>
+          <AlertTitle>Queued</AlertTitle>
           <AlertDescription>
-            Nothing has started yet. On the server run{" "}
-            <code className="rounded bg-muted px-1 py-0.5 text-xs">pm2 list</code> and ensure{" "}
-            <code className="rounded bg-muted px-1 py-0.5 text-xs">versiongate-worker</code> is online.
+            Worker idle — run <code className="rounded bg-muted px-1 text-xs">pm2 restart versiongate-worker</code>
           </AlertDescription>
         </Alert>
       )}
@@ -425,12 +423,8 @@ export function DeployLog() {
             </CardHeader>
             <CardContent className="space-y-2 text-xs">
               <div className="flex justify-between gap-2">
-                <span className="text-muted-foreground">Internal</span>
-                <span className="font-mono text-[11px]">127.0.0.1</span>
-              </div>
-              <div className="flex justify-between gap-2">
-                <span className="text-muted-foreground">Node</span>
-                <span className="truncate font-mono text-[11px]">{typeof window !== "undefined" ? window.location.hostname : "—"}</span>
+                <span className="text-muted-foreground">Dashboard</span>
+                <span className="truncate font-mono text-[11px]">{typeof window !== "undefined" ? window.location.host : "—"}</span>
               </div>
               {hostStats ? (
                 <div className="flex justify-between gap-2">
