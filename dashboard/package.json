@@ -4,10 +4,10 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
+    "dev": "bun --bun vite",
+    "build": "tsc -b && bun --bun vite build",
     "lint": "eslint .",
-    "preview": "vite preview",
+    "preview": "bun --bun vite preview",
     "preflight": "bun ../scripts/preflight.ts"
   },
   "dependencies": {

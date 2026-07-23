@@ -180,13 +180,17 @@ export async function buildApp(): Promise<FastifyInstance> {
   }
 
   // ── SPA fallback (Vite + React Router) ─────────────────────────────────────
+  // Allow GET and HEAD so `curl -I /setup` works the same as a browser GET.
   app.setNotFoundHandler(async (req, reply) => {
-    if (req.method !== "GET" || req.url.startsWith("/api/")) {
+    if ((req.method !== "GET" && req.method !== "HEAD") || req.url.startsWith("/api/")) {
       return reply.code(404).send({ error: "Not Found", message: `${req.method} ${req.url} not found` });
     }
 
     const indexPath = join(dashboardOutDir, "index.html");
     if (existsSync(indexPath)) {
+      if (req.method === "HEAD") {
+        return reply.type("text/html").code(200).send();
+      }
       return reply.type("text/html").sendFile("index.html");
     }
 
