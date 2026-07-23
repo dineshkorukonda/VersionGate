@@ -29,7 +29,8 @@ import { Separator } from "@/components/ui/separator";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
 import { useEffect, useState } from "react";
-import { authLogout, getAuthStatus, getProjects, getServerStats, getSetupStatus, type Project } from "@/lib/api";
+import { authLogout, getAuthStatus, getInstanceSettings, getProjects, getServerStats, getSetupStatus, type Project } from "@/lib/api";
+import { setConfiguredPublicHost } from "@/lib/deployment-display";
 import { cn } from "@/lib/utils";
 import { GlobalSearchDialog } from "@/components/GlobalSearchDialog";
 import { CreateProjectModal } from "@/components/CreateProjectModal";
@@ -72,6 +73,20 @@ export function Layout() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
   const [headerUserEmail, setHeaderUserEmail] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void getInstanceSettings()
+      .then((s) => {
+        if (!cancelled) setConfiguredPublicHost(s.publicDomain);
+      })
+      .catch(() => {
+        /* settings may be unavailable before auth */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;

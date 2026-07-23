@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { getAllDeployments, getProjects, getServerStats, listAllJobs, type Deployment, type JobRecord, type Project, type ServerStats } from "@/lib/api";
+import { getAllDeployments, getInstanceSettings, getProjects, getServerStats, listAllJobs, type Deployment, type JobRecord, type Project, type ServerStats } from "@/lib/api";
 import { projectDeploymentStatus } from "@/lib/project-deployment-status";
-import { getDisplayDeployment, publicServiceUrl } from "@/lib/deployment-display";
+import { getActiveDeployment, getDisplayDeployment, guessEnvironmentLabel, publicServiceUrl, setConfiguredPublicHost } from "@/lib/deployment-display";
 import { PageHeader } from "@/components/PageHeader";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -19,7 +19,7 @@ import { Progress } from "@/components/ui/progress";
 const PAGE_SIZE = 6;
 
 function formatUptime(projectId: string, deployments: Deployment[]): string {
-  const active = deployments.find((d) => d.projectId === projectId && d.status === "ACTIVE");
+  const active = getActiveDeployment(projectId, deployments);
   if (!active) return "—";
   const sec = Math.max(0, (Date.now() - new Date(active.updatedAt).getTime()) / 1000);
   const d = Math.floor(sec / 86400);
@@ -43,11 +43,13 @@ export function Projects() {
   const load = async () => {
     setLoading(true);
     try {
-      const [p, d, jobs] = await Promise.all([
+      const [p, d, jobs, inst] = await Promise.all([
         getProjects(),
         getAllDeployments(),
         listAllJobs({ limit: 120 }).catch(() => ({ jobs: [] as JobRecord[], total: 0 })),
+        getInstanceSettings().catch(() => null),
       ]);
+      setConfiguredPublicHost(inst?.publicDomain);
       setProjects(p.projects);
       setDeployments(d.deployments);
       const m = new Map<string, string>();
@@ -150,6 +152,7 @@ export function Projects() {
                       disp && (disp.status === "ACTIVE" || disp.status === "DEPLOYING")
                         ? publicServiceUrl(disp.port)
                         : null;
+                    const envLabel = disp ? guessEnvironmentLabel(proj, disp) : "—";
                     const jobId = latestJobByProject.get(proj.id);
                     return (
                       <TableRow key={proj.id}>
@@ -162,8 +165,9 @@ export function Projects() {
                         <TableCell>
                           <StatusBadge status={state} />
                         </TableCell>
-                        <TableCell className="font-mono text-xs text-muted-foreground">
-                          {disp ? `v${disp.version}` : "—"}
+                        <TableCell className="font-mono text-xs uppercase text-muted-foreground">
+                          {envLabel}
+                          {disp ? <span className="ml-1 normal-case text-muted-foreground/70">v{disp.version}</span> : null}
                         </TableCell>
                         <TableCell className="text-sm tabular-nums text-muted-foreground">
                           {formatUptime(proj.id, deployments)}

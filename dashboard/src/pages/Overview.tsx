@@ -25,11 +25,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { useLaunchCreateProject } from "@/create-project-launch";
 import {
+  getActiveDeployment,
   getDeployingDeployment,
   getDisplayDeployment,
-  hostPortForSlot,
+  guessEnvironmentLabel,
   latestDeploymentForColor,
   publicServiceUrl,
+  setConfiguredPublicHost,
 } from "@/lib/deployment-display";
 import { projectDeploymentStatus } from "@/lib/project-deployment-status";
 import { DeleteProjectDialog } from "@/components/DeleteProjectDialog";
@@ -84,6 +86,7 @@ export function Overview() {
       setDeployments(d.deployments);
       setRecentJobs(allJobs.jobs);
       setInstanceSettings(inst);
+      setConfiguredPublicHost(inst?.publicDomain);
 
       const jobEntries = await Promise.all(
         p.projects.map(async (proj) => {
@@ -213,11 +216,9 @@ export function Overview() {
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-base">
             <Globe className="size-5 text-muted-foreground" aria-hidden />
-            Dashboard hostname &amp; URL
+            Public hostname
           </CardTitle>
-          <CardDescription>
-            Where this VersionGate UI is meant to be reached (DNS hostname and optional path). Change these when you move to a new domain or subdomain.
-          </CardDescription>
+          <CardDescription>Used for Live / Open links (set your VM IP or domain here).</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0 flex-1 space-y-2">
@@ -245,7 +246,7 @@ export function Overview() {
               </>
             ) : (
               <p className="text-sm text-muted-foreground">
-                No public hostname configured yet. Set the domain or subdomain where operators should open VersionGate, then point DNS and nginx at this server.
+                Set your public IP or domain so Open links are not 127.0.0.1.
               </p>
             )}
           </div>
@@ -253,7 +254,7 @@ export function Overview() {
             to="/settings#dashboard-url"
             className={buttonVariants({ variant: "default", size: "sm", className: "w-full shrink-0 sm:w-auto" })}
           >
-            Change domain &amp; hostname
+            Change hostname
           </Link>
         </CardContent>
       </Card>
@@ -378,14 +379,16 @@ export function Overview() {
                 const row = getDisplayDeployment(p.id, deployments);
                 const st = projectDeploymentStatus(p.id, deployments);
                 const job = latestJobs[p.id];
-                const hostPort = row ? hostPortForSlot(p, row.color) : null;
+                const hostPort = row?.port ?? null;
                 const hostUrl = hostPort != null ? publicServiceUrl(hostPort) : null;
-                const active = mine.find((d) => d.status === "ACTIVE");
+                const envLabel = row ? guessEnvironmentLabel(p, row) : null;
+                const active = getActiveDeployment(p.id, deployments);
                 const deploying = getDeployingDeployment(p.id, deployments);
                 const bluePort = p.basePort;
                 const greenPort = p.basePort + 1;
-                const blueLatest = latestDeploymentForColor(mine, "BLUE");
-                const greenLatest = latestDeploymentForColor(mine, "GREEN");
+                const prodMine = mine.filter((d) => d.port === p.basePort || d.port === p.basePort + 1);
+                const blueLatest = latestDeploymentForColor(prodMine, "BLUE");
+                const greenLatest = latestDeploymentForColor(prodMine, "GREEN");
                 const lastDeploy = mine.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
 
                 return (
@@ -448,6 +451,11 @@ export function Overview() {
                       <div className="space-y-2">
                         <div className="flex flex-wrap items-center gap-2">
                           {row && <SlotBadge color={row.color} />}
+                          {envLabel && envLabel !== "—" ? (
+                            <Badge variant="outline" className="font-mono text-[9px] uppercase">
+                              {envLabel}
+                            </Badge>
+                          ) : null}
                           {hostUrl ? (
                             <a
                               href={hostUrl}

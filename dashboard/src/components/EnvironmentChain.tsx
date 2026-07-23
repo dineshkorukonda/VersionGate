@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/StatusBadge";
 import {
   promoteEnvironment,
   type EnvironmentSummary,
 } from "@/lib/api";
+import { publicServiceUrl } from "@/lib/deployment-display";
 
 function ChainArrow() {
   return (
@@ -67,8 +68,7 @@ export function EnvironmentChain({
   return (
     <div className="space-y-3">
       <p className="text-xs text-muted-foreground">
-        <strong className="text-foreground/80">Promote</strong> reuses the upstream Docker image (no rebuild).{" "}
-        <span className="font-mono text-[0.7rem] opacity-80">POST /projects/…/environments/:id/promote</span>
+        Deploy builds once on the first stage. Promote copies that image forward (no rebuild).
       </p>
       <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-stretch">
         {sorted.map((env, index) => {
@@ -77,6 +77,10 @@ export function EnvironmentChain({
           const active = env.activeDeployment;
           const showPromote = index > 0;
           const promoteDisabled = !upstreamActive || promotingId !== null;
+          const openUrl =
+            active?.status === "ACTIVE" || active?.status === "DEPLOYING"
+              ? publicServiceUrl(active.port)
+              : null;
 
           return (
             <div key={env.id} className="flex flex-1 min-w-[200px] flex-col gap-3 sm:flex-row sm:items-stretch">
@@ -87,20 +91,25 @@ export function EnvironmentChain({
                     <CardTitle className="font-mono text-xs uppercase tracking-wider">{env.name}</CardTitle>
                     {active ? <StatusBadge status={active.status} /> : <StatusBadge status="PENDING" />}
                   </div>
-                  <CardDescription className="font-mono text-xs">
-                    Branch {env.branch} · host ports {env.basePort}–{env.basePort + 1}
-                  </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-3 pt-0">
+                <CardContent className="space-y-3 pt-3">
                   {active ? (
                     <div className="space-y-1 text-xs text-muted-foreground">
                       <p>
-                        <span className="text-foreground/80">Version</span>{" "}
-                        <span className="font-mono tabular-nums">v{active.version}</span>
+                        <span className="text-foreground/80">v{active.version}</span>
+                        <span className="mx-1.5 text-border">·</span>
+                        <span className="font-mono">:{active.port}</span>
                       </p>
-                      <p className="truncate font-mono" title={active.imageTag}>
-                        {active.imageTag}
-                      </p>
+                      {openUrl ? (
+                        <a
+                          href={openUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="block truncate font-mono text-primary underline-offset-2 hover:underline"
+                        >
+                          Open {env.name}
+                        </a>
+                      ) : null}
                     </div>
                   ) : (
                     <p className="text-xs text-muted-foreground">No deployment yet.</p>
@@ -113,7 +122,7 @@ export function EnvironmentChain({
                         variant="secondary"
                         onClick={() => void onDeployToEnvironment(env.id)}
                       >
-                        Deploy to {env.name}
+                        Deploy
                       </Button>
                     ) : null}
                     {showPromote ? (
@@ -123,8 +132,8 @@ export function EnvironmentChain({
                         onClick={() => upstream && void onPromote(env.id, upstream.id)}
                         title={
                           !upstreamActive
-                            ? `Wait until ${upstream?.name ?? "upstream"} has an ACTIVE deployment`
-                            : undefined
+                            ? `Need an ACTIVE deploy on ${upstream?.name ?? "upstream"} first`
+                            : `Promote ${upstream?.name} → ${env.name}`
                         }
                       >
                         {promotingId === env.id ? (
@@ -133,7 +142,7 @@ export function EnvironmentChain({
                             Promoting…
                           </>
                         ) : (
-                          "Promote"
+                          `→ ${env.name}`
                         )}
                       </Button>
                     ) : null}

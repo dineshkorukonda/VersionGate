@@ -27,6 +27,7 @@ import { DonutChart } from "@/components/charts/DonutChart";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Globe } from "lucide-react";
 import { formatPublicDashboardUrl, looksLikeIpv4, normalizePublicBasePath } from "@/lib/public-url";
+import { setConfiguredPublicHost } from "@/lib/deployment-display";
 
 function Row({ label, value }: { label: string; value: ReactNode }) {
   return (
@@ -76,6 +77,7 @@ export function Settings() {
         if (cancelled) return;
         setInstance(i);
         setSetup(s);
+        setConfiguredPublicHost(i.publicDomain);
         setPublicDomainDraft(i.publicDomain ?? "");
         setPublicBasePathDraft(i.publicBasePath ?? "/");
         setCertbotEmailDraft(i.certbotEmail ?? "");
@@ -295,6 +297,7 @@ export function Settings() {
       toast.success(r.message);
       const i = await getInstanceSettings();
       setInstance(i);
+      setConfiguredPublicHost(i.publicDomain);
       setPublicDomainDraft(i.publicDomain ?? "");
       setPublicBasePathDraft(i.publicBasePath ?? "/");
       setCertbotEmailDraft(i.certbotEmail ?? "");

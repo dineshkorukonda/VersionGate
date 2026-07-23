@@ -29,7 +29,10 @@ interface SetupApplyBody {
   geminiApiKey?: string;
 }
 
-const NGINX_CONF_PATH = "/etc/nginx/conf.d/versiongate.conf";
+/** Dashboard reverse-proxy site (must not be overwritten by traffic switch). */
+const NGINX_SITE_CONF_PATH = "/etc/nginx/conf.d/versiongate.conf";
+/** App blue/green upstream rewritten by TrafficService on production promote/deploy. */
+const NGINX_UPSTREAM_CONF_PATH = "/etc/nginx/conf.d/upstream.conf";
 const DB_URL_REGEX = /^DATABASE_URL\s*=\s*"?([^"\n\r]+)"?\s*$/m;
 const ENCRYPTION_KEY_REGEX = /^ENCRYPTION_KEY\s*=\s*"?([0-9a-fA-F]{64})"?\s*$/m;
 
@@ -179,7 +182,7 @@ export async function applySetupHandler(
 PORT=9090
 NODE_ENV=production
 DOCKER_NETWORK="versiongate-net"
-NGINX_CONFIG_PATH="${NGINX_CONF_PATH}"
+NGINX_CONFIG_PATH="${NGINX_UPSTREAM_CONF_PATH}"
 PROJECTS_ROOT_PATH="${escapeEnvValue(projectsRootPath)}"
 PUBLIC_DOMAIN="${escapeEnvValue(normalizedDomain)}"
 PUBLIC_BASE_PATH="/"
@@ -269,7 +272,14 @@ ENCRYPTION_KEY="${encryptionKey}"
       upstreamPort: 9090,
       basePath: "/",
     });
-    writeFileSync(NGINX_CONF_PATH, nginxConf, "utf-8");
+    writeFileSync(NGINX_SITE_CONF_PATH, nginxConf, "utf-8");
+    if (!existsSync(NGINX_UPSTREAM_CONF_PATH)) {
+      writeFileSync(
+        NGINX_UPSTREAM_CONF_PATH,
+        "# Written by VersionGate on production deploy/promote\n",
+        "utf-8"
+      );
+    }
 
     try {
       execSync("nginx -t && nginx -s reload", { stdio: "pipe", timeout: 10_000 });

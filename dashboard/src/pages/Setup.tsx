@@ -9,7 +9,10 @@ import { Toaster } from "@/components/ui/sonner";
 
 function defaultDomain(): string {
   if (typeof window === "undefined") return "";
-  return window.location.hostname || "";
+  const host = window.location.hostname || "";
+  // SSH tunnels / local browser hosts must not become PUBLIC_DOMAIN (breaks Open links).
+  if (host === "localhost" || host === "127.0.0.1" || host === "::1") return "";
+  return host;
 }
 
 export function Setup() {
@@ -134,10 +137,13 @@ export function Setup() {
                   id="vg-domain"
                   value={domain}
                   onChange={(e) => setDomain(e.target.value)}
-                  placeholder="example.com or 203.0.113.10"
+                  placeholder="4.240.101.7 or app.example.com"
                   autoComplete="off"
                   required
                 />
+                <p className="text-xs text-muted-foreground">
+                  Use the VM public IP or domain — not 127.0.0.1 (that breaks Open / Live links).
+                </p>
               </div>
               <div className="space-y-2">
                 <label htmlFor="vg-db" className="text-sm font-medium">
