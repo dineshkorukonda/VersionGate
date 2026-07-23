@@ -48,6 +48,25 @@ Prisma records each migration in `_prisma_migrations`. If a migration **started*
 
 You see this when you run `prisma migrate resolve --applied <name>` but Prisma already has that migration as **applied** (not failed). **Ignore that name** and run `bunx prisma migrate status` plus `bunx prisma migrate deploy` again; the real blocker is whatever migration P3009 names **next**.
 
+### VersionGate: `20260419120000_environment_model` + `lockedAt` (P3018 → P3009)
+
+Older copies of this migration selected unqualified `"lockedAt"` while inserting into `"Environment"`. PostgreSQL errors with **42703** / “column lockedAt does not exist” even though `Environment.lockedAt` was just created. Setup may have recovered with **`db push`**, leaving a **failed** row in `_prisma_migrations` — later self-update then hits **P3009**.
+
+**On an install that already has environments / schema (typical after setup + push fallback):**
+
+```bash
+cd ~/VersionGate
+bunx prisma migrate resolve --applied 20260419120000_environment_model
+bunx prisma migrate deploy
+pm2 restart all
+```
+
+Then retry **Settings → Self-update → Apply**.
+
+**Fresh empty Neon database:** pull latest `main` (migration SQL uses `NULL` for `lockedAt`) and run setup again — do not reuse a DB with a failed migration row unless you `resolve` first.
+
+Redis / a separate queue does **not** fix Prisma migration history; keep Neon Postgres and clear `_prisma_migrations` failures with `migrate resolve`.
+
 ### 1. Inspect the database
 
 From the server (or any host that can reach the DB), with the same URL VersionGate uses for migrations (prefer **`DIRECT_DATABASE_URL`** unpooled if you use Neon):
