@@ -8,7 +8,7 @@ On startup (when `DATABASE_URL` is set), the engine runs schema sync from [`src/
 
 | `PRISMA_SCHEMA_SYNC` | Behavior |
 | -------------------- | -------- |
-| `migrate` (default) | Runs `bunx prisma migrate deploy`. Uses **`DIRECT_DATABASE_URL`** as `DATABASE_URL` for that subprocess when set; if unset but **`DATABASE_URL`** is a Neon **`-pooler.`** host, VersionGate **infers** the usual direct host for migrate only (see [`prisma-schema-sync.ts`](../src/utils/prisma-schema-sync.ts)). On some failures it falls back to `db push`. **No fallback** on P3005 / P3009 / P1001 / P1002 / baseline / advisory-lock errors. |
+| `migrate` (default) | Runs `bunx prisma migrate deploy`. Uses **`DIRECT_DATABASE_URL`** as `DATABASE_URL` for that subprocess when set; if unset but **`DATABASE_URL`** is a Neon **`-pooler.`** host, VersionGate **infers** the usual direct host for migrate only (see [`prisma-schema-sync.ts`](../src/utils/prisma-schema-sync.ts)). **Auto-heals P3009** (failed migration rows) and falls back to `db push` on stubborn advisory-lock (**P1002**) timeouts. **No** push fallback for **P3005** (needs baseline). |
 | `push` | Runs **only** `bunx prisma db push --accept-data-loss` — no migration history required. Use only when you accept push-only discipline for that install. |
 
 Set in `.env`:
@@ -40,9 +40,22 @@ If you intentionally do not use migration history (e.g. ephemeral dev), set `PRI
 
 Prisma records each migration in `_prisma_migrations`. If a migration **started** but did not finish cleanly, Prisma marks it as **failed** and refuses to apply newer migrations until you **resolve** that record ([production troubleshooting](https://www.prisma.io/docs/guides/migrate/production-troubleshooting)).
 
+### Automatic heal (VersionGate)
+
+On startup and self-update, [`runPrismaSchemaSync`](../src/utils/prisma-schema-sync.ts) **auto-heals** P3009 when possible:
+
+1. Parse the failed migration name(s) from the error
+2. Run `prisma migrate resolve --applied <name>`
+3. Retry `migrate deploy`
+4. If still blocked (or Neon **P1002** advisory-lock timeout), sync with `db push` and continue so upgrades are not stuck behind SSH
+
+Operators should **not** need to run `migrate resolve` by hand for the common “setup used push fallback, then self-update hits P3009” path. Manual steps below remain for unusual / half-applied production DBs.
+
+Setup also writes **`DIRECT_DATABASE_URL`** when `DATABASE_URL` is a Neon `-pooler.` host, so migrate uses a session-capable endpoint.
+
 **Always use the migration name printed in the current P3009 message** — after you fix one failure, the next `migrate deploy` may report a **different** migration in failed state (see *VersionGate: common chain* below).
 
-**You must not blindly “resolve” without checking the live schema** — choose the branch that matches reality.
+**You must not blindly “resolve” without checking the live schema** — choose the branch that matches reality (auto-heal assumes the live schema already matches or will be synced via `db push`).
 
 ### Error P3008 — “migration is already recorded as applied”
 
@@ -52,20 +65,21 @@ You see this when you run `prisma migrate resolve --applied <name>` but Prisma a
 
 Older copies of this migration selected unqualified `"lockedAt"` while inserting into `"Environment"`. PostgreSQL errors with **42703** / “column lockedAt does not exist” even though `Environment.lockedAt` was just created. Setup may have recovered with **`db push`**, leaving a **failed** row in `_prisma_migrations` — later self-update then hits **P3009**.
 
-**On an install that already has environments / schema (typical after setup + push fallback):**
+**Preferred:** pull latest `main` and run self-update / restart — auto-heal marks the failed migration applied.
+
+**Manual (only if auto-heal is not on the box yet):**
 
 ```bash
 cd ~/VersionGate
+# Prefer Neon *direct* host (no `-pooler.`) to avoid P1002 advisory-lock timeouts
 bunx prisma migrate resolve --applied 20260419120000_environment_model
 bunx prisma migrate deploy
 pm2 restart all
 ```
 
-Then retry **Settings → Self-update → Apply**.
+**Fresh empty Neon database:** pull latest `main` (migration SQL uses `NULL` for `lockedAt`) and run setup again.
 
-**Fresh empty Neon database:** pull latest `main` (migration SQL uses `NULL` for `lockedAt`) and run setup again — do not reuse a DB with a failed migration row unless you `resolve` first.
-
-Redis / a separate queue does **not** fix Prisma migration history; keep Neon Postgres and clear `_prisma_migrations` failures with `migrate resolve`.
+Redis does **not** fix Prisma migration history; keep Neon Postgres.
 
 ### 1. Inspect the database
 
