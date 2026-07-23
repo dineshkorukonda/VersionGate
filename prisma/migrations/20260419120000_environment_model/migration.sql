@@ -19,6 +19,8 @@ CREATE INDEX "Environment_projectId_idx" ON "Environment"("projectId");
 ALTER TABLE "Environment" ADD CONSTRAINT "Environment_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "Project"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- One default environment per project (production) — mirrors former project-level deploy target
+-- Use NULL for lockedAt: Project never had that column in prior migrations; an unqualified
+-- "lockedAt" is rejected by PostgreSQL once Environment.lockedAt exists (P3018 / 42703).
 INSERT INTO "Environment" ("id", "name", "projectId", "branch", "serverHost", "basePort", "appPort", "lockedAt", "createdAt", "updatedAt")
 SELECT
   'env_prod_' || "id",
@@ -28,7 +30,7 @@ SELECT
   'localhost',
   "basePort",
   "appPort",
-  "lockedAt",
+  NULL,
   CURRENT_TIMESTAMP,
   CURRENT_TIMESTAMP
 FROM "Project";
