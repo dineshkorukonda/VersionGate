@@ -135,21 +135,13 @@ if [[ "$MINIMAL" -eq 0 ]]; then
     ok "nginx: $(nginx -v 2>&1)"
   fi
 
-  log "Recommended: PM2 (global via npm)"
+  log "Recommended: Node.js + npm + PM2"
+  apt-get install -y --no-install-recommends nodejs npm || warn "nodejs/npm apt install had issues"
   if command -v npm >/dev/null 2>&1; then
     npm install -g pm2
     ok "pm2: $(pm2 --version 2>/dev/null || echo installed)"
-  elif command -v bun >/dev/null 2>&1; then
-    # PM2 prefers npm; try installing nodejs for npm
-    apt-get install -y --no-install-recommends nodejs npm || warn "Could not install nodejs/npm for PM2"
-    if command -v npm >/dev/null 2>&1; then
-      npm install -g pm2
-      ok "pm2 installed"
-    else
-      warn "PM2 skipped — install Node/npm later: sudo apt install -y nodejs npm && sudo npm i -g pm2"
-    fi
   else
-    warn "PM2 skipped — no npm yet"
+    warn "PM2 skipped — install later: sudo apt install -y nodejs npm && sudo npm i -g pm2"
   fi
 else
   warn "Minimal mode — skipped nginx / certbot / pm2"
