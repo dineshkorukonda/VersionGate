@@ -7,7 +7,7 @@ import { PrismaClient } from "@prisma/client";
 import { logger } from "../utils/logger";
 import { config } from "../config/env";
 import { envFilePath, projectRoot } from "../utils/paths";
-import { runPrismaSchemaSync } from "../utils/prisma-schema-sync";
+import { runPrismaSchemaSync, tryInferNeonDirectDatabaseUrl } from "../utils/prisma-schema-sync";
 import { reconnectPrismaAfterSetup } from "../prisma/client";
 import { notifySetupApplied } from "../services/post-setup-hooks";
 import {
@@ -188,6 +188,11 @@ PUBLIC_DOMAIN="${escapeEnvValue(normalizedDomain)}"
 PUBLIC_BASE_PATH="/"
 ENCRYPTION_KEY="${encryptionKey}"
 `;
+
+  const inferredDirect = tryInferNeonDirectDatabaseUrl(databaseUrl);
+  if (inferredDirect) {
+    envContent += `DIRECT_DATABASE_URL="${escapeEnvValue(inferredDirect)}"\n`;
+  }
 
   if (geminiApiKey && geminiApiKey.trim().length > 0) {
     envContent += `GEMINI_API_KEY="${escapeEnvValue(geminiApiKey.trim())}"\n`;
