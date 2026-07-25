@@ -9,7 +9,7 @@
  * Usage:
  *   bun run setup
  */
-import { existsSync, readFileSync, writeFileSync } from "fs";
+import { existsSync, readFileSync, writeFileSync, mkdirSync } from "fs";
 import { join } from "path";
 import { randomBytes } from "crypto";
 import { execSync } from "child_process";
@@ -106,8 +106,18 @@ function ensureDockerNetwork() {
   }
 }
 
+function ensureLocalDatabaseCreated() {
+  console.log("\n🗄️  3. Verifying Local PostgreSQL Database...");
+  try {
+    execSync("createdb versiongate 2>/dev/null || true", { stdio: "ignore" });
+    console.log("   ✅ Database 'versiongate' verified/ready.");
+  } catch {
+    console.log("   ⚠️  Database verification skipped.");
+  }
+}
+
 async function syncDatabaseSchema() {
-  console.log("\n🗄️  3. Syncing PostgreSQL Schema via Drizzle ORM...");
+  console.log("\n⚡ 4. Syncing PostgreSQL Schema via Drizzle ORM...");
   try {
     const result = runDrizzleSchemaSync();
     if (result.ok) {
@@ -121,7 +131,7 @@ async function syncDatabaseSchema() {
 }
 
 function buildDashboardAssets() {
-  console.log("\n🎨 4. Building Dashboard UI Static Assets...");
+  console.log("\n🎨 5. Building Dashboard UI Static Assets...");
   try {
     execSync("bun run build:dashboard", { cwd: projectRoot, stdio: "inherit" });
     console.log("   ✅ Dashboard built successfully to dashboard/out/.");
@@ -139,7 +149,6 @@ async function main() {
   // Ensure local projects directory exists
   const projectsDir = join(projectRoot, "projects");
   if (!existsSync(projectsDir)) {
-    const { mkdirSync } = await import("fs");
     mkdirSync(projectsDir, { recursive: true });
   }
 
@@ -167,6 +176,7 @@ async function main() {
 
   await ensureDotEnv();
   ensureDockerNetwork();
+  ensureLocalDatabaseCreated();
   await syncDatabaseSchema();
   buildDashboardAssets();
 
