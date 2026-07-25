@@ -25,7 +25,7 @@ export default function Architecture() {
       <Breadcrumb page="Architecture" />
       <PageTitle>Architecture</PageTitle>
       <Lead>
-        VersionGate is a Fastify API plus a background worker, backed by PostgreSQL via Prisma. It
+        VersionGate is a Fastify API plus a background worker, backed by PostgreSQL via Drizzle ORM and Redis event pub/sub. It
         orchestrates the Docker CLI and rewrites Nginx upstreams to switch traffic atomically.
       </Lead>
 
@@ -54,7 +54,7 @@ export default function Architecture() {
       </P>
 
       <Callout title="Component overview">
-        HTTP request → Fastify router → controller → service layer → Prisma (state) + Docker CLI
+        HTTP request → Fastify router → controller → service layer → Drizzle ORM + Redis (state/queue) + Docker CLI
         (build/run/stop) → Nginx (traffic switch). A job queue with a dedicated worker handles
         long-running deploys and streams logs to the dashboard over WebSockets.
       </Callout>
