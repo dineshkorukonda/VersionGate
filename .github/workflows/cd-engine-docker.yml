@@ -1,4 +1,4 @@
-name: Build & Push Docker Image
+name: CD - Engine Docker Release
 
 on:
   push:
@@ -13,8 +13,8 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  build-and-push:
-    name: Build & Publish Container Image
+  publish-engine:
+    name: Build & Push Engine Container
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -24,7 +24,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up QEMU for multi-architecture builds
+      - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
