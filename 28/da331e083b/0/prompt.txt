@@ -1,0 +1,37 @@
+<timestamp>Thursday, Jul 23, 2026, 11:49 AM (UTC+5:30)</timestamp>
+
+azureuser@alpha-vg:~/VersionGate$ cd ~/VersionGate
+set -a && source .env && set +a
+export DATABASE_URL="${DIRECT_DATABASE_URL:-$DATABASE_URL}"
+
+bunx prisma migrate resolve --applied 20260503120000_github_installation
+bunx prisma migrate deploy
+# expect exit 0
+
+pm2 restart all
+Environment variables loaded from .env
+Prisma schema loaded from prisma/schema.prisma
+Datasource "db": PostgreSQL database "neondb", schema "public" at "ep-flat-brook-awrok294.c-12.us-east-1.aws.neon.tech"
+Error: P3008
+
+The migration `20260503120000_github_installation` is already recorded as applied in the database.
+
+Environment variables loaded from .env
+Prisma schema loaded from prisma/schema.prisma
+Datasource "db": PostgreSQL database "neondb", schema "public" at "ep-flat-brook-awrok294.c-12.us-east-1.aws.neon.tech"
+
+9 migrations found in prisma/migrations
+
+No pending migrations to apply.
+Use --update-env to update environment variables
+[PM2] Applying action restartProcessId on app [all](ids: [ 0, 1 ])
+[PM2] [versiongate-api](0) ✓
+[PM2] [versiongate-worker](1) ✓
+┌────┬────────────────────┬──────────┬──────┬───────────┬──────────┬──────────┐
+│ id │ name               │ mode     │ ↺    │ status    │ cpu      │ memory   │
+├────┼────────────────────┼──────────┼──────┼───────────┼──────────┼──────────┤
+│ 0  │ versiongate-api    │ fork     │ 18   │ online    │ 0%       │ 59.7mb   │
+│ 1  │ versiongate-worker │ fork     │ 6    │ online    │ 0%       │ 16.5mb   │
+└────┴────────────────────┴──────────┴──────┴───────────┴──────────┴──────────┘
+host metrics | cpu: 8% | ram usage: 28.2% | eth0: ⇓ 0.004mb/s ⇑ 0.002mb/s |
+azureuser@alpha-vg:~/VersionGate$
