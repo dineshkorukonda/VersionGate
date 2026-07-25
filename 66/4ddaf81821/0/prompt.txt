@@ -1,0 +1,14 @@
+<timestamp>Thursday, Jul 23, 2026, 12:02 PM (UTC+5:30)</timestamp>
+
+wt is this :
+UPSTASH_REDIS_REST_URL=...
+UPSTASH_REDIS_REST_TOKEN=...
+VPS .env (your alpha-vg) — paste App keys, no Redis
+
+GITHUB_APP_ID="…"
+GITHUB_APP_PRIVATE_KEY="-----BEGIN…-----"
+GITHUB_WEBHOOK_SECRET="…"          # same as App + Vercel
+GITHUB_STATE_SECRET="…"            # same as RELAY_SECRET on Vercel
+PUBLIC_URL="https://your-public-host"   # must be reachable (not only SSH tunnel)
+why do i need to this this
+ince the app the created and well connexted in version gate i will udpate and just connect to github like any other vercel
