@@ -26,7 +26,7 @@
   },
   "dependencies": {
     "@fastify/sensible": "^5.5.0",
-    "@fastify/static": "^6.12.0",
+    "@fastify/static": "^10.1.2",
     "@fastify/websocket": "10.0.1",
     "@octokit/auth-app": "^8.2.0",
     "@octokit/rest": "^22.0.1",
