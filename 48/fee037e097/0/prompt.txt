@@ -1,0 +1,7 @@
+<timestamp>Wednesday, Jul 22, 2026, 4:17 PM (UTC+5:30)</timestamp>
+
+➜  ~ ssh -L 9090:127.0.0.1:9090 azureuser@<4.240.101.7>
+zsh: parse error near `\n'
+➜  ~ ssh -L 9090:127.0.0.1:9090 azureuser@<4.240.101.7>
+zsh: parse error near `\n'
+➜  ~
