@@ -74,13 +74,13 @@ const GET_STARTED_STEPS = [
   },
   {
     step: "02",
-    title: "Bootstrap host (Ubuntu/Debian)",
-    code: "sudo bash scripts/bootstrap-host.sh\nnewgrp docker\nnpm run check-deps",
+    title: "Install & setup",
+    code: "bun install\nbun run setup",
   },
   {
     step: "03",
-    title: "Install & verify",
-    code: "bun install\ncd dashboard && bun run build && cd ..\nbun run preflight",
+    title: "Start engine",
+    code: "bun run dev",
   },
   {
     step: "04",

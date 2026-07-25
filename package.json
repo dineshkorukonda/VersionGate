@@ -18,8 +18,6 @@
     "drizzle:studio": "drizzle-kit studio",
     "lint": "eslint src --ext .ts",
     "typecheck": "tsc --noEmit",
-    "check-deps": "bash scripts/check-host-deps.sh",
-    "bootstrap-host": "bash scripts/bootstrap-host.sh",
     "preflight": "bun run scripts/preflight.ts",
     "setup": "bun scripts/setup.ts",
     "self-update": "bun run scripts/self-update.ts",

@@ -15,18 +15,12 @@ export default function QuickStart() {
       <Code title="terminal">{`git clone https://github.com/dinexh/VersionGate
 cd VersionGate`}</Code>
 
-      <H2>2. Bootstrap the host (Ubuntu/Debian)</H2>
+      <H2>2. Install & Run Setup Wizard</H2>
       <P>
-        On a clean VM this installs Docker, adds your user to the <InlineCode>docker</InlineCode>{" "}
-        group, creates <InlineCode>versiongate-net</InlineCode>, creates{" "}
-        <InlineCode>/var/versiongate/projects</InlineCode>, and installs nginx / certbot / PM2.
+        Run the interactive setup wizard to inspect system dependencies, provision local databases, initialize Docker networks, and build static assets:
       </P>
-      <Code title="terminal">{`sudo bash scripts/bootstrap-host.sh
-# or: sudo npm run bootstrap-host
-# options: --minimal | --with-postgres | --skip-docker
-
-newgrp docker          # apply docker group (or log out/in)
-npm run check-deps     # should pass required checks`}</Code>
+      <Code title="terminal">{`bun install
+bun run setup`}</Code>
       <Callout title="Already have Docker?">
         You can skip bootstrap and only run <InlineCode>npm run check-deps</InlineCode>, then fix
         anything marked <InlineCode>[NO]</InlineCode>. Full host validation after install is{" "}
