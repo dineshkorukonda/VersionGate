@@ -1,0 +1,39 @@
+<timestamp>Wednesday, Jul 22, 2026, 3:59 PM (UTC+5:30)</timestamp>
+
+out/assets/index-Bgx415KV.css                                      113.48 kB │ gzip:  20.16 kB
+out/assets/index-CLgKJWAh.js                                     1,045.48 kB │ gzip: 306.63 kB
+
+✓ built in 1.40s
+[plugin builtin:vite-reporter]
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+azureuser@alpha-vg:~/VersionGate$ docker network create versiongate-net
+bun run preflight
+Command 'docker' not found, but can be installed with:
+sudo apt install docker.io      # version 29.1.3-0ubuntu3~24.04.2, or
+sudo apt install podman-docker  # version 4.9.3+ds1-1ubuntu0.2
+$ bun run scripts/preflight.ts
+VersionGate preflight — FAILED (2026-07-22T10:28:36.884Z)
+
+[ok] [required] Bun runtime: Bun 1.3.14
+[!] [recommended] Node.js CLI: `node` not in PATH (optional if you only use Bun)
+[ok] [required] Git: git version 2.43.0
+[NO] [required] Docker CLI: Cannot run Docker CLI (docker). Set DOCKER_BIN or fix PATH (see ecosystem.config.cjs).
+[NO] [required] Docker daemon: Docker daemon not reachable (is `dockerd` running? user in `docker` group?)
+[NO] [required] Docker network "versiongate-net": Create with: docker network create versiongate-net (or set DOCKER_NETWORK in .env to an existing network)
+[NO] [required] Projects directory: Path does not exist yet: /var/versiongate/projects (create it or set PROJECTS_ROOT_PATH)
+[!] [recommended] PM2: `pm2` not in PATH (optional; use systemd or another supervisor)
+[!] [recommended] Nginx: `nginx` not in PATH (install for automatic upstream switching)
+[!] [recommended] Certbot (Let's Encrypt): Install certbot + python3-certbot-nginx (or snap certbot) for in-dashboard TLS; see docs/SETUP.md
+[!] [recommended] Certbot nginx plugin: Skipped — install certbot first
+[ok] [info] PUBLIC_DOMAIN (public URL): Not set — configure Settings → Dashboard URL & hostname when exposing VersionGate on a domain
+[ok] [recommended] CERTBOT_EMAIL: Optional until you use Obtain SSL with a hostname
+[ok] [recommended] COOKIE_SECURE (HTTPS sessions): COOKIE_SECURE unset/false — fine for HTTP or local access behind plain IP
+
+error: script "preflight" exited with code 1
+azureuser@alpha-vg:~/VersionGate$
+i added bun
+there are many things to install before this
+something shoulf be done
