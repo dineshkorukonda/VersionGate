@@ -1,0 +1,18 @@
+[Image]
+[Image]
+[Image]
+[Image]
+<image_files>
+The following images were provided by the user and saved to the workspace for future use:
+1. /Users/dinesh/.cursor/projects/Users-dinesh-Developer-VersionGate/assets/image-da925d0e-85d9-46be-a45a-48e71e3da398.png
+2. /Users/dinesh/.cursor/projects/Users-dinesh-Developer-VersionGate/assets/image-dd7c72ca-5b03-4785-96c8-cee17223f8bb.png
+3. /Users/dinesh/.cursor/projects/Users-dinesh-Developer-VersionGate/assets/image-e00ac10c-ec3f-4666-a7aa-05fdf6abf187.png
+4. /Users/dinesh/.cursor/projects/Users-dinesh-Developer-VersionGate/assets/image-0d7b4e0f-1ef8-4811-963c-f41a8833f24e.png
+
+These images can be copied for use in other locations.
+</image_files>
+<timestamp>Tuesday, Jul 21, 2026, 7:37 PM (UTC+5:30)</timestamp>
+
+we are redesign the entire all pages
+from webiste to dashboard all pages
+take these are referrence and complete all the pages in same colour theme
