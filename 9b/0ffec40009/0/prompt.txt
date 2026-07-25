@@ -1,0 +1,5 @@
+<timestamp>Wednesday, Jul 22, 2026, 4:01 PM (UTC+5:30)</timestamp>
+
+update instructions in webiste too
+pr and merge to main.
+i will clean the vm and try agian.
