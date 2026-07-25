@@ -1,0 +1,28 @@
+<timestamp>Thursday, Jul 23, 2026, 11:37 AM (UTC+5:30)</timestamp>
+
+Command failed: bunx prisma migrate deploy Error: P3009 migrate found failed migrations in the target database, new migrations will not be applied. Read more about how to resolve migration issues in a production database: https://pris.ly/d/migrate-resolve The `20260419120000_environment_model` migration started at 2026-07-23 05:01:38.833370 UTC failed
+git merge --ff-only origin/main → bun install → prisma generate
+reflight","statusCode":200,"ms":"1382.6","msg":"api"}
+0|versiongate-api     | {"level":30,"time":1784786780105,"pid":86636,"hostname":"alpha-vg","reqId":"req-s5","method":"POST","path":"/api/v1/settings/self-update/check","statusCode":200,"ms":"1123.6","msg":"api"}
+0|versiongate-api     | {"level":30,"time":1784786797061,"pid":86636,"hostname":"alpha-vg","reqId":"req-s8","method":"POST","path":"/api/v1/settings/self-update/apply","statusCode":200,"ms":"9210.1","msg":"api"}
+0|versiongate-api     | [06:06:30.960] INFO (86636): prisma migrate deploy: inferred Neon direct URL from pooler DATABASE_URL (dropped `-pooler.` host label). Set DIRECT_DATABASE_URL in .env if your project uses a different direct endpoint.
+0|versiongate-api     | [06:06:37.060] ERROR (86636): bunx prisma migrate deploy stderr
+0|versiongate-api     |     stderr: "Error: P3009\n\nmigrate found failed migrations in the target database, new migrations will not be applied. Read more about how to resolve migration issues in a production database: https://pris.ly/d/migrate-resolve\nThe `20260419120000_environment_model` migration started at 2026-07-23 05:01:38.833370 UTC failed"
+0|versiongate-api     | [06:06:37.061] ERROR (86636): bunx prisma migrate deploy stdout
+0|versiongate-api     |     stdout: "Environment variables loaded from .env\nPrisma schema loaded from prisma/schema.prisma\nDatasource \"db\": PostgreSQL database \"neondb\", schema \"public\" at \"ep-flat-brook-awrok294.c-12.us-east-1.aws.neon.tech\"\n\n9 migrations found in prisma/migrations"
+0|versiongate-api     | [06:06:37.061] ERROR (86636): prisma migrate deploy failed (baseline / migration history / DB reachability / advisory lock). Not using db push fallback — see docs/database-migrations.md (Neon: set DIRECT_DATABASE_URL or use a `-pooler.` pooler URL for automatic direct-host inference).
+0|versiongate-api     |     err: "Command failed: bunx prisma migrate deploy\nError: P3009\n\nmigrate found failed migrations in the target database, new migrations will not be applied. Read more about how to resolve migration issues in a production database: https://pris.ly/d/migrate-resolve\nThe `20260419120000_environment_model` migration started at 2026-07-23 05:01:38.833370 UTC failed\n\n\n"
+0|versiongate-api     | [06:06:37.061] ERROR (86636): Self-update failed
+0|versiongate-api     |     branch: "main"
+0|versiongate-api     |     steps: [
+0|versiongate-api     |       "git fetch origin main",
+0|versiongate-api     |       "git merge --ff-only origin/main",
+0|versiongate-api     |       "bun install",
+0|versiongate-api     |       "prisma generate"
+0|versiongate-api     |     ]
+0|versiongate-api     |     err: "Command failed: bunx prisma migrate deploy\nError: P3009\n\nmigrate found failed migrations in the target database, new migrations will not be applied. Read more about how to resolve migration issues in a production database: https://pris.ly/d/migrate-resolve\nThe `20260419120000_environment_model` migration started at 2026-07-23 05:01:38.833370 UTC failed\n\n\n"
+i had issues with prisma before
+and we are using postgress and shir
+i think the more broaer and better solution like redis and shit
+Browser 
+search more.
