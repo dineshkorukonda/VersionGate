@@ -98,7 +98,10 @@ export async function runRollbackJob(
     }
 
     await log(`Switching traffic to port ${previous.port}`);
-    await traffic.switchTrafficTo(previous.port);
+    await traffic.switchTrafficTo(previous.port, {
+      projectName: project.name,
+      environmentName: environment.name,
+    });
 
     await log(`Stopping current container: ${current.containerName}`);
     await stopContainer(current.containerName).catch(async (err) => {

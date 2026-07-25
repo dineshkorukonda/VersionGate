@@ -162,7 +162,10 @@ export async function runPromoteJob(
     const switchPublicTraffic = targetEnv.name === DEFAULT_ENVIRONMENT_NAME;
     if (switchPublicTraffic) {
       await log(`Switching traffic to port ${hostPort}`);
-      await traffic.switchTrafficTo(hostPort);
+      await traffic.switchTrafficTo(hostPort, {
+        projectName: project.name,
+        environmentName: targetEnv.name,
+      });
     } else {
       await log(`Skipping public traffic switch (target is not ${DEFAULT_ENVIRONMENT_NAME})`);
     }

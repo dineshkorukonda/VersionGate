@@ -147,7 +147,10 @@ export async function runDeployJob(
     const switchPublicTraffic = environment.name === DEFAULT_ENVIRONMENT_NAME;
     if (switchPublicTraffic) {
       await log(`Step 7: Switching traffic to port ${hostPort}`);
-      await traffic.switchTrafficTo(hostPort);
+      await traffic.switchTrafficTo(hostPort, {
+        projectName: project.name,
+        environmentName: environment.name,
+      });
     } else {
       await log(`Step 7: Skipping traffic switch (non-production environment)`);
     }

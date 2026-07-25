@@ -39,6 +39,8 @@ export async function runContainer(
     "--add-host=host.docker.internal:host-gateway",
     "-p", `${hostPort}:${containerPort}`,
     "--restart", "unless-stopped",
+    "--log-opt", "max-size=10m",
+    "--log-opt", "max-file=3",
     ...envArgs,
     imageTag,
   ]);

@@ -3,21 +3,33 @@ import { execFileAsync } from "../utils/exec";
 import { config } from "../config/env";
 import { logger } from "../utils/logger";
 import { DeploymentError } from "../utils/errors";
+import { NginxUpstreamService } from "./nginx-upstream.service";
+
+export interface TrafficSwitchOptions {
+  projectName?: string;
+  environmentName?: string;
+}
 
 export class TrafficService {
+  private readonly upstreamService = new NginxUpstreamService();
+
   /**
    * Updates the Nginx upstream config to point at the given port, then
    * reloads Nginx. Backs up the existing config before overwriting and
    * restores it automatically if nginx -s reload fails.
    */
-  async switchTrafficTo(port: number): Promise<void> {
+  async switchTrafficTo(port: number, options?: TrafficSwitchOptions): Promise<void> {
     const configPath = config.nginxConfigPath;
     const backupPath = `${configPath}.bak`;
     const tmpPath = `${configPath}.tmp`;
 
-    logger.info({ port, configPath }, "Switching Nginx traffic");
+    logger.info({ port, configPath, options }, "Switching Nginx traffic");
 
-    const newContent = this.buildNginxUpstream(port);
+    const newContent = this.upstreamService.buildNginxUpstreamConfig({
+      port,
+      projectName: options?.projectName,
+      environmentName: options?.environmentName,
+    });
 
     // Write to temp file first
     await fs.writeFile(tmpPath, newContent, "utf-8");
@@ -57,14 +69,6 @@ export class TrafficService {
     }
   }
 
-  private buildNginxUpstream(port: number): string {
-    return [
-      "upstream versiongate_backend {",
-      `  server 127.0.0.1:${port};`,
-      "}",
-    ].join("\n") + "\n";
-  }
-
   private async reloadNginx(): Promise<void> {
     try {
       await execFileAsync("nginx", ["-s", "reload"]);
@@ -75,3 +79,4 @@ export class TrafficService {
     await execFileAsync("sudo", ["-n", "/usr/sbin/nginx", "-s", "reload"]);
   }
 }
+
