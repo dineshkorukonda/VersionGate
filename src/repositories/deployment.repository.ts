@@ -17,6 +17,7 @@ export class DeploymentRepository {
     promotedFromId?: string | null;
   }): Promise<DeploymentSelect> {
     const db = getDb();
+    const now = new Date();
     const [created] = await db
       .insert(deployments)
       .values({
@@ -28,6 +29,8 @@ export class DeploymentRepository {
         status: data.status,
         environmentId: data.environment.connect.id,
         promotedFromId: data.promotedFromId ?? null,
+        createdAt: now,
+        updatedAt: now,
       })
       .returning();
 
