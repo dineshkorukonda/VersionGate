@@ -1,0 +1,10 @@
+<timestamp>Wednesday, Jul 22, 2026, 4:12 PM (UTC+5:30)</timestamp>
+
+azureuser@alpha-vg:~/VersionGate$ curl -sI http://127.0.0.1:9090/setup
+# expect HTTP 200
+HTTP/1.1 404 Not Found
+Content-Type: application/json; charset=utf-8
+Date: Wed, 22 Jul 2026 10:42:11 GMT
+Content-Length: 55
+
+azureuser@alpha-vg:~/VersionGate$
