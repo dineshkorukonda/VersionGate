@@ -1,0 +1,37 @@
+<timestamp>Thursday, Jul 23, 2026, 11:46 AM (UTC+5:30)</timestamp>
+
+Unpacking objects: 100% (19/19), 6.88 KiB | 1.15 MiB/s, done.
+From https://github.com/dineshkorukonda/VersionGate
+ * branch            main       -> FETCH_HEAD
+   90f6684..ca74392  main       -> origin/main
+Updating 90f6684..ca74392
+Fast-forward
+ docs/database-migrations.md                                      |  37 +++++++++++++-
+ prisma/migrations/20260419120000_environment_model/migration.sql |   4 +-
+ src/controllers/setup.controller.ts                              |   7 ++-
+ src/utils/prisma-schema-sync.ts                                  | 200 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++-------
+ 4 files changed, 227 insertions(+), 21 deletions(-)
+DATABASE_URL="REDACTED"
+Environment variables loaded from .env
+Prisma schema loaded from prisma/schema.prisma
+Datasource "db": PostgreSQL database "neondb", schema "public" at "ep-flat-brook-awrok294-pooler.c-12.us-east-1.aws.neon.tech"
+
+9 migrations found in prisma/migrations
+
+Error: P3009
+
+migrate found failed migrations in the target database, new migrations will not be applied. Read more about how to resolve migration issues in a production database: https://pris.ly/d/migrate-resolve
+The `20260419123000_deployment_promoted_from` migration started at 2026-07-23 06:14:01.779711 UTC failed
+
+Use --update-env to update environment variables
+[PM2] Applying action restartProcessId on app [all](ids: [ 0, 1 ])
+[PM2] [versiongate-api](0) ✓
+[PM2] [versiongate-worker](1) ✓
+┌────┬────────────────────┬──────────┬──────┬───────────┬──────────┬──────────┐
+│ id │ name               │ mode     │ ↺    │ status    │ cpu      │ memory   │
+├────┼────────────────────┼──────────┼──────┼───────────┼──────────┼──────────┤
+│ 0  │ versiongate-api    │ fork     │ 16   │ online    │ 0%       │ 96.3mb   │
+│ 1  │ versiongate-worker │ fork     │ 4    │ online    │ 0%       │ 16.4mb   │
+└────┴────────────────────┴──────────┴──────┴───────────┴──────────┴──────────┘
+host metrics | cpu: 9.2% | ram usage: 31.6% | eth0: ⇓ 0.003mb/s ⇑ 0.002mb/s |
+azureuser@alpha-vg:~/VersionGate$
