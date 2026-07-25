@@ -4,6 +4,7 @@ import { config } from "../config/env";
 import { logger } from "../utils/logger";
 import { DeploymentError } from "../utils/errors";
 import { NginxUpstreamService } from "./nginx-upstream.service";
+import { writeNginxConfigFile } from "../utils/nginx-writer";
 
 export interface TrafficSwitchOptions {
   projectName?: string;
@@ -21,7 +22,6 @@ export class TrafficService {
   async switchTrafficTo(port: number, options?: TrafficSwitchOptions): Promise<void> {
     const configPath = config.nginxConfigPath;
     const backupPath = `${configPath}.bak`;
-    const tmpPath = `${configPath}.tmp`;
 
     logger.info({ port, configPath, options }, "Switching Nginx traffic");
 
@@ -31,24 +31,21 @@ export class TrafficService {
       environmentName: options?.environmentName,
     });
 
-    // Write to temp file first
-    await fs.writeFile(tmpPath, newContent, "utf-8");
-
     // Backup existing config if it exists
     let hasBackup = false;
     try {
-      await fs.copyFile(configPath, backupPath);
+      const existing = await fs.readFile(configPath, "utf-8");
+      await writeNginxConfigFile(backupPath, existing);
       hasBackup = true;
       logger.debug({ backupPath }, "Nginx config backed up");
     } catch {
       // No existing config to back up — first run
     }
 
-    // Atomically move tmp → config
-    await fs.rename(tmpPath, configPath);
+    // Write new config (uses /tmp staging + sudo cp fallback if EACCES occurs)
+    await writeNginxConfigFile(configPath, newContent);
 
     // Reload Nginx; restore backup on failure.
-    // Master often runs as root while the worker runs as a normal user — try passwordless sudo.
     try {
       await this.reloadNginx();
       logger.info({ port }, "Nginx reloaded — traffic switched");
@@ -57,7 +54,8 @@ export class TrafficService {
 
       if (hasBackup) {
         try {
-          await fs.copyFile(backupPath, configPath);
+          const backupContent = await fs.readFile(backupPath, "utf-8");
+          await writeNginxConfigFile(configPath, backupContent);
           logger.info({ backupPath }, "Nginx config restored from backup");
         } catch (restoreErr) {
           logger.error({ restoreErr }, "Failed to restore Nginx backup");
