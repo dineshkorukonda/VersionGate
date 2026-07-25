@@ -217,8 +217,8 @@ export function ProjectDetail() {
           ? "ROLLED_BACK"
           : "PENDING";
 
-  const liveHostPort = active ? active.port : null;
-  const liveUrl = liveHostPort != null ? publicServiceUrl(liveHostPort) : null;
+  const liveHostPort = active ? active.port : project.basePort;
+  const liveUrl = publicServiceUrl(liveHostPort);
   const totalDeploys = productionDeployments.length;
 
   return (
