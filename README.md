@@ -21,7 +21,8 @@ Built for single-server (KVM/VPS) setups where you want Vercel-style deployments
 | --------------- | ------------------------------------------------- |
 | Runtime         | Bun 1.x + TypeScript                              |
 | API server      | Fastify                                           |
-| Database        | PostgreSQL via Prisma (Neon serverless supported) |
+| Database        | PostgreSQL via Drizzle ORM                        |
+| Queue & Locks   | Redis (ioredis) pub/sub + atomic locking          |
 | Containers      | Docker CLI                                        |
 | Proxy           | Nginx upstream config management                  |
 | Process manager | PM2 (recommended)                                 |
@@ -98,13 +99,12 @@ The setup wizard will then:
 - Write the `.env` file
 - Set `PROJECTS_ROOT_PATH`
 - Generate and persist `ENCRYPTION_KEY`
-- Run `bunx prisma generate`
-- Run `bunx prisma migrate deploy` (falls back to `db push` only if the database has no migration history)
+- Execute Drizzle ORM schema migrations (`runDrizzleSchemaSync`)
 - Write and reload Nginx config when permissions allow
 
 After setup finishes, open the dashboard and start adding projects.
 
-No manual `.env` edits or Prisma commands are required after opening `/setup`.
+No manual `.env` edits or Prisma commands are required after running `bun run setup` or opening `/setup`.
 
 ### GitHub App (Integrations)
 
