@@ -1,0 +1,291 @@
+<timestamp>Thursday, Jul 23, 2026, 11:43 AM (UTC+5:30)</timestamp>
+
+see the users can't do this everytime
+we need a alternative and better solution
+➜  ~ ssh -L 9090:127.0.0.1:9090 azureuser@4.240.101.7
+Welcome to Ubuntu 24.04.4 LTS (GNU/Linux 6.17.0-1020-azure x86_64)
+
+ * Documentation:  https://help.ubuntu.com
+ * Management:     https://landscape.canonical.com
+ * Support:        https://ubuntu.com/pro
+
+ System information as of Thu Jul 23 05:43:53 UTC 2026
+
+  System load:  0.01               Processes:             131
+  Usage of /:   22.1% of 28.02GB   Users logged in:       0
+  Memory usage: 25%                IPv4 address for eth0: 172.16.0.4
+  Swap usage:   0%
+
+ * Strictly confined Kubernetes makes edge and IoT secure. Learn how MicroK8s
+   just raised the bar for easy, resilient and secure K8s cluster deployment.
+
+   https://ubuntu.com/engage/secure-kubernetes-at-the-edge
+
+1 device has a firmware upgrade available.
+Run `fwupdmgr get-upgrades` for more information.
+
+Expanded Security Maintenance for Applications is not enabled.
+
+23 updates can be applied immediately.
+23 of these updates are standard security updates.
+To see these additional updates run: apt list --upgradable
+
+2 additional security updates can be applied with ESM Apps.
+Learn more about enabling ESM Apps service at https://ubuntu.com/esm
+
+1 device has a firmware upgrade available.
+Run `fwupdmgr get-upgrades` for more information.
+
+Last login: Thu Jul 23 04:57:17 2026 from 45.249.79.47
+azureuser@alpha-vg:~$ pm2 logs
+[TAILING] Tailing last 15 lines for [all] processes (change the value with --lines option)
+/home/azureuser/.pm2/pm2.log last 15 lines:
+PM2        | 2026-07-23T04:57:39: PM2 log: Stopping app:versiongate-api id:0
+PM2        | 2026-07-23T04:57:39: PM2 log: Stopping app:versiongate-worker id:1
+PM2        | 2026-07-23T04:57:39: PM2 log: App [versiongate-worker:1] exited with code [0] via signal [SIGINT]
+PM2        | 2026-07-23T04:57:39: PM2 log: App [versiongate-api:0] exited with code [0] via signal [SIGINT]
+PM2        | 2026-07-23T04:57:39: PM2 log: pid=11636 msg=process tree killed (1 pids)
+PM2        | 2026-07-23T04:57:39: PM2 log: pid=11144 msg=process tree killed (1 pids)
+PM2        | 2026-07-23T04:59:37: PM2 log: App [versiongate-api:0] starting in -fork mode-
+PM2        | 2026-07-23T04:59:37: PM2 log: App [versiongate-worker:1] starting in -fork mode-
+PM2        | 2026-07-23T04:59:37: PM2 log: App [versiongate-api:0] online
+PM2        | 2026-07-23T04:59:37: PM2 log: App [versiongate-worker:1] online
+PM2        | 2026-07-23T05:26:49: PM2 log: Stopping app:versiongate-worker id:1
+PM2        | 2026-07-23T05:26:49: PM2 log: App [versiongate-worker:1] exited with code [0] via signal [SIGINT]
+PM2        | 2026-07-23T05:26:49: PM2 log: pid=86638 msg=process tree killed (1 pids)
+PM2        | 2026-07-23T05:26:49: PM2 log: App [versiongate-worker:1] starting in -fork mode-
+PM2        | 2026-07-23T05:26:49: PM2 log: App [versiongate-worker:1] online
+
+/home/azureuser/.pm2/logs/versiongate-worker-error-1.log last 15 lines:
+/home/azureuser/.pm2/logs/versiongate-api-error.log last 15 lines:
+0|versiong |       at timeoutCb (/home/azureuser/VersionGate/node_modules/avvio/boot.js:503:7)
+0|versiong |       at manageTimeout (/home/azureuser/VersionGate/node_modules/fastify/lib/hooks.js:133:11)
+0|versiong |       at _encapsulateThreeParam (/home/azureuser/VersionGate/node_modules/avvio/boot.js:600:7)
+0|versiong |       at timeoutCall (/home/azureuser/VersionGate/node_modules/avvio/boot.js:494:5)
+0|versiong |       at callWithCbOrNextTick (/home/azureuser/VersionGate/node_modules/avvio/boot.js:476:19)
+0|versiong |       at release (/home/azureuser/VersionGate/node_modules/fastq/queue.js:172:16)
+0|versiong |       at worked (/home/azureuser/VersionGate/node_modules/fastq/queue.js:258:10)
+0|versiong |       at timeoutCb (/home/azureuser/VersionGate/node_modules/avvio/boot.js:503:7)
+0|versiong |       at defaultPreClose (/home/azureuser/VersionGate/node_modules/@fastify/websocket/index.js:220:5)
+0|versiong |       at <anonymous> (/home/azureuser/VersionGate/node_modules/fastify/lib/hooks.js:158:14)
+0|versiong |       at _encapsulateThreeParam (/home/azureuser/VersionGate/node_modules/avvio/boot.js:600:7)
+0|versiong |       at timeoutCall (/home/azureuser/VersionGate/node_modules/avvio/boot.js:494:5)
+0|versiong |       at callWithCbOrNextTick (/home/azureuser/VersionGate/node_modules/avvio/boot.js:476:19)
+0|versiong |       at release (/home/azureuser/VersionGate/node_modules/fastq/queue.js:172:16)
+0|versiong |
+
+/home/azureuser/.pm2/logs/versiongate-api-out.log last 15 lines:
+0|versiong | {"level":30,"time":1784783810026,"pid":86636,"hostname":"alpha-vg","reqId":"req-4y","method":"POST","path":"/api/v1/deploy","statusCode":202,"ms":"1402.3","msg":"api"}
+0|versiong | [05:16:50.025] INFO (86636): API: deploy enqueued
+0|versiong |     projectId: "cmrx1rezi0004qm2uzeadmt1w"
+0|versiong |     environmentId: "cmrx1rfb20005qm2ujg2mho94"
+0|versiong |     jobId: "6165c502-8314-4c2d-8b64-8c1258a66a93"
+0|versiong | {"level":30,"time":1784784434397,"pid":86636,"hostname":"alpha-vg","reqId":"req-9i","method":"POST","path":"/api/v1/deploy","statusCode":202,"ms":"1362.7","msg":"api"}
+0|versiong | [05:27:14.396] INFO (86636): API: deploy enqueued
+0|versiong |     projectId: "cmrx1rezi0004qm2uzeadmt1w"
+0|versiong |     environmentId: "cmrx1rfb20005qm2ujg2mho94"
+0|versiong |     jobId: "29693ff9-0cef-4f2b-8537-3884a193b6fc"
+0|versiong | {"level":30,"time":1784784485290,"pid":86636,"hostname":"alpha-vg","reqId":"req-at","method":"POST","path":"/api/v1/deploy","statusCode":202,"ms":"1190.4","msg":"api"}
+0|versiong | [05:28:05.289] INFO (86636): API: deploy enqueued
+0|versiong |     projectId: "cmrx1rezi0004qm2uzeadmt1w"
+0|versiong |     environmentId: "cmrx1rfb20005qm2ujg2mho94"
+0|versiong |     jobId: "0162c2fb-eaee-40f3-aa0f-39dd61d406ee"
+
+/home/azureuser/.pm2/logs/versiongate-worker-out-1.log last 15 lines:
+1|versiong |       "http://localhost:3501/",
+1|versiong |       "http://localhost:3501/index.html"
+1|versiong |     ]
+1|versiong |     containerName: "helderlig-development-green"
+1|versiong | [05:30:18.511] WARN (88858): Primary health path missing — trying / and /index.html
+1|versiong |     healthUrl: "http://localhost:3501/health"
+1|versiong |     attempt: 1
+1|versiong |     status: 404
+1|versiong | [05:30:18.527] INFO (88858): Validation passed via fallback URL; set project health path to match your app (e.g. / for static/nginx)
+1|versiong |     url: "http://localhost:3501/"
+1|versiong |     configuredPath: "/health"
+1|versiong |     attempt: 1
+1|versiong |     latency: 16
+1|versiong | [05:30:20.074] INFO (helderlig-development-blue/88858): Stopping Docker container
+1|versiong | [05:30:20.260] INFO (helderlig-development-blue/88858): Removing Docker container
+
+0|versiongate-api  | {"level":30,"time":1784785486777,"pid":86636,"hostname":"alpha-vg","reqId":"req-e3","method":"POST","path":"/api/v1/projects/cmrx1rezi0004qm2uzeadmt1w/environments/cmrx1rfb20006qm2uqdxgdo7i/promote","statusCode":202,"ms":"2058.5","msg":"api"}
+0|versiongate-api  | [05:44:46.776] INFO (86636): API: promote enqueued
+0|versiongate-api  |     projectId: "cmrx1rezi0004qm2uzeadmt1w"
+0|versiongate-api  |     sourceEnvironmentId: "cmrx1rfb20005qm2ujg2mho94"
+0|versiongate-api  |     targetEnvironmentId: "cmrx1rfb20006qm2uqdxgdo7i"
+0|versiongate-api  |     jobId: "f21bd616-e1aa-417b-8315-d37b370e161c"
+0|versiongate-api  |     imageTag: "versiongate-helderlig:1784784612114"
+1|versiongate-worker  | [05:44:57.180] INFO (helderlig-staging-blue/88858): Stopping Docker container
+1|versiongate-worker  | [05:44:57.196] INFO (helderlig-staging-blue/88858): Removing Docker container
+1|versiongate-worker  | [05:44:57.225] INFO (helderlig-staging-blue/88858): Starting Docker container
+1|versiongate-worker  |     imageTag: "versiongate-helderlig:1784784612114"
+1|versiongate-worker  |     hostPort: 3300
+1|versiongate-worker  |     containerPort: 3000
+1|versiongate-worker  |     network: "versiongate-net"
+1|versiongate-worker  | [05:44:58.372] INFO (88858): Starting validation
+1|versiongate-worker  |     healthUrl: "http://localhost:3300/health"
+1|versiongate-worker  |     fallbacks: [
+1|versiongate-worker  |       "http://localhost:3300/",
+1|versiongate-worker  |       "http://localhost:3300/index.html"
+1|versiongate-worker  |     ]
+1|versiongate-worker  |     containerName: "helderlig-staging-blue"
+1|versiongate-worker  | [05:44:58.970] WARN (88858): Primary health path missing — trying / and /index.html
+1|versiongate-worker  |     healthUrl: "http://localhost:3300/health"
+1|versiongate-worker  |     attempt: 1
+1|versiongate-worker  |     status: 404
+1|versiongate-worker  | [05:44:58.987] INFO (88858): Validation passed via fallback URL; set project health path to match your app (e.g. / for static/nginx)
+1|versiongate-worker  |     url: "http://localhost:3300/"
+1|versiongate-worker  |     configuredPath: "/health"
+1|versiongate-worker  |     attempt: 1
+1|versiongate-worker  |     latency: 17
+0|versiongate-api     | {"level":30,"time":1784785532321,"pid":86636,"hostname":"alpha-vg","reqId":"req-fn","method":"GET","path":"/api/v1/system/preflight","statusCode":200,"ms":"1517.0","msg":"api"}
+0|versiongate-api     | {"level":30,"time":1784785576438,"pid":86636,"hostname":"alpha-vg","reqId":"req-gj","method":"POST","path":"/api/v1/projects/cmrx1rezi0004qm2uzeadmt1w/environments/cmrx1rfb20006qm2uqdxgdo7i/promote","statusCode":202,"ms":"1975.5","msg":"api"}
+0|versiongate-api     | [05:46:16.438] INFO (86636): API: promote enqueued
+0|versiongate-api     |     projectId: "cmrx1rezi0004qm2uzeadmt1w"
+0|versiongate-api     |     sourceEnvironmentId: "cmrx1rfb20005qm2ujg2mho94"
+0|versiongate-api     |     targetEnvironmentId: "cmrx1rfb20006qm2uqdxgdo7i"
+0|versiongate-api     |     jobId: "c5750a20-6fd3-49a9-af28-97b54a30d20b"
+0|versiongate-api     |     imageTag: "versiongate-helderlig:1784784612114"
+1|versiongate-worker  | [05:46:23.974] INFO (helderlig-staging-green/88858): Stopping Docker container
+1|versiongate-worker  | [05:46:23.989] INFO (helderlig-staging-green/88858): Removing Docker container
+1|versiongate-worker  | [05:46:24.020] INFO (helderlig-staging-green/88858): Starting Docker container
+1|versiongate-worker  |     imageTag: "versiongate-helderlig:1784784612114"
+1|versiongate-worker  |     hostPort: 3301
+1|versiongate-worker  |     containerPort: 3000
+1|versiongate-worker  |     network: "versiongate-net"
+1|versiongate-worker  | [05:46:24.948] INFO (88858): Starting validation
+1|versiongate-worker  |     healthUrl: "http://localhost:3301/health"
+1|versiongate-worker  |     fallbacks: [
+1|versiongate-worker  |       "http://localhost:3301/",
+1|versiongate-worker  |       "http://localhost:3301/index.html"
+1|versiongate-worker  |     ]
+1|versiongate-worker  |     containerName: "helderlig-staging-green"
+1|versiongate-worker  | [05:46:25.779] WARN (88858): Primary health path missing — trying / and /index.html
+1|versiongate-worker  |     healthUrl: "http://localhost:3301/health"
+1|versiongate-worker  |     attempt: 1
+1|versiongate-worker  |     status: 404
+1|versiongate-worker  | [05:46:25.799] INFO (88858): Validation passed via fallback URL; set project health path to match your app (e.g. / for static/nginx)
+1|versiongate-worker  |     url: "http://localhost:3301/"
+1|versiongate-worker  |     configuredPath: "/health"
+1|versiongate-worker  |     attempt: 1
+1|versiongate-worker  |     latency: 20
+1|versiongate-worker  | [05:46:27.360] INFO (helderlig-staging-blue/88858): Stopping Docker container
+1|versiongate-worker  | [05:46:27.556] INFO (helderlig-staging-blue/88858): Removing Docker container
+0|versiongate-api     | {"level":30,"time":1784785916477,"pid":86636,"hostname":"alpha-vg","reqId":"req-kj","method":"POST","path":"/api/v1/projects/cmrx1rezi0004qm2uzeadmt1w/environments/cmrx1rfb20006qm2uqdxgdo7i/promote","statusCode":202,"ms":"1731.5","msg":"api"}
+0|versiongate-api     | [05:51:56.476] INFO (86636): API: promote enqueued
+0|versiongate-api     |     projectId: "cmrx1rezi0004qm2uzeadmt1w"
+0|versiongate-api     |     sourceEnvironmentId: "cmrx1rfb20005qm2ujg2mho94"
+0|versiongate-api     |     targetEnvironmentId: "cmrx1rfb20006qm2uqdxgdo7i"
+0|versiongate-api     |     jobId: "dbfce4e8-9cf1-43d5-a1ac-0b6b45eb78fd"
+0|versiongate-api     |     imageTag: "versiongate-helderlig:1784784612114"
+1|versiongate-worker  | [05:52:09.114] INFO (helderlig-staging-blue/88858): Stopping Docker container
+1|versiongate-worker  | [05:52:09.129] INFO (helderlig-staging-blue/88858): Removing Docker container
+1|versiongate-worker  | [05:52:09.158] INFO (helderlig-staging-blue/88858): Starting Docker container
+1|versiongate-worker  |     imageTag: "versiongate-helderlig:1784784612114"
+1|versiongate-worker  |     hostPort: 3300
+1|versiongate-worker  |     containerPort: 3000
+1|versiongate-worker  |     network: "versiongate-net"
+1|versiongate-worker  | [05:52:10.373] INFO (88858): Starting validation
+1|versiongate-worker  |     healthUrl: "http://localhost:3300/health"
+1|versiongate-worker  |     fallbacks: [
+1|versiongate-worker  |       "http://localhost:3300/",
+1|versiongate-worker  |       "http://localhost:3300/index.html"
+1|versiongate-worker  |     ]
+1|versiongate-worker  |     containerName: "helderlig-staging-blue"
+1|versiongate-worker  | [05:52:10.872] WARN (88858): Primary health path missing — trying / and /index.html
+1|versiongate-worker  |     healthUrl: "http://localhost:3300/health"
+1|versiongate-worker  |     attempt: 1
+1|versiongate-worker  |     status: 404
+1|versiongate-worker  | [05:52:10.888] INFO (88858): Validation passed via fallback URL; set project health path to match your app (e.g. / for static/nginx)
+1|versiongate-worker  |     url: "http://localhost:3300/"
+1|versiongate-worker  |     configuredPath: "/health"
+1|versiongate-worker  |     attempt: 1
+1|versiongate-worker  |     latency: 16
+1|versiongate-worker  | [05:52:12.809] INFO (helderlig-staging-green/88858): Stopping Docker container
+1|versiongate-worker  | [05:52:13.025] INFO (helderlig-staging-green/88858): Removing Docker container
+0|versiongate-api     | {"level":30,"time":1784786122961,"pid":86636,"hostname":"alpha-vg","reqId":"req-no","method":"POST","path":"/api/v1/settings/self-update/enable","statusCode":200,"ms":"397.5","msg":"api"}
+0|versiongate-api     | [05:55:22.961] INFO (86636): Self-update enabled from Settings (secret written to .env, not logged)
+0|versiongate-api     | {"level":30,"time":1784786280159,"pid":86636,"hostname":"alpha-vg","reqId":"req-o8","method":"GET","path":"/api/github/installation","statusCode":200,"ms":"974.6","msg":"api"}
+0|versiongate-api     | {"level":30,"time":1784786280341,"pid":86636,"hostname":"alpha-vg","reqId":"req-o4","method":"GET","path":"/api/v1/system/preflight","statusCode":200,"ms":"1865.6","msg":"api"}
+0|versiongate-api     | {"level":30,"time":1784786284828,"pid":86636,"hostname":"alpha-vg","reqId":"req-od","method":"GET","path":"/api/v1/system/preflight","statusCode":200,"ms":"1382.6","msg":"api"}
+0|versiongate-api     | {"level":30,"time":1784786780105,"pid":86636,"hostname":"alpha-vg","reqId":"req-s5","method":"POST","path":"/api/v1/settings/self-update/check","statusCode":200,"ms":"1123.6","msg":"api"}
+0|versiongate-api     | {"level":30,"time":1784786797061,"pid":86636,"hostname":"alpha-vg","reqId":"req-s8","method":"POST","path":"/api/v1/settings/self-update/apply","statusCode":200,"ms":"9210.1","msg":"api"}
+0|versiongate-api     | [06:06:30.960] INFO (86636): prisma migrate deploy: inferred Neon direct URL from pooler DATABASE_URL (dropped `-pooler.` host label). Set DIRECT_DATABASE_URL in .env if your project uses a different direct endpoint.
+0|versiongate-api     | [06:06:37.060] ERROR (86636): bunx prisma migrate deploy stderr
+0|versiongate-api     |     stderr: "Error: P3009\n\nmigrate found failed migrations in the target database, new migrations will not be applied. Read more about how to resolve migration issues in a production database: https://pris.ly/d/migrate-resolve\nThe `20260419120000_environment_model` migration started at 2026-07-23 05:01:38.833370 UTC failed"
+0|versiongate-api     | [06:06:37.061] ERROR (86636): bunx prisma migrate deploy stdout
+0|versiongate-api     |     stdout: "Environment variables loaded from .env\nPrisma schema loaded from prisma/schema.prisma\nDatasource \"db\": PostgreSQL database \"neondb\", schema \"public\" at \"ep-flat-brook-awrok294.c-12.us-east-1.aws.neon.tech\"\n\n9 migrations found in prisma/migrations"
+0|versiongate-api     | [06:06:37.061] ERROR (86636): prisma migrate deploy failed (baseline / migration history / DB reachability / advisory lock). Not using db push fallback — see docs/database-migrations.md (Neon: set DIRECT_DATABASE_URL or use a `-pooler.` pooler URL for automatic direct-host inference).
+0|versiongate-api     |     err: "Command failed: bunx prisma migrate deploy\nError: P3009\n\nmigrate found failed migrations in the target database, new migrations will not be applied. Read more about how to resolve migration issues in a production database: https://pris.ly/d/migrate-resolve\nThe `20260419120000_environment_model` migration started at 2026-07-23 05:01:38.833370 UTC failed\n\n\n"
+0|versiongate-api     | [06:06:37.061] ERROR (86636): Self-update failed
+0|versiongate-api     |     branch: "main"
+0|versiongate-api     |     steps: [
+0|versiongate-api     |       "git fetch origin main",
+0|versiongate-api     |       "git merge --ff-only origin/main",
+0|versiongate-api     |       "bun install",
+0|versiongate-api     |       "prisma generate"
+0|versiongate-api     |     ]
+0|versiongate-api     |     err: "Command failed: bunx prisma migrate deploy\nError: P3009\n\nmigrate found failed migrations in the target database, new migrations will not be applied. Read more about how to resolve migration issues in a production database: https://pris.ly/d/migrate-resolve\nThe `20260419120000_environment_model` migration started at 2026-07-23 05:01:38.833370 UTC failed\n\n\n"
+^C
+azureuser@alpha-vg:~$ cd ~/VersionGate
+
+# mark the failed migration as applied (schema is already there from db push)
+bunx prisma migrate resolve --applied 20260419120000_environment_model
+
+bunx prisma migrate deploy
+# should exit 0
+
+pm2 restart all
+Environment variables loaded from .env
+Prisma schema loaded from prisma/schema.prisma
+Datasource "db": PostgreSQL database "neondb", schema "public" at "ep-flat-brook-awrok294-pooler.c-12.us-east-1.aws.neon.tech"
+
+Migration 20260419120000_environment_model marked as applied.
+
+Environment variables loaded from .env
+Prisma schema loaded from prisma/schema.prisma
+Datasource "db": PostgreSQL database "neondb", schema "public" at "ep-flat-brook-awrok294-pooler.c-12.us-east-1.aws.neon.tech"
+
+9 migrations found in prisma/migrations
+
+Error: P1002
+
+The database server at `ep-flat-brook-awrok294-pooler.c-12.us-east-1.aws.neon.tech:5432` was reached but timed out.
+
+Please try again.
+
+Please make sure your database server is running at `ep-flat-brook-awrok294-pooler.c-12.us-east-1.aws.neon.tech:5432`.
+
+Context: Timed out trying to acquire a postgres advisory lock (SELECT pg_advisory_lock(72707369)). Elapsed: 10000ms. See https://pris.ly/d/migrate-advisory-locking for details.
+
+Use --update-env to update environment variables
+[PM2] Applying action restartProcessId on app [all](ids: [ 0, 1 ])
+channel 3: open failed: connect failed: Connection refused
+channel 4: open failed: connect failed: Connection refused
+channel 5: open failed: connect failed: Connection refused
+channel 3: open failed: connect failed: Connection refused
+channel 4: open failed: connect failed: Connection refused
+channel 5: open failed: connect failed: Connection refused
+channel 3: open failed: connect failed: Connection refused
+channel 4: open failed: connect failed: Connection refused
+channel 5: open failed: connect failed: Connection refused
+channel 3: open failed: connect failed: Connection refused
+channel 4: open failed: connect failed: Connection refused
+channel 5: open failed: connect failed: Connection refused
+[PM2] [versiongate-api](0) ✓
+[PM2] [versiongate-worker](1) ✓
+┌────┬────────────────────┬──────────┬──────┬───────────┬──────────┬──────────┐
+│ id │ name               │ mode     │ ↺    │ status    │ cpu      │ memory   │
+├────┼────────────────────┼──────────┼──────┼───────────┼──────────┼──────────┤
+│ 0  │ versiongate-api    │ fork     │ 1    │ online    │ 0%       │ 97.4mb   │
+│ 1  │ versiongate-worker │ fork     │ 2    │ online    │ 0%       │ 17.3mb   │
+└────┴────────────────────┴──────────┴──────┴───────────┴──────────┴──────────┘
+host metrics | cpu: 7.3% | ram usage: 31% | eth0: ⇓ 0.003mb/s ⇑ 0.002mb/s |
+azureuser@alpha-vg:~/VersionGate$ channel 3: open failed: connect failed: Connection refused
+channel 3: open failed: connect failed: Connection refused
+channel 3: open failed: connect failed: Connection refused
+channel 3: open failed: connect failed: Connection refused
+channel 3: open failed: connect failed: Connection refused
+^C
+azureuser@alpha-vg:~/VersionGate$ ^C
+azureuser@alpha-vg:~/VersionGate$
