@@ -1,4 +1,6 @@
 import { execSync } from "child_process";
+import { existsSync } from "fs";
+import { join } from "path";
 import { projectRoot } from "./paths";
 import { logger } from "./logger";
 
@@ -6,9 +8,17 @@ export function runDrizzleSchemaSync(options: { cwd?: string; env?: NodeJS.Proce
   const cwd = options.cwd ?? projectRoot;
   const env = options.env ?? process.env;
 
+  const hasTsConfig = existsSync(join(cwd, "drizzle.config.ts"));
+  const hasJsonConfig = existsSync(join(cwd, "drizzle.config.json"));
+  const configFlag = hasTsConfig
+    ? "--config=drizzle.config.ts"
+    : hasJsonConfig
+    ? "--config=drizzle.config.json"
+    : "";
+
   logger.info("Syncing database schema with Drizzle Kit...");
   try {
-    execSync("bunx drizzle-kit push", {
+    execSync(`bunx drizzle-kit push ${configFlag}`.trim(), {
       cwd,
       env,
       stdio: "pipe",
@@ -23,3 +33,4 @@ export function runDrizzleSchemaSync(options: { cwd?: string; env?: NodeJS.Proce
 }
 
 export const runPrismaSchemaSync = runDrizzleSchemaSync;
+
