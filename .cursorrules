@@ -1,0 +1,12 @@
+# Agent & LLM Execution Rules
+
+Whenever an AI Agent or LLM CLI works on VersionGate, it MUST follow these 5 mandatory rules:
+
+1. Check Existing Files First: Inspect existing utilities, services, repositories, and components before creating new files.
+2. Solid & Clean Coding: Enforce clean architecture (Repository -> Service -> Controller -> Route), strict TypeScript types, and zero symptom-masking.
+3. Verify Everything: Always run verification commands before declaring completion:
+   - `bun run typecheck`
+   - `bun run build:dashboard`
+   - `bun test --pass-with-no-tests`
+4. Semantic Commits Only: Use Conventional Commits (`feat(...)`, `fix(...)`, `perf(...)`, `ci(...)`, `refactor(...)`, `chore(...)`).
+5. PR Standards: Create PRs from dedicated feature branches, assign to `dineshkorukonda`, attach relevant labels (`enhancement`, `backend`, `frontend`, `infrastructure`, `database`), and include a clear summary of changes and test results.

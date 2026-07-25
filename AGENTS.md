@@ -1,20 +1,23 @@
 # AGENTS.md
 
-## Cursor Cloud specific instructions
-
-### Overview
+## Overview
 
 VersionGate is a self-hosted zero-downtime Docker deployment engine with two main components:
 - **Backend (Fastify API)** — runs on port 9090 (`bun --watch src/server.ts`)
 - **Dashboard (React/Vite)** — runs on port 5173 (`cd dashboard && bun run dev`), proxies `/api` to the backend
 
-### Prerequisites (already installed in the environment)
+---
+
+## Prerequisites (already installed in the environment)
 
 - **Bun** — runtime and package manager for both backend and dashboard
 - **PostgreSQL 16** — local instance, database `versiongate`, user `versiongate`/`versiongate`
-- **Docker** — required for the deployment pipeline (running via `dockerd` with `fuse-overlayfs` storage driver for nested container support)
+- **Redis** — event pub/sub and distributed lock manager (port 6379)
+- **Docker** — required for the deployment pipeline
 
-### Running services
+---
+
+## Running services
 
 | Service | Command | Port |
 |---------|---------|------|
@@ -22,23 +25,56 @@ VersionGate is a self-hosted zero-downtime Docker deployment engine with two mai
 | Dashboard dev | `cd dashboard && bun run dev` | 5173 |
 | Website dev | `cd website && bun run dev` | 3000 |
 | PostgreSQL | `sudo pg_ctlcluster 16 main start` | 5432 |
+| Redis server | `redis-server` / Docker container | 6379 |
 | Docker daemon | `sudo dockerd &` | socket |
 
-### Non-obvious caveats
+---
 
-1. **Fastify/WebSocket version conflict**: The original `@fastify/websocket@11.2.0` requires Fastify 5.x but the project uses Fastify 4.x. The fix is `@fastify/websocket@10.0.1` which is Fastify-4-compatible. This has been applied via `bun add`.
+## Architecture & Database Layer
 
-2. **Schema drift**: After running `prisma migrate deploy`, you may still need `bunx prisma db push` to sync columns like `lockedAt` and `webhookSecret` unique constraints that are in the schema but not in migrations.
+- **ORM:** **Drizzle ORM** with `postgres.js` driver (Drizzle schema located in `src/db/schema.ts` and client in `src/db/client.ts`).
+- **Schema Synchronization:** Handled automatically via `src/utils/drizzle-schema-sync.ts` on server boot.
+- **Job Queue:** Managed in `src/services/job-queue.ts` using `ioredis` pub/sub and atomic SQL `jsonb` array appends.
 
-3. **ENCRYPTION_KEY warning**: On first start without `ENCRYPTION_KEY` in `.env`, the server logs a warning and generates a random key. Add the logged key to `.env` to persist encrypted project env vars across restarts.
+---
 
-4. **Server starts without DATABASE_URL**: If `DATABASE_URL` is not set, the server skips migrations/reconciliation and serves the setup wizard at `/setup`.
+## 🤖 Mandatory AI Agent & LLM Guidelines
 
-5. **Dashboard build output**: `bun run build` in `dashboard/` outputs to `dashboard/out/`, which the backend serves as static files via `@fastify/static`.
+Whenever an AI Agent or LLM CLI (`agy`, Antigravity, Cursor, Copilot, etc.) works on this codebase, it MUST adhere strictly to the following 5 rules:
 
-### Lint / Typecheck / Build
+1. 🔍 **Check Existing Files Before Creating New Ones:**
+   - Always search existing utility files, components, repositories, and helper functions in `src/` and `dashboard/` before writing custom helper code. Do not duplicate functionality.
 
-See `package.json` scripts. Key commands:
-- **Backend typecheck**: `bunx tsc --noEmit` (from root)
-- **Dashboard lint**: `cd dashboard && bunx eslint .` (pre-existing shadcn warnings are expected)
-- **Dashboard typecheck + build**: `cd dashboard && bun run build`
+2. 💎 **Solid & Clean Architecture:**
+   - Enforce modularity, clear separation of concerns (Repositories $\rightarrow$ Services $\rightarrow$ Controllers $\rightarrow$ Routes), strict TypeScript typing, and clean code principles.
+   - Preserve existing API contracts, function signatures, and docstrings.
+
+3. 🧪 **Comprehensive Verification & Testing:**
+   - NEVER declare success without running verification commands:
+     - **Backend Typecheck:** `bun run typecheck` (`bunx tsc --noEmit`)
+     - **Dashboard Build:** `bun run build:dashboard`
+     - **Backend Tests:** `bun test --pass-with-no-tests`
+
+4. 🏷️ **Strict Semantic Commit Messages:**
+   - All commits MUST follow Conventional Commits standard:
+     - `feat(...)`: New features
+     - `fix(...)`: Bug fixes
+     - `perf(...)`: Performance optimizations
+     - `refactor(...)`: Refactoring without behavioral change
+     - `ci(...)`: CI/CD & pipeline updates
+     - `chore(...)`: Maintenance, configs, dependencies
+
+5. 📋 **Pull Request Workflow Standards:**
+   - When asked to commit and create a PR:
+     - **Branching:** Work MUST be on a dedicated feature branch (`feat/*`, `fix/*`, `refactor/*`).
+     - **PR Body:** Provide a clear, bulleted summary of changes, design choices, and empirical test results.
+     - **Assignee:** ALWAYS assign the PR to `@dineshkorukonda` (`dineshkorukonda`).
+     - **Labels:** Add relevant tags/labels (`enhancement`, `backend`, `frontend`, `infrastructure`, `database`, `bug`).
+
+---
+
+## Lint / Typecheck / Build Commands
+
+- **Backend typecheck:** `bun run typecheck` (`bunx tsc --noEmit`)
+- **Dashboard build:** `bun run build:dashboard`
+- **Run tests:** `bun test --pass-with-no-tests`
