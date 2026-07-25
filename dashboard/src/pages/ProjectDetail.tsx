@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { DonutChart } from "@/components/charts/DonutChart";
-import { DeleteProjectDialog } from "@/components/DeleteProjectDialog";
+import { DeleteProjectDialog } from "@/components/modals/DeleteProjectDialog";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   getDeployments,
@@ -14,12 +14,12 @@ import {
   type JobRecord,
   type Project,
 } from "@/lib/api";
-import { EnvironmentChain } from "@/components/EnvironmentChain";
+import { EnvironmentChain } from "@/components/badges/EnvironmentChain";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { StatusBadge } from "@/components/StatusBadge";
-import { SlotBadge } from "@/components/SlotBadge";
+import { StatusBadge } from "@/components/badges/StatusBadge";
+import { SlotBadge } from "@/components/badges/SlotBadge";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";

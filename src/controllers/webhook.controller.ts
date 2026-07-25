@@ -1,7 +1,7 @@
 import { FastifyRequest, FastifyReply } from "fastify";
 import { ProjectRepository } from "../repositories/project.repository";
 import { EnvironmentRepository } from "../repositories/environment.repository";
-import { enqueueJob } from "../services/job-queue";
+import { enqueueJob } from "../services/job-queue.service";
 import { logger } from "../utils/logger";
 
 const projectRepo = new ProjectRepository();

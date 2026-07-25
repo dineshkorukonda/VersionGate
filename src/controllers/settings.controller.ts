@@ -15,7 +15,7 @@ import { envFilePath, projectRoot } from "../utils/paths";
 import { mergeIntoDotenv, writeEnvWithBackup } from "../utils/env-file";
 import { logger } from "../utils/logger";
 import { applySelfUpdate, getSelfUpdateStatus } from "../services/self-update.service";
-import { kickSelfUpdatePoll } from "../services/self-update-poll";
+import { kickSelfUpdatePoll } from "../services/self-update-poll.service";
 import { isValidHostname, isValidIpv4Address } from "../utils/domain-validation";
 import { generateVersionGateNginxConf, normalizePublicBasePath } from "../utils/nginx-versiongate-site";
 import { CERTBOT_PATH_CANDIDATES, findCertbotExecutablePath } from "../utils/certbot-path";

@@ -7,7 +7,7 @@ import { ValidationService } from "../../services/validation.service";
 import { runContainer, stopContainer, removeContainer } from "../../utils/docker";
 import { config } from "../../config/env";
 import { DeploymentError, BadRequestError } from "../../utils/errors";
-import { completeJob, failJob } from "../../services/job-queue";
+import { completeJob, failJob } from "../../services/job-queue.service";
 import { humanizeDeployFailure } from "../../utils/deploy-errors";
 import { logEmitter } from "../../events/log-emitter";
 

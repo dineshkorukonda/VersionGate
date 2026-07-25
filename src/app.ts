@@ -12,7 +12,7 @@ import { metricsRoutes } from "./routes/metrics.routes";
 import { webhookRoutes } from "./routes/webhook.routes";
 import { setupRoutes } from "./routes/setup.routes";
 import { settingsRoutes } from "./routes/settings.routes";
-import { logsRoutes } from "./routes/logs.route";
+import { logsRoutes } from "./routes/logs.routes";
 import { jobRoutes } from "./routes/job.routes";
 import { requireDatabaseConfigured } from "./middleware/require-database";
 import { requireApiAuth } from "./middleware/require-api-auth";

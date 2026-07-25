@@ -2,7 +2,7 @@ import { FastifyRequest, FastifyReply } from "fastify";
 import { eq, desc, count } from "drizzle-orm";
 import { getDb } from "../db/client";
 import { jobs, projects } from "../db/schema";
-import { cancelPendingJob } from "../services/job-queue";
+import { cancelPendingJob } from "../services/job-queue.service";
 import { logger } from "../utils/logger";
 
 export async function getJobHandler(

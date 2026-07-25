@@ -1,6 +1,6 @@
 import { logger } from "../utils/logger";
 import { disconnectDb } from "../db/client";
-import { appendLog, claimNextJob, failJob, recoverStuckJobs } from "../services/job-queue";
+import { appendLog, claimNextJob, failJob, recoverStuckJobs } from "../services/job-queue.service";
 import { runDeployJob } from "./handlers/deploy.handler";
 import { runRollbackJob } from "./handlers/rollback.handler";
 import { runPromoteJob } from "./handlers/promote.handler";

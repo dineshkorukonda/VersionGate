@@ -15,8 +15,8 @@ import {
   type Project,
 } from "@/lib/api";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { StatusBadge } from "@/components/StatusBadge";
-import { SlotBadge } from "@/components/SlotBadge";
+import { StatusBadge } from "@/components/badges/StatusBadge";
+import { SlotBadge } from "@/components/badges/SlotBadge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
@@ -34,7 +34,7 @@ import {
   setConfiguredPublicHost,
 } from "@/lib/deployment-display";
 import { projectDeploymentStatus } from "@/lib/project-deployment-status";
-import { DeleteProjectDialog } from "@/components/DeleteProjectDialog";
+import { DeleteProjectDialog } from "@/components/modals/DeleteProjectDialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
