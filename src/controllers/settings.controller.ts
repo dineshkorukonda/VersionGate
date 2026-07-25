@@ -50,10 +50,10 @@ function readEnvKeyFromFile(key: string): string | null {
 
 async function canConnectToDatabase(databaseUrl: string): Promise<boolean> {
   try {
-    const { PrismaClient } = await import("@prisma/client");
-    const testClient = new PrismaClient({ datasources: { db: { url: databaseUrl } } });
-    await testClient.$connect();
-    await testClient.$disconnect();
+    const postgres = (await import("postgres")).default;
+    const sql = postgres(databaseUrl, { connect_timeout: 5, max: 1 });
+    await sql`SELECT 1`;
+    await sql.end();
     return true;
   } catch {
     return false;

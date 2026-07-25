@@ -1,5 +1,7 @@
 import { FastifyRequest, FastifyReply } from "fastify";
-import prisma from "../prisma/client";
+import { eq, desc, count } from "drizzle-orm";
+import { getDb } from "../db/client";
+import { jobs, projects } from "../db/schema";
 import { cancelPendingJob } from "../services/job-queue";
 import { logger } from "../utils/logger";
 
@@ -7,7 +9,8 @@ export async function getJobHandler(
   req: FastifyRequest<{ Params: { id: string } }>,
   reply: FastifyReply
 ): Promise<void> {
-  const job = await prisma.job.findUnique({ where: { id: req.params.id } });
+  const db = getDb();
+  const [job] = await db.select().from(jobs).where(eq(jobs.id, req.params.id)).limit(1);
   if (!job) {
     return reply.code(404).send({ error: "NotFound", message: "Job not found" });
   }
@@ -21,19 +24,27 @@ export async function listAllJobsHandler(
   const limit = Math.min(Math.max(parseInt(req.query.limit ?? "50", 10) || 50, 1), 200);
   const offset = Math.max(parseInt(req.query.offset ?? "0", 10) || 0, 0);
 
-  const [jobs, total] = await prisma.$transaction([
-    prisma.job.findMany({
-      orderBy: { createdAt: "desc" },
-      take: limit,
-      skip: offset,
-      include: {
-        project: { select: { id: true, name: true } },
-      },
-    }),
-    prisma.job.count(),
-  ]);
+  const db = getDb();
+  const [countRes] = await db.select({ value: count() }).from(jobs);
+  const total = countRes?.value ?? 0;
 
-  reply.code(200).send({ jobs, total, limit, offset });
+  const rows = await db
+    .select({
+      job: jobs,
+      project: { id: projects.id, name: projects.name },
+    })
+    .from(jobs)
+    .innerJoin(projects, eq(jobs.projectId, projects.id))
+    .orderBy(desc(jobs.createdAt))
+    .limit(limit)
+    .offset(offset);
+
+  const result = rows.map((r) => ({
+    ...r.job,
+    project: r.project,
+  }));
+
+  reply.code(200).send({ jobs: result, total, limit, offset });
 }
 
 export async function listProjectJobsHandler(
@@ -43,17 +54,22 @@ export async function listProjectJobsHandler(
   const limit = Math.min(Math.max(parseInt(req.query.limit ?? "50", 10) || 50, 1), 200);
   const offset = Math.max(parseInt(req.query.offset ?? "0", 10) || 0, 0);
 
-  const [jobs, total] = await prisma.$transaction([
-    prisma.job.findMany({
-      where: { projectId: req.params.id },
-      orderBy: { createdAt: "desc" },
-      take: limit,
-      skip: offset,
-    }),
-    prisma.job.count({ where: { projectId: req.params.id } }),
-  ]);
+  const db = getDb();
+  const [countRes] = await db
+    .select({ value: count() })
+    .from(jobs)
+    .where(eq(jobs.projectId, req.params.id));
+  const total = countRes?.value ?? 0;
 
-  reply.code(200).send({ jobs, total, limit, offset });
+  const jobRows = await db
+    .select()
+    .from(jobs)
+    .where(eq(jobs.projectId, req.params.id))
+    .orderBy(desc(jobs.createdAt))
+    .limit(limit)
+    .offset(offset);
+
+  reply.code(200).send({ jobs: jobRows, total, limit, offset });
 }
 
 export async function cancelJobHandler(

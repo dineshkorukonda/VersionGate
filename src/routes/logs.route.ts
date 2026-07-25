@@ -1,5 +1,7 @@
 import { FastifyInstance } from "fastify";
-import prisma from "../prisma/client";
+import { eq } from "drizzle-orm";
+import { getDb } from "../db/client";
+import { jobs } from "../db/schema";
 import { logEmitter } from "../events/log-emitter";
 
 export async function logsRoutes(app: FastifyInstance): Promise<void> {
@@ -26,7 +28,8 @@ export async function logsRoutes(app: FastifyInstance): Promise<void> {
     };
 
     void (async () => {
-      const job = await prisma.job.findUnique({ where: { id: jobId } });
+      const db = getDb();
+      const [job] = await db.select().from(jobs).where(eq(jobs.id, jobId)).limit(1);
       if (!job) {
         sendJson({ type: "error", message: "Job not found" });
         socket.close();
@@ -58,16 +61,16 @@ export async function logsRoutes(app: FastifyInstance): Promise<void> {
 
       const poll = setInterval(async () => {
         try {
-          const j = await prisma.job.findUnique({ where: { id: jobId } });
+          const [j] = await db.select().from(jobs).where(eq(jobs.id, jobId)).limit(1);
           if (!j || closed) {
             clearInterval(poll);
             return;
           }
-          const logs = Array.isArray(j.logs) ? (j.logs as string[]) : [];
-          while (lastIndex < logs.length) {
+          const currentLogs = Array.isArray(j.logs) ? (j.logs as string[]) : [];
+          while (lastIndex < currentLogs.length) {
             sendJson({
               type: "log",
-              line: logs[lastIndex],
+              line: currentLogs[lastIndex],
               timestamp: new Date().toISOString(),
             });
             lastIndex++;

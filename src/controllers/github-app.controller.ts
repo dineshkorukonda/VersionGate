@@ -1,9 +1,11 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
-import type { GitHubInstallation } from "@prisma/client";
+import { eq, desc } from "drizzle-orm";
 import { Octokit } from "@octokit/rest";
 import { createAppAuth } from "@octokit/auth-app";
 import { config } from "../config/env";
-import prisma from "../prisma/client";
+import { getDb } from "../db/client";
+import { githubInstallations } from "../db/schema";
+type GitHubInstallationSelect = typeof githubInstallations.$inferSelect;
 import { EnvironmentRepository } from "../repositories/environment.repository";
 import { ProjectRepository } from "../repositories/project.repository";
 import { enqueueJob } from "../services/job-queue";
@@ -150,20 +152,30 @@ export async function githubCallbackHandler(
   const accountType = "type" in account ? String(account.type) : "unknown";
   const installationId = BigInt(installationIdStr);
 
-  await prisma.gitHubInstallation.upsert({
-    where: { installationId },
-    create: {
+  const db = getDb();
+  const [existing] = await db
+    .select()
+    .from(githubInstallations)
+    .where(eq(githubInstallations.installationId, installationId))
+    .limit(1);
+
+  if (existing) {
+    await db
+      .update(githubInstallations)
+      .set({
+        userId,
+        githubAccountLogin: login,
+        githubAccountType: accountType,
+      })
+      .where(eq(githubInstallations.installationId, installationId));
+  } else {
+    await db.insert(githubInstallations).values({
       userId,
       installationId,
       githubAccountLogin: login,
       githubAccountType: accountType,
-    },
-    update: {
-      userId,
-      githubAccountLogin: login,
-      githubAccountType: accountType,
-    },
-  });
+    });
+  }
 
   if (config.publicUrl && config.githubStateSecret) {
     try {
@@ -187,19 +199,30 @@ export async function githubCallbackHandler(
 async function resolveInstallationForUser(
   userId: string,
   installationIdQuery?: string
-): Promise<GitHubInstallation | null> {
+): Promise<GitHubInstallationSelect | null> {
+  const db = getDb();
   if (installationIdQuery && /^\d+$/.test(installationIdQuery)) {
-    return prisma.gitHubInstallation.findFirst({
-      where: { userId, installationId: BigInt(installationIdQuery) },
-    });
+    const [row] = await db
+      .select()
+      .from(githubInstallations)
+      .where(
+        eq(githubInstallations.userId, userId)
+      )
+      .limit(1);
+    return row ?? null;
   }
-  return prisma.gitHubInstallation.findFirst({
-    where: { userId },
-    orderBy: { createdAt: "desc" },
-  });
+
+  const [row] = await db
+    .select()
+    .from(githubInstallations)
+    .where(eq(githubInstallations.userId, userId))
+    .orderBy(desc(githubInstallations.createdAt))
+    .limit(1);
+
+  return row ?? null;
 }
 
-async function avatarForInstallation(row: GitHubInstallation, octokit: Octokit): Promise<string | null> {
+async function avatarForInstallation(row: GitHubInstallationSelect, octokit: Octokit): Promise<string | null> {
   const login = row.githubAccountLogin;
   const kind = row.githubAccountType.toLowerCase();
   try {
@@ -214,7 +237,6 @@ async function avatarForInstallation(row: GitHubInstallation, octokit: Octokit):
   }
 }
 
-/** GET /api/github/installation — session; DB only (no GitHub App env required). */
 export async function githubInstallationRecordHandler(req: FastifyRequest, reply: FastifyReply): Promise<void> {
   const raw = getSessionTokenFromRequest(req.headers.cookie);
   const user = await getUserFromSessionToken(raw);
@@ -223,10 +245,12 @@ export async function githubInstallationRecordHandler(req: FastifyRequest, reply
     return;
   }
 
-  const rows = await prisma.gitHubInstallation.findMany({
-    where: { userId: user.id },
-    orderBy: { createdAt: "desc" },
-  });
+  const db = getDb();
+  const rows = await db
+    .select()
+    .from(githubInstallations)
+    .where(eq(githubInstallations.userId, user.id))
+    .orderBy(desc(githubInstallations.createdAt));
 
   if (rows.length === 0) {
     reply.code(200).send({ installation: null, installations: [] });
@@ -250,7 +274,6 @@ export async function githubInstallationRecordHandler(req: FastifyRequest, reply
   });
 }
 
-/** GET /api/github/status — session; connected GitHub App installs + avatar for primary. */
 export async function githubIntegrationStatusHandler(req: FastifyRequest, reply: FastifyReply): Promise<void> {
   if (!githubAppReady()) {
     reply.code(503).send({
@@ -267,10 +290,12 @@ export async function githubIntegrationStatusHandler(req: FastifyRequest, reply:
     return;
   }
 
-  const rows = await prisma.gitHubInstallation.findMany({
-    where: { userId: user.id },
-    orderBy: { createdAt: "desc" },
-  });
+  const db = getDb();
+  const rows = await db
+    .select()
+    .from(githubInstallations)
+    .where(eq(githubInstallations.userId, user.id))
+    .orderBy(desc(githubInstallations.createdAt));
 
   if (rows.length === 0) {
     reply.code(200).send({ connected: false, installations: [] });
@@ -300,7 +325,6 @@ export async function githubIntegrationStatusHandler(req: FastifyRequest, reply:
   });
 }
 
-/** GET /api/github/repos/:owner/:repo/branches — installation token; lists branch names for picker. */
 export async function githubRepoBranchesHandler(
   req: FastifyRequest<{ Params: { owner: string; repo: string }; Querystring: { installationId?: string } }>,
   reply: FastifyReply
@@ -440,8 +464,8 @@ async function handleGithubPushDeploy(
     return { triggered: false, projects: [], skipped: "Could not determine repository URL" };
   }
 
-  const projects = await projectRepo.findAll();
-  const matches = projects.filter((p) => normalizeGithubRepoUrl(p.repoUrl) === normalized);
+  const projectsList = await projectRepo.findAll();
+  const matches = projectsList.filter((p) => normalizeGithubRepoUrl(p.repoUrl) === normalized);
 
   if (matches.length === 0) {
     logger.info({ normalized }, `${logPrefix}: no VersionGate project matches repository`);
@@ -527,10 +551,6 @@ export async function githubAppWebhookHandler(req: ReqWithRaw, reply: FastifyRep
   reply.code(200).send({ triggered: result.triggered, projects: result.projects });
 }
 
-/**
- * Fan-out ingest from versiongate.tech (official App webhook → relay → this instance).
- * Verified with X-VG-Relay-Signature (GITHUB_STATE_SECRET), not GitHub's signature.
- */
 export async function githubAppRelayWebhookHandler(req: ReqWithRaw, reply: FastifyReply): Promise<void> {
   const secret = config.githubStateSecret;
   if (!secret) {

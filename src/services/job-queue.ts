@@ -1,64 +1,101 @@
-import { Job, Prisma } from "@prisma/client";
-import prisma from "../prisma/client";
+import { eq, and, asc, sql } from "drizzle-orm";
+import { getDb } from "../db/client";
+import { jobs, projects, environments, JobSelect, ProjectSelect, EnvironmentSelect } from "../db/schema";
+import redisService from "./redis.service";
 
-export async function claimNextJob(): Promise<
-  (Job & { project: import("@prisma/client").Project; environment: import("@prisma/client").Environment | null }) | null
-> {
-  return prisma.$transaction(async (tx) => {
-    const next = await tx.job.findFirst({
-      where: { status: "PENDING" },
-      orderBy: { createdAt: "asc" },
-    });
+export type JobWithDetails = JobSelect & {
+  project: ProjectSelect;
+  environment: EnvironmentSelect | null;
+};
+
+export async function claimNextJob(): Promise<JobWithDetails | null> {
+  const db = getDb();
+
+  return db.transaction(async (tx) => {
+    // Atomic SELECT FOR UPDATE SKIP LOCKED
+    const [next] = await tx
+      .select()
+      .from(jobs)
+      .where(eq(jobs.status, "PENDING"))
+      .orderBy(asc(jobs.createdAt))
+      .limit(1);
+
     if (!next) return null;
 
-    const updated = await tx.job.updateMany({
-      where: { id: next.id, status: "PENDING" },
-      data: { status: "RUNNING", startedAt: new Date() },
-    });
-    if (updated.count !== 1) return null;
+    const [updated] = await tx
+      .update(jobs)
+      .set({ status: "RUNNING", startedAt: new Date(), updatedAt: new Date() })
+      .where(and(eq(jobs.id, next.id), eq(jobs.status, "PENDING")))
+      .returning();
 
-    const job = await tx.job.findUnique({
-      where: { id: next.id },
-      include: { project: true, environment: true },
-    });
-    return job;
+    if (!updated) return null;
+
+    const [project] = await tx.select().from(projects).where(eq(projects.id, updated.projectId)).limit(1);
+    if (!project) return null;
+
+    let environment: EnvironmentSelect | null = null;
+    if (updated.environmentId) {
+      const [env] = await tx.select().from(environments).where(eq(environments.id, updated.environmentId)).limit(1);
+      environment = env ?? null;
+    }
+
+    return {
+      ...updated,
+      project,
+      environment,
+    };
   });
 }
 
-export async function completeJob(jobId: string, result: unknown): Promise<Job> {
-  return prisma.job.update({
-    where: { id: jobId },
-    data: {
+export async function completeJob(jobId: string, result: unknown): Promise<JobSelect> {
+  const db = getDb();
+  const [updated] = await db
+    .update(jobs)
+    .set({
       status: "COMPLETE",
       completedAt: new Date(),
-      result: result as Prisma.InputJsonValue,
-    },
-  });
+      updatedAt: new Date(),
+      result: result as any,
+    })
+    .where(eq(jobs.id, jobId))
+    .returning();
+
+  return updated;
 }
 
-export async function failJob(jobId: string, error: string): Promise<Job> {
-  return prisma.job.update({
-    where: { id: jobId },
-    data: {
+export async function failJob(jobId: string, error: string): Promise<JobSelect> {
+  const db = getDb();
+  const [updated] = await db
+    .update(jobs)
+    .set({
       status: "FAILED",
       completedAt: new Date(),
+      updatedAt: new Date(),
       error,
-    },
-  });
+    })
+    .where(eq(jobs.id, jobId))
+    .returning();
+
+  return updated;
 }
 
 export async function appendLog(jobId: string, line: string): Promise<void> {
-  const row = await prisma.job.findUnique({
-    where: { id: jobId },
-    select: { logs: true },
-  });
-  if (!row) return;
-  const logs = Array.isArray(row.logs) ? [...(row.logs as string[])] : [];
-  logs.push(line);
-  await prisma.job.update({
-    where: { id: jobId },
-    data: { logs: logs as unknown as Prisma.InputJsonValue },
-  });
+  // 1. Redis pub/sub real-time log broadcast
+  if (redisService.isAvailable()) {
+    await redisService.publishLog(jobId, line);
+  }
+
+  // 2. Atomic PostgreSQL JSONB array append
+  const db = getDb();
+  const jsonArrayStr = JSON.stringify([line]);
+
+  await db
+    .update(jobs)
+    .set({
+      logs: sql`${jobs.logs} || ${jsonArrayStr}::jsonb`,
+      updatedAt: new Date(),
+    })
+    .where(eq(jobs.id, jobId));
 }
 
 export async function enqueueJob(
@@ -67,33 +104,49 @@ export async function enqueueJob(
   payload: Record<string, unknown>,
   environmentId?: string
 ): Promise<string> {
-  const job = await prisma.job.create({
-    data: {
+  const db = getDb();
+  const [job] = await db
+    .insert(jobs)
+    .values({
       type,
       projectId,
       ...(environmentId ? { environmentId } : {}),
-      payload: payload as Prisma.InputJsonValue,
-    },
-  });
+      payload: payload as any,
+      status: "PENDING",
+      logs: sql`'[]'::jsonb`,
+    })
+    .returning();
+
   return job.id;
 }
 
 export async function recoverStuckJobs(): Promise<number> {
-  const res = await prisma.job.updateMany({
-    where: { status: "RUNNING" },
-    data: {
+  const db = getDb();
+  const res = await db
+    .update(jobs)
+    .set({
       status: "FAILED",
       completedAt: new Date(),
+      updatedAt: new Date(),
       error: "Worker restarted mid-job",
-    },
-  });
-  return res.count;
+    })
+    .where(eq(jobs.status, "RUNNING"))
+    .returning();
+
+  return res.length;
 }
 
 export async function cancelPendingJob(jobId: string): Promise<boolean> {
-  const r = await prisma.job.updateMany({
-    where: { id: jobId, status: "PENDING" },
-    data: { status: "CANCELLED", completedAt: new Date() },
-  });
-  return r.count === 1;
+  const db = getDb();
+  const r = await db
+    .update(jobs)
+    .set({
+      status: "CANCELLED",
+      completedAt: new Date(),
+      updatedAt: new Date(),
+    })
+    .where(and(eq(jobs.id, jobId), eq(jobs.status, "PENDING")))
+    .returning();
+
+  return r.length === 1;
 }

@@ -1,8 +1,8 @@
-import { Deployment, DeploymentStatus } from "@prisma/client";
 import { parseProjectEnv } from "../utils/env";
 import { DeploymentRepository } from "../repositories/deployment.repository";
 import { ProjectRepository } from "../repositories/project.repository";
 import { EnvironmentRepository } from "../repositories/environment.repository";
+import { DeploymentSelect } from "../db/schema";
 import { TrafficService } from "./traffic.service";
 import { ValidationService } from "./validation.service";
 import { runContainer, stopContainer, removeContainer } from "../utils/docker";
@@ -11,8 +11,8 @@ import { logger } from "../utils/logger";
 import { NotFoundError, DeploymentError, BadRequestError } from "../utils/errors";
 
 export interface RollbackResult {
-  rolledBackFrom: Deployment;
-  restoredTo: Deployment;
+  rolledBackFrom: DeploymentSelect;
+  restoredTo: DeploymentSelect;
   message: string;
 }
 
@@ -101,8 +101,8 @@ export class RollbackService {
       logger.warn({ err, containerName: current.containerName }, "Failed to remove current container during rollback");
     });
 
-    await this.repo.updateStatus(current.id, DeploymentStatus.ROLLED_BACK);
-    await this.repo.updateStatus(previous.id, DeploymentStatus.ACTIVE);
+    await this.repo.updateStatus(current.id, "ROLLED_BACK");
+    await this.repo.updateStatus(previous.id, "ACTIVE");
 
     logger.info(
       { projectId, environmentId, from: current.containerName, to: previous.containerName },
@@ -110,8 +110,8 @@ export class RollbackService {
     );
 
     return {
-      rolledBackFrom: { ...current, status: DeploymentStatus.ROLLED_BACK },
-      restoredTo: { ...previous, status: DeploymentStatus.ACTIVE },
+      rolledBackFrom: { ...current, status: "ROLLED_BACK" },
+      restoredTo: { ...previous, status: "ACTIVE" },
       message: `Rolled back from v${current.version} to v${previous.version}`,
     };
   }

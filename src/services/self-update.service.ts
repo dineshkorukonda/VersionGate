@@ -4,9 +4,8 @@ import { join } from "path";
 import { spawn } from "child_process";
 import { execFileAsync } from "../utils/exec";
 import { projectRoot } from "../utils/paths";
-import { config } from "../config/env";
 import { logger } from "../utils/logger";
-import { runPrismaSchemaSync } from "../utils/prisma-schema-sync";
+import { runDrizzleSchemaSync } from "../utils/drizzle-schema-sync";
 
 let applyBusy = false;
 
@@ -114,14 +113,11 @@ export async function applySelfUpdate(branch: string): Promise<SelfUpdateApplyRe
     await execFileAsync("bun", ["install"], { cwd: projectRoot });
     steps.push("bun install");
 
-    await execFileAsync("bunx", ["prisma", "generate"], { cwd: projectRoot });
-    steps.push("prisma generate");
-
     if (process.env.DATABASE_URL?.trim()) {
-      runPrismaSchemaSync({ mode: config.prismaSchemaSync });
-      steps.push(`prisma schema sync (${config.prismaSchemaSync})`);
+      runDrizzleSchemaSync();
+      steps.push("drizzle schema sync");
     } else {
-      steps.push("prisma schema sync (skipped — no DATABASE_URL)");
+      steps.push("drizzle schema sync (skipped — no DATABASE_URL)");
     }
 
     await execFileAsync("bun", ["run", "build"], { cwd: projectRoot });

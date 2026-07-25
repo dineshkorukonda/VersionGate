@@ -1,8 +1,10 @@
-import { DeploymentColor, DeploymentStatus, Environment, Job, Project } from "@prisma/client";
+import { eq } from "drizzle-orm";
 import { config } from "../../config/env";
 import { parseProjectEnv } from "../../utils/env";
 import { DeploymentRepository } from "../../repositories/deployment.repository";
 import { EnvironmentRepository, DEFAULT_ENVIRONMENT_NAME } from "../../repositories/environment.repository";
+import { getDb } from "../../db/client";
+import { jobs, JobSelect, ProjectSelect, EnvironmentSelect } from "../../db/schema";
 import { buildImage, runContainer, stopContainer, removeContainer, freeHostPort } from "../../utils/docker";
 import { ensureDockerfile } from "../../utils/dockerfile";
 import { DeploymentError } from "../../utils/errors";
@@ -12,7 +14,6 @@ import { ValidationService } from "../../services/validation.service";
 import { completeJob, failJob } from "../../services/job-queue";
 import { humanizeDeployFailure } from "../../utils/deploy-errors";
 import { logEmitter } from "../../events/log-emitter";
-import prisma from "../../prisma/client";
 
 const repo = new DeploymentRepository();
 const envRepo = new EnvironmentRepository();
@@ -25,21 +26,22 @@ export type LogFn = (line: string) => void | Promise<void>;
 async function checkCancelled(deploymentId: string | undefined, log: LogFn): Promise<void> {
   if (!deploymentId) return;
   const d = await repo.findById(deploymentId);
-  if (d && d.status !== DeploymentStatus.DEPLOYING) {
+  if (d && d.status !== "DEPLOYING") {
     await log(`[cancel] Deployment status is ${d.status} — aborting pipeline`);
     throw new DeploymentError("Cancelled by user");
   }
 }
 
 async function updateJobDeploymentId(jobId: string, deploymentId: string): Promise<void> {
-  await prisma.job.update({
-    where: { id: jobId },
-    data: { deploymentId },
-  });
+  const db = getDb();
+  await db
+    .update(jobs)
+    .set({ deploymentId, updatedAt: new Date() })
+    .where(eq(jobs.id, jobId));
 }
 
 export async function runDeployJob(
-  job: Job & { project: Project; environment: Environment | null },
+  job: JobSelect & { project: ProjectSelect; environment: EnvironmentSelect | null },
   log: LogFn
 ): Promise<void> {
   const { projectId, id: jobId } = job;
@@ -84,9 +86,8 @@ export async function runDeployJob(
 
     await log(`Step 2: Determining blue/green target`);
     const activeDeployment = await repo.findActiveForEnvironment(environmentId);
-    const newColor =
-      activeDeployment?.color === DeploymentColor.BLUE ? DeploymentColor.GREEN : DeploymentColor.BLUE;
-    const hostPort = newColor === DeploymentColor.BLUE ? environment.basePort : environment.basePort + 1;
+    const newColor = activeDeployment?.color === "BLUE" ? "GREEN" : "BLUE";
+    const hostPort = newColor === "BLUE" ? environment.basePort : environment.basePort + 1;
     const containerName = `${project.name}-${environment.name}-${newColor.toLowerCase()}`;
     const imageTag = `versiongate-${project.name}:${Date.now()}`;
     const version = await repo.getNextVersionForEnvironment(environmentId);
@@ -102,7 +103,7 @@ export async function runDeployJob(
       containerName,
       port: hostPort,
       color: newColor,
-      status: DeploymentStatus.DEPLOYING,
+      status: "DEPLOYING",
       environment: { connect: { id: environmentId } },
     });
     deploymentId = deployment.id;
@@ -152,7 +153,7 @@ export async function runDeployJob(
     }
 
     await log(`Step 8: Activating deployment and retiring previous slot`);
-    await repo.updateStatus(deployment.id, DeploymentStatus.ACTIVE);
+    await repo.updateStatus(deployment.id, "ACTIVE");
 
     if (activeDeployment) {
       await log(`Stopping old container: ${activeDeployment.containerName}`);
@@ -162,13 +163,13 @@ export async function runDeployJob(
       await removeContainer(activeDeployment.containerName).catch(async (err) => {
         await log(`Warning: failed to remove old container: ${err instanceof Error ? err.message : String(err)}`);
       });
-      await repo.updateStatus(activeDeployment.id, DeploymentStatus.ROLLED_BACK);
+      await repo.updateStatus(activeDeployment.id, "ROLLED_BACK");
     }
 
     await log(`Deployment successful — ${containerName} is live on port ${hostPort}`);
 
     await completeJob(jobId, {
-      deployment: { ...deployment, status: DeploymentStatus.ACTIVE },
+      deployment: { ...deployment, status: "ACTIVE" },
       message: `Deployment successful — ${containerName} is live on port ${hostPort}`,
     });
     logEmitter.emitStatus(jobId, "COMPLETE");
@@ -176,7 +177,7 @@ export async function runDeployJob(
     const errMsg = err instanceof Error ? err.message : String(err);
     const friendly = humanizeDeployFailure(errMsg);
     if (deploymentId) {
-      await repo.updateStatus(deploymentId, DeploymentStatus.FAILED, friendly).catch(() => null);
+      await repo.updateStatus(deploymentId, "FAILED", friendly).catch(() => null);
     }
     await failJob(jobId, friendly);
     await log(`FAILED: ${friendly}`);

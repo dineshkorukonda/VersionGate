@@ -1,7 +1,7 @@
-import { DeploymentStatus, Environment, Job, Project } from "@prisma/client";
 import { parseProjectEnv } from "../../utils/env";
 import { DeploymentRepository } from "../../repositories/deployment.repository";
 import { EnvironmentRepository } from "../../repositories/environment.repository";
+import { JobSelect, ProjectSelect, EnvironmentSelect } from "../../db/schema";
 import { TrafficService } from "../../services/traffic.service";
 import { ValidationService } from "../../services/validation.service";
 import { runContainer, stopContainer, removeContainer } from "../../utils/docker";
@@ -19,7 +19,7 @@ const validation = new ValidationService();
 export type LogFn = (line: string) => void | Promise<void>;
 
 export async function runRollbackJob(
-  job: Job & { project: Project; environment: Environment | null },
+  job: JobSelect & { project: ProjectSelect; environment: EnvironmentSelect | null },
   log: LogFn
 ): Promise<void> {
   const { projectId, id: jobId } = job;
@@ -108,15 +108,15 @@ export async function runRollbackJob(
       await log(`Warning: failed to remove current container: ${err instanceof Error ? err.message : String(err)}`);
     });
 
-    await repo.updateStatus(current.id, DeploymentStatus.ROLLED_BACK);
-    await repo.updateStatus(previous.id, DeploymentStatus.ACTIVE);
+    await repo.updateStatus(current.id, "ROLLED_BACK");
+    await repo.updateStatus(previous.id, "ACTIVE");
 
     const message = `Rolled back from v${current.version} to v${previous.version}`;
     await log(`Rollback completed: ${message}`);
 
     await completeJob(jobId, {
-      rolledBackFrom: { ...current, status: DeploymentStatus.ROLLED_BACK },
-      restoredTo: { ...previous, status: DeploymentStatus.ACTIVE },
+      rolledBackFrom: { ...current, status: "ROLLED_BACK" },
+      restoredTo: { ...previous, status: "ACTIVE" },
       message,
     });
     logEmitter.emitStatus(jobId, "COMPLETE");
