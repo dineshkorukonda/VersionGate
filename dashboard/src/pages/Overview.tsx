@@ -445,7 +445,15 @@ export function Overview() {
                         </div>
                       ) : null}
                       <div className="text-xs text-muted-foreground">
-                        <span className="font-mono">{p.repoUrl.replace(/^https?:\/\/(www\.)?/, "")}</span>
+                        <a
+                          href={/^https?:\/\//i.test(p.repoUrl) ? p.repoUrl : `https://${p.repoUrl}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="font-mono hover:text-primary hover:underline"
+                        >
+                          {p.repoUrl.replace(/^https?:\/\/(www\.)?/, "")}
+                        </a>
                       </div>
 
                       <div className="space-y-2">
