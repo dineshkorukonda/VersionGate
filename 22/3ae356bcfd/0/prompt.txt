@@ -1,0 +1,189 @@
+[Image]
+<image_files>
+The following images were provided by the user and saved to the workspace for future use:
+1. /Users/dinesh/.cursor/projects/Users-dinesh-Developer-VersionGate/assets/Screenshot_2026-07-23_at_10.48.40_AM-2b407c45-07b5-4b5d-b910-bb3dd689644e.png
+
+These images can be copied for use in other locations.
+</image_files>
+<timestamp>Thursday, Jul 23, 2026, 10:48 AM (UTC+5:30)</timestamp>
+
+azureuser@alpha-vg:~/VersionGate$ cd dashboard
+bun run build
+cd ..
+pm2 start ecosystem.config.cjs
+pm2 save
+$ tsc -b && bun --bun vite build
+vite v8.0.3 building client environment for production...
+✓ 2631 modules transformed.
+computing gzip size...
+out/index.html                                                       0.46 kB │ gzip:   0.29 kB
+out/assets/jetbrains-mono-vietnamese-wght-normal-Bt-aOZkq.woff2      7.50 kB
+out/assets/jetbrains-mono-greek-wght-normal-Bw9x6K1M.woff2           9.00 kB
+out/assets/inter-vietnamese-wght-normal-CBcvBZtf.woff2              10.25 kB
+out/assets/inter-greek-ext-wght-normal-DlzME5K_.woff2               11.23 kB
+out/assets/jetbrains-mono-cyrillic-wght-normal-D73BlboJ.woff2       12.10 kB
+out/assets/jetbrains-mono-latin-ext-wght-normal-DBQx-q_a.woff2      15.19 kB
+out/assets/inter-cyrillic-wght-normal-DqGufNeO.woff2                18.74 kB
+out/assets/inter-greek-wght-normal-CkhJZR-_.woff2                   18.99 kB
+out/assets/inter-cyrillic-ext-wght-normal-BOeWTOD4.woff2            25.96 kB
+out/assets/jetbrains-mono-latin-wght-normal-B9CIFXIH.woff2          40.40 kB
+out/assets/inter-latin-wght-normal-Dx4kXJAl.woff2                   48.25 kB
+out/assets/inter-latin-ext-wght-normal-DO1Apj_S.woff2               85.06 kB
+out/assets/index-Bgx415KV.css                                      113.48 kB │ gzip:  20.16 kB
+out/assets/index-CLgKJWAh.js                                     1,045.48 kB │ gzip: 306.63 kB
+
+✓ built in 1.39s
+[plugin builtin:vite-reporter]
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+[PM2][WARN] Applications versiongate-api, versiongate-worker not running, starting...
+[PM2] App [versiongate-api] launched (1 instances)
+[PM2] App [versiongate-worker] launched (1 instances)
+┌────┬────────────────────┬──────────┬──────┬───────────┬──────────┬──────────┐
+│ id │ name               │ mode     │ ↺    │ status    │ cpu      │ memory   │
+├────┼────────────────────┼──────────┼──────┼───────────┼──────────┼──────────┤
+│ 0  │ versiongate-api    │ fork     │ 0    │ online    │ 0%       │ 34.5mb   │
+│ 1  │ versiongate-worker │ fork     │ 0    │ online    │ 0%       │ 16.5mb   │
+└────┴────────────────────┴──────────┴──────┴───────────┴──────────┴──────────┘
+host metrics | cpu: 0.2% | ram usage: 18.7% | eth0: ⇓ 0.001mb/s ⇑ 0.001mb/s |
+[PM2] Saving current process list...
+[PM2] Successfully saved in /home/azureuser/.pm2/dump.pm2
+azureuser@alpha-vg:~/VersionGate$ pm2 status
+┌────┬────────────────────┬──────────┬──────┬───────────┬──────────┬──────────┐
+│ id │ name               │ mode     │ ↺    │ status    │ cpu      │ memory   │
+├────┼────────────────────┼──────────┼──────┼───────────┼──────────┼──────────┤
+│ 0  │ versiongate-api    │ fork     │ 0    │ online    │ 0%       │ 108.6mb  │
+│ 1  │ versiongate-worker │ fork     │ 0    │ online    │ 0%       │ 71.4mb   │
+└────┴────────────────────┴──────────┴──────┴───────────┴──────────┴──────────┘
+host metrics | cpu: 36.3% | ram usage: 21.4% | eth0: ⇓ 0.004mb/s ⇑ 0.004mb/s |
+azureuser@alpha-vg:~/VersionGate$ pm2 logs
+[TAILING] Tailing last 15 lines for [all] processes (change the value with --lines option)
+/home/azureuser/.pm2/pm2.log last 15 lines:
+PM2        | 2026-07-22T10:43:38: PM2 log: pid=11142 msg=failed to kill - retrying in 100ms
+PM2        | 2026-07-22T10:43:38: PM2 log: App [versiongate-api:0] exited with code [0] via signal [SIGINT]
+PM2        | 2026-07-22T10:43:38: PM2 log: pid=11142 msg=process tree killed (1 pids)
+PM2        | 2026-07-22T10:43:38: PM2 log: App [versiongate-api:0] starting in -fork mode-
+PM2        | 2026-07-22T10:43:38: PM2 log: App [versiongate-api:0] online
+PM2        | 2026-07-23T04:57:39: PM2 log: Stopping app:versiongate-api id:0
+PM2        | 2026-07-23T04:57:39: PM2 log: Stopping app:versiongate-worker id:1
+PM2        | 2026-07-23T04:57:39: PM2 log: App [versiongate-worker:1] exited with code [0] via signal [SIGINT]
+PM2        | 2026-07-23T04:57:39: PM2 log: App [versiongate-api:0] exited with code [0] via signal [SIGINT]
+PM2        | 2026-07-23T04:57:39: PM2 log: pid=11636 msg=process tree killed (1 pids)
+PM2        | 2026-07-23T04:57:39: PM2 log: pid=11144 msg=process tree killed (1 pids)
+PM2        | 2026-07-23T04:59:37: PM2 log: App [versiongate-api:0] starting in -fork mode-
+PM2        | 2026-07-23T04:59:37: PM2 log: App [versiongate-worker:1] starting in -fork mode-
+PM2        | 2026-07-23T04:59:37: PM2 log: App [versiongate-api:0] online
+PM2        | 2026-07-23T04:59:37: PM2 log: App [versiongate-worker:1] online
+
+/home/azureuser/.pm2/logs/versiongate-worker-error-1.log last 15 lines:
+/home/azureuser/.pm2/logs/versiongate-api-error.log last 15 lines:
+0|versiong |       at timeoutCb (/home/azureuser/VersionGate/node_modules/avvio/boot.js:503:7)
+0|versiong |       at manageTimeout (/home/azureuser/VersionGate/node_modules/fastify/lib/hooks.js:133:11)
+0|versiong |       at _encapsulateThreeParam (/home/azureuser/VersionGate/node_modules/avvio/boot.js:600:7)
+0|versiong |       at timeoutCall (/home/azureuser/VersionGate/node_modules/avvio/boot.js:494:5)
+0|versiong |       at callWithCbOrNextTick (/home/azureuser/VersionGate/node_modules/avvio/boot.js:476:19)
+0|versiong |       at release (/home/azureuser/VersionGate/node_modules/fastq/queue.js:172:16)
+0|versiong |       at worked (/home/azureuser/VersionGate/node_modules/fastq/queue.js:258:10)
+0|versiong |       at timeoutCb (/home/azureuser/VersionGate/node_modules/avvio/boot.js:503:7)
+0|versiong |       at defaultPreClose (/home/azureuser/VersionGate/node_modules/@fastify/websocket/index.js:220:5)
+0|versiong |       at <anonymous> (/home/azureuser/VersionGate/node_modules/fastify/lib/hooks.js:158:14)
+0|versiong |       at _encapsulateThreeParam (/home/azureuser/VersionGate/node_modules/avvio/boot.js:600:7)
+0|versiong |       at timeoutCall (/home/azureuser/VersionGate/node_modules/avvio/boot.js:494:5)
+0|versiong |       at callWithCbOrNextTick (/home/azureuser/VersionGate/node_modules/avvio/boot.js:476:19)
+0|versiong |       at release (/home/azureuser/VersionGate/node_modules/fastq/queue.js:172:16)
+0|versiong |
+
+/home/azureuser/.pm2/logs/versiongate-worker-out-1.log last 15 lines:
+1|versiong | [10:38:06.340] WARN (11144): ENCRYPTION_KEY is missing. Add this 32-byte hex string to .env to keep encrypted project env vars readable after restart.
+1|versiong |     encryptionKey: "REDACTED"
+1|versiong | [10:38:06.352] WARN (11144): DATABASE_URL not set — worker idle. Complete setup at /setup, then restart the worker (e.g. pm2 restart versiongate-worker).
+1|versiong | [04:59:37.684] WARN (86638): ENCRYPTION_KEY is missing. Add this 32-byte hex string to .env to keep encrypted project env vars readable after restart.
+1|versiong |     encryptionKey: "REDACTED"
+1|versiong | [04:59:37.690] WARN (86638): DATABASE_URL not set — worker idle. Complete setup at /setup, then restart the worker (e.g. pm2 restart versiongate-worker).
+
+/home/azureuser/.pm2/logs/versiongate-api-out.log last 15 lines:
+0|versiong | [04:59:37.708] WARN (86636): ENCRYPTION_KEY is missing. Add this 32-byte hex string to .env to keep encrypted project env vars readable after restart.
+0|versiong |     encryptionKey: "REDACTED"
+0|versiong | {"level":30,"time":1784782778013,"pid":86636,"hostname":"alpha-vg","msg":"Server listening at http://0.0.0.0:9090"}
+0|versiong | [04:59:37.897] INFO (86636): Dashboard static files registered
+0|versiong |     dashboardPath: "/home/azureuser/VersionGate/dashboard/out"
+0|versiong | [04:59:37.898] WARN (86636): DATABASE_URL not set — skipping startup reconciliation. Complete setup at /setup
+0|versiong | [04:59:38.014] INFO (86636): VersionGate Engine is running
+0|versiong |     port: 9090
+0|versiong |     dockerNetwork: "versiongate-net"
+0|versiong |     nginxConfigPath: "/etc/nginx/conf.d/upstream.conf"
+0|versiong |     projectsRootPath: "/var/versiongate/projects"
+0|versiong | [04:59:38.014] WARN (86636): DATABASE_URL not set — container monitor disabled until database is configured
+0|versiong | [04:59:38.028] INFO (86636): SystemMetrics: started
+0|versiong |     intervalMs: 5000
+0|versiong | [04:59:38.028] INFO (86636): Setup wizard available at http://0.0.0.0:9090/setup
+
+0|versiongate-api  | [05:01:20.556] INFO (86636): Setup: validating database connection…
+0|versiongate-api  | [05:01:22.361] INFO (86636): Setup: writing .env file…
+0|versiongate-api  |     envPath: "/home/azureuser/VersionGate/.env"
+0|versiongate-api  | [05:01:22.362] INFO (86636): Setup: .env written successfully
+0|versiongate-api  | [05:01:22.362] INFO (86636): Setup: generating Prisma client…
+0|versiongate-api  | [05:01:24.164] INFO (86636): Setup: Prisma client generated
+0|versiongate-api  | [05:01:24.164] INFO (86636): Setup: running database migrations…
+0|versiongate-api  | [05:01:24.165] INFO (86636): prisma migrate deploy: inferred Neon direct URL from pooler DATABASE_URL (dropped `-pooler.` host label). Set DIRECT_DATABASE_URL in .env if your project uses a different direct endpoint.
+0|versiongate-api  | [05:01:39.851] ERROR (86636): bunx prisma migrate deploy stderr
+0|versiongate-api  |     stderr: "Error: P3018\n\nA migration failed to apply. New migrations cannot be applied before the error is recovered from. Read more about how to resolve migration issues in a production database: https://pris.ly/d/migrate-resolve\n\nMigration name: 20260419120000_environment_model\n\nDatabase error code: 42703\n\nDatabase error:\nERROR: column \"lockedAt\" does not exist\nDETAIL: There is a column named \"lockedAt\" in table \"Environment\", but it cannot be referenced from this part of the query.\n\nPosition:\n\u001b[1m 26\u001b[0m   \"id\",\n\u001b[1m 27\u001b[0m   \"branch\",\n\u001b[1m 28\u001b[0m   'localhost',\n\u001b[1m 29\u001b[0m   \"basePort\",\n\u001b[1m 30\u001b[0m   \"appPort\",\n\u001b[1m 31\u001b[1;31m   \"lockedAt\",\u001b[0m\n\nDbError { severity: \"ERROR\", parsed_severity: Some(Error), code: SqlState(E42703), message: \"column \\"lockedAt\\" does not exist\", detail: Some(\"There is a column named \\"lockedAt\\" in table \\"Environment\\", but it cannot be referenced from this part of the query.\"), hint: None, position: Some(Original(1133)), where_: None, schema: None, table: None, column: None, datatype: None, constraint: None, file: Some(\"parse_relation.c\"), line: Some(3804), routine: Some(\"errorMissingColumn\") }"
+0|versiongate-api  | [05:01:39.851] ERROR (86636): bunx prisma migrate deploy stdout
+0|versiongate-api  |     stdout: "Environment variables loaded from .env\nPrisma schema loaded from prisma/schema.prisma\nDatasource \"db\": PostgreSQL database \"neondb\", schema \"public\" at \"ep-flat-brook-awrok294.c-12.us-east-1.aws.neon.tech\"\n\n9 migrations found in prisma/migrations\n\nApplying migration `20260221125558_init`\nApplying migration `20260221182739_add_project_env`\nApplying migration `20260221190743_add_build_context`\nApplying migration `20260221214553_add_error_message`\nApplying migration `20260402120000_add_job_queue`\nApplying migration `20260411120000_add_auth_users_sessions`\nApplying migration `20260419120000_environment_model`"
+0|versiongate-api  | [05:01:39.852] WARN (86636): prisma migrate deploy failed — falling back to prisma db push (legacy or drifted database)
+0|versiongate-api  |     err: "Command failed: bunx prisma migrate deploy\nError: P3018\n\nA migration failed to apply. New migrations cannot be applied before the error is recovered from. Read more about how to resolve migration issues in a production database: https://pris.ly/d/migrate-resolve\n\nMigration name: 20260419120000_environment_model\n\nDatabase error code: 42703\n\nDatabase error:\nERROR: column \"lockedAt\" does not exist\nDETAIL: There is a column named \"lockedAt\" in table \"Environment\", but it cannot be referenced from this part of the query.\n\nPosition:\n\u001b[1m 26\u001b[0m   \"id\",\n\u001b[1m 27\u001b[0m   \"branch\",\n\u001b[1m 28\u001b[0m   'localhost',\n\u001b[1m 29\u001b[0m   \"basePort\",\n\u001b[1m 30\u001b[0m   \"appPort\",\n\u001b[1m 31\u001b[1;31m   \"lockedAt\",\u001b[0m\n\nDbError { severity: \"ERROR\", parsed_severity: Some(Error), code: SqlState(E42703), message: \"column \\\"lockedAt\\\" does not exist\", detail: Some(\"There is a column named \\\"lockedAt\\\" in table \\\"Environment\\\", but it cannot be referenced from this part of the query.\"), hint: None, position: Some(Original(1133)), where_: None, schema: None, table: None, column: None, datatype: None, constraint: None, file: Some(\"parse_relation.c\"), line: Some(3804), routine: Some(\"errorMissingColumn\") }\n\n\n"
+0|versiongate-api  | [05:01:55.264] WARN (86636): Database schema synced via prisma db push fallback
+0|versiongate-api  | [05:01:55.264] INFO (86636): Setup: database migrations complete
+0|versiongate-api  | {"level":30,"time":1784782917255,"pid":86636,"hostname":"alpha-vg","reqId":"req-m","method":"POST","path":"/api/v1/setup/apply","statusCode":200,"ms":"36701.9","msg":"api"}
+0|versiongate-api  | [05:01:57.252] INFO (86636): ContainerMonitor: started
+0|versiongate-api  |     intervalMs: 60000
+0|versiongate-api  | [05:01:57.252] INFO (86636): Starting startup reconciliation
+0|versiongate-api  | [05:01:57.253] WARN (86636): Setup: Could not write Nginx config (permission denied — configure manually)
+0|versiongate-api  | [05:02:01.349] INFO (86636): Reconciliation complete
+0|versiongate-api  |     deployingFixed: 0
+0|versiongate-api  |     staleLocksCleared: 0
+0|versiongate-api  |     activeInvalidated: 0
+0|versiongate-api  | [05:02:01.349] INFO (86636): Post-setup reconciliation complete
+0|versiongate-api  |     deployingFixed: 0
+0|versiongate-api  |     activeInvalidated: 0
+0|versiongate-api  | {"level":30,"time":1784782940975,"pid":86636,"hostname":"alpha-vg","reqId":"req-1a","method":"GET","path":"/api/v1/system/preflight","statusCode":200,"ms":"1456.4","msg":"api"}
+0|versiongate-api  | {"level":30,"time":1784782970256,"pid":86636,"hostname":"alpha-vg","reqId":"req-20","method":"GET","path":"/api/github/installation","statusCode":200,"ms":"1026.8","msg":"api"}
+0|versiongate-api  | {"level":30,"time":1784783077191,"pid":86636,"hostname":"alpha-vg","reqId":"req-2i","method":"POST","path":"/api/v1/projects","statusCode":201,"ms":"2480.5","msg":"api"}
+0|versiongate-api  | [05:04:37.190] INFO (helderlig/86636): API: project created
+0|versiongate-api  |     projectId: "cmrx1rezi0004qm2uzeadmt1w"
+0|versiongate-api  | {"level":30,"time":1784783104860,"pid":86636,"hostname":"alpha-vg","reqId":"req-30","method":"POST","path":"/api/v1/deploy","statusCode":202,"ms":"1286.0","msg":"api"}
+0|versiongate-api  | [05:05:04.859] INFO (86636): API: deploy enqueued
+0|versiongate-api  |     projectId: "cmrx1rezi0004qm2uzeadmt1w"
+0|versiongate-api  |     environmentId: "cmrx1rfb20005qm2ujg2mho94"
+0|versiongate-api  |     jobId: "8e7af11e-1ada-49cb-89da-bdc48ed7fa17"
+0|versiongate-api  | {"level":30,"time":1784783810026,"pid":86636,"hostname":"alpha-vg","reqId":"req-4y","method":"POST","path":"/api/v1/deploy","statusCode":202,"ms":"1402.3","msg":"api"}
+0|versiongate-api  | [05:16:50.025] INFO (86636): API: deploy enqueued
+0|versiongate-api  |     projectId: "cmrx1rezi0004qm2uzeadmt1w"
+0|versiongate-api  |     environmentId: "cmrx1rfb20005qm2ujg2mho94"
+0|versiongate-api  |     jobId: "6165c502-8314-4c2d-8b64-8c1258a66a93"
+^C
+azureuser@alpha-vg:~/VersionGate$ pm2 list
+┌────┬────────────────────┬──────────┬──────┬───────────┬──────────┬──────────┐
+│ id │ name               │ mode     │ ↺    │ status    │ cpu      │ memory   │
+├────┼────────────────────┼──────────┼──────┼───────────┼──────────┼──────────┤
+│ 0  │ versiongate-api    │ fork     │ 0    │ online    │ 0%       │ 143.4mb  │
+│ 1  │ versiongate-worker │ fork     │ 0    │ online    │ 0%       │ 78.3mb   │
+└────┴────────────────────┴──────────┴──────┴───────────┴──────────┴──────────┘
+host metrics | cpu: 2.8% | ram usage: 22.2% | lo: ⇓ 0.001mb/s ⇑ 0.001mb/s | eth0: ⇓ 0.003mb/s ⇑ 0.003mb/s |
+azureuser@alpha-vg:~/VersionGate$ pme logs
+Command 'pme' not found, did you mean:
+  command 'pmg' from deb python3-pymatgen (2023.06.23+dfsg1-2build1)
+  command 'mme' from deb plc-utils-extra (0.0.6+git20230504.1ba7d5a0-1)
+  command 'pm' from deb powerman (2.3.27-4)
+  command 'rme' from deb pvm-examples (3.4.6-5)
+  command 'cme' from deb cme (1.039-1)
+  command 'pee' from deb moreutils (0.67-1)
+  command 'pms' from deb pms (0.42-1.1)
+  command 'pmie' from deb pcp (6.1.1-1)
+  command 'pmc' from deb linuxptp (4.0-1ubuntu1.1)
+  command 'pem' from deb pem (0.7.9-6)
+  command 'pmw' from deb pmw (1:5.22-1)
+Try: sudo apt install <deb name>
+azureuser@alpha-vg:~/VersionGate$
