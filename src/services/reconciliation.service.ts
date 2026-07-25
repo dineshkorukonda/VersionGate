@@ -1,7 +1,6 @@
 import { DeploymentRepository } from "../repositories/deployment.repository";
 import { EnvironmentRepository } from "../repositories/environment.repository";
 import { stopContainer, removeContainer, inspectContainer } from "../utils/docker";
-import { DeploymentStatus } from "@prisma/client";
 import { logger } from "../utils/logger";
 
 export interface ReconciliationReport {
@@ -18,18 +17,6 @@ export class ReconciliationService {
     this.envRepo = new EnvironmentRepository();
   }
 
-  /**
-   * Runs on server startup to recover from crashes and audit container state.
-   *
-   * Step 1 — Crash recovery:
-   *   Any deployment left in DEPLOYING state means the process died mid-deploy.
-   *   Stop and remove the associated container (ignore errors), then mark FAILED.
-   *
-   * Step 2 — Container health audit:
-   *   For every ACTIVE deployment, inspect the Docker container.
-   *   If the container is not running, mark the deployment FAILED.
-   *   Traffic is NOT automatically switched — operator must redeploy.
-   */
   async reconcile(): Promise<ReconciliationReport> {
     logger.info("Starting startup reconciliation");
 
@@ -57,7 +44,7 @@ export class ReconciliationService {
       );
       await stopContainer(d.containerName).catch(() => null);
       await removeContainer(d.containerName).catch(() => null);
-      await this.repo.updateStatus(d.id, DeploymentStatus.FAILED).catch((err) => {
+      await this.repo.updateStatus(d.id, "FAILED").catch((err) => {
         logger.error({ err, deploymentId: d.id }, "Failed to mark crashed deployment as FAILED");
       });
     }
@@ -90,7 +77,7 @@ export class ReconciliationService {
         await this.repo
           .updateStatus(
             d.id,
-            DeploymentStatus.FAILED,
+            "FAILED",
             "Container is not running (removed or exited)"
           )
           .catch((err) => {

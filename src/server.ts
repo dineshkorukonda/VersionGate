@@ -1,8 +1,8 @@
 import { buildApp } from "./app";
 import { config } from "./config/env";
 import { logger } from "./utils/logger";
-import { runPrismaSchemaSync } from "./utils/prisma-schema-sync";
-import { disconnectPrisma } from "./prisma/client";
+import { runDrizzleSchemaSync } from "./utils/drizzle-schema-sync";
+import { disconnectDb } from "./db/client";
 import { ReconciliationService } from "./services/reconciliation.service";
 import { ContainerMonitorService } from "./services/container-monitor.service";
 import { registerAfterSetup } from "./services/post-setup-hooks";
@@ -38,7 +38,7 @@ async function start(): Promise<void> {
     systemMetrics.stop();
     monitor.stop();
     await app.close();
-    await disconnectPrisma();
+    await disconnectDb();
     process.exit(0);
   };
 
@@ -48,17 +48,15 @@ async function start(): Promise<void> {
   try {
     const PORT = config.port || 9090;
 
-    // Run reconciliation before accepting requests — cleans up any crashed deploys
-    // Skip if database is not configured (setup wizard not completed yet)
     if (databaseUrlLive()) {
       if (config.skipMigrateOnBoot) {
         logger.error(
-          "SKIP_MIGRATE_ON_BOOT is set — skipped prisma schema sync at startup. Run `bunx prisma migrate deploy` manually, fix any failed migrations (P3009), then remove SKIP_MIGRATE_ON_BOOT and restart (see docs/database-migrations.md)."
+          "SKIP_MIGRATE_ON_BOOT is set — skipped schema sync at startup."
         );
       } else {
         try {
           logger.info("Applying database migrations…");
-          runPrismaSchemaSync({ mode: config.prismaSchemaSync });
+          runDrizzleSchemaSync();
         } catch (err) {
           const message = err instanceof Error ? err.message : String(err);
           logger.fatal(
@@ -66,9 +64,9 @@ async function start(): Promise<void> {
               err: message,
               stack: err instanceof Error ? err.stack : undefined,
             },
-            "Database migration failed — API will not start. Fix DATABASE_URL / migrations, or set SKIP_MIGRATE_ON_BOOT=1 only after you have migrated manually (see docs/database-migrations.md)."
+            "Database migration failed — API will not start. Fix DATABASE_URL."
           );
-          await disconnectPrisma();
+          await disconnectDb();
           process.exit(1);
         }
       }
@@ -115,7 +113,7 @@ async function start(): Promise<void> {
     kickSelfUpdatePoll();
   } catch (err) {
     logger.fatal({ err }, "Failed to start server");
-    await disconnectPrisma();
+    await disconnectDb();
     process.exit(1);
   }
 }

@@ -1,5 +1,5 @@
 import { logger } from "../utils/logger";
-import { disconnectPrisma } from "../prisma/client";
+import { disconnectDb } from "../db/client";
 import { appendLog, claimNextJob, failJob, recoverStuckJobs } from "../services/job-queue";
 import { runDeployJob } from "./handlers/deploy.handler";
 import { runRollbackJob } from "./handlers/rollback.handler";
@@ -81,7 +81,7 @@ async function main(): Promise<void> {
     if (inFlight) {
       await inFlight.catch(() => null);
     }
-    await disconnectPrisma();
+    await disconnectDb();
     process.exit(0);
   };
 

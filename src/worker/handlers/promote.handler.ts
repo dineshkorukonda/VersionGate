@@ -1,8 +1,10 @@
-import { DeploymentColor, DeploymentStatus, Environment, Job, Project } from "@prisma/client";
+import { eq } from "drizzle-orm";
 import { config } from "../../config/env";
 import { parseProjectEnv } from "../../utils/env";
 import { DeploymentRepository } from "../../repositories/deployment.repository";
 import { EnvironmentRepository, DEFAULT_ENVIRONMENT_NAME } from "../../repositories/environment.repository";
+import { getDb } from "../../db/client";
+import { jobs, JobSelect, ProjectSelect, EnvironmentSelect } from "../../db/schema";
 import { runContainer, stopContainer, removeContainer, freeHostPort } from "../../utils/docker";
 import { DeploymentError } from "../../utils/errors";
 import { TrafficService } from "../../services/traffic.service";
@@ -10,7 +12,6 @@ import { ValidationService } from "../../services/validation.service";
 import { completeJob, failJob } from "../../services/job-queue";
 import { humanizeDeployFailure } from "../../utils/deploy-errors";
 import { logEmitter } from "../../events/log-emitter";
-import prisma from "../../prisma/client";
 
 const repo = new DeploymentRepository();
 const envRepo = new EnvironmentRepository();
@@ -22,17 +23,18 @@ export type LogFn = (line: string) => void | Promise<void>;
 async function checkCancelled(deploymentId: string | undefined, log: LogFn): Promise<void> {
   if (!deploymentId) return;
   const d = await repo.findById(deploymentId);
-  if (d && d.status !== DeploymentStatus.DEPLOYING) {
+  if (d && d.status !== "DEPLOYING") {
     await log(`[cancel] Deployment status is ${d.status} — aborting pipeline`);
     throw new DeploymentError("Cancelled by user");
   }
 }
 
 async function updateJobDeploymentId(jobId: string, deploymentId: string): Promise<void> {
-  await prisma.job.update({
-    where: { id: jobId },
-    data: { deploymentId },
-  });
+  const db = getDb();
+  await db
+    .update(jobs)
+    .set({ deploymentId, updatedAt: new Date() })
+    .where(eq(jobs.id, jobId));
 }
 
 interface PromotePayload {
@@ -41,7 +43,7 @@ interface PromotePayload {
 }
 
 export async function runPromoteJob(
-  job: Job & { project: Project; environment: Environment | null },
+  job: JobSelect & { project: ProjectSelect; environment: EnvironmentSelect | null },
   log: LogFn
 ): Promise<void> {
   const { projectId, id: jobId, payload } = job;
@@ -103,9 +105,8 @@ export async function runPromoteJob(
     );
 
     const activeDeployment = await repo.findActiveForEnvironment(targetEnvironmentId);
-    const newColor =
-      activeDeployment?.color === DeploymentColor.BLUE ? DeploymentColor.GREEN : DeploymentColor.BLUE;
-    const hostPort = newColor === DeploymentColor.BLUE ? targetEnv.basePort : targetEnv.basePort + 1;
+    const newColor = activeDeployment?.color === "BLUE" ? "GREEN" : "BLUE";
+    const hostPort = newColor === "BLUE" ? targetEnv.basePort : targetEnv.basePort + 1;
     const containerName = `${project.name}-${targetEnv.name}-${newColor.toLowerCase()}`;
     const version = await repo.getNextVersionForEnvironment(targetEnvironmentId);
 
@@ -120,8 +121,8 @@ export async function runPromoteJob(
       containerName,
       port: hostPort,
       color: newColor,
-      status: DeploymentStatus.DEPLOYING,
-      promotedFrom: { connect: { id: sourceActive.id } },
+      status: "DEPLOYING",
+      promotedFromId: sourceActive.id,
       environment: { connect: { id: targetEnvironmentId } },
     });
     deploymentId = deployment.id;
@@ -167,7 +168,7 @@ export async function runPromoteJob(
     }
 
     await log(`Activating deployment and retiring previous slot on target`);
-    await repo.updateStatus(deployment.id, DeploymentStatus.ACTIVE);
+    await repo.updateStatus(deployment.id, "ACTIVE");
 
     if (activeDeployment) {
       await log(`Stopping old container: ${activeDeployment.containerName}`);
@@ -177,13 +178,13 @@ export async function runPromoteJob(
       await removeContainer(activeDeployment.containerName).catch(async (err) => {
         await log(`Warning: failed to remove old container: ${err instanceof Error ? err.message : String(err)}`);
       });
-      await repo.updateStatus(activeDeployment.id, DeploymentStatus.ROLLED_BACK);
+      await repo.updateStatus(activeDeployment.id, "ROLLED_BACK");
     }
 
     await log(`Promotion successful — ${containerName} is live on port ${hostPort}`);
 
     await completeJob(jobId, {
-      deployment: { ...deployment, status: DeploymentStatus.ACTIVE },
+      deployment: { ...deployment, status: "ACTIVE" },
       promotedFromDeploymentId: sourceActive.id,
       message: `Promoted ${imageTag} to ${targetEnv.name}`,
     });
@@ -192,7 +193,7 @@ export async function runPromoteJob(
     const errMsg = err instanceof Error ? err.message : String(err);
     const friendly = humanizeDeployFailure(errMsg);
     if (deploymentId) {
-      await repo.updateStatus(deploymentId, DeploymentStatus.FAILED, friendly).catch(() => null);
+      await repo.updateStatus(deploymentId, "FAILED", friendly).catch(() => null);
     }
     await failJob(jobId, friendly);
     await log(`FAILED: ${friendly}`);

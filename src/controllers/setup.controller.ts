@@ -1,18 +1,18 @@
 import { FastifyRequest, FastifyReply } from "fastify";
-import { accessSync, constants, existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { execSync } from "child_process";
+import { accessSync, constants, existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { randomBytes } from "crypto";
 import { join } from "path";
-import { PrismaClient } from "@prisma/client";
 import { logger } from "../utils/logger";
 import { config } from "../config/env";
 import { envFilePath, projectRoot } from "../utils/paths";
-import { runPrismaSchemaSync, tryInferNeonDirectDatabaseUrl } from "../utils/prisma-schema-sync";
-import { reconnectPrismaAfterSetup } from "../prisma/client";
+import { runDrizzleSchemaSync } from "../utils/drizzle-schema-sync";
+import { getDb } from "../db/client";
+import { users } from "../db/schema";
 import { notifySetupApplied } from "../services/post-setup-hooks";
 import {
   AUTH_MIN_PASSWORD_LENGTH,
-  createSessionWithClient,
+  createSession,
   hashPassword,
   isValidEmail,
   SESSION_MAX_AGE_SEC,
@@ -29,9 +29,7 @@ interface SetupApplyBody {
   geminiApiKey?: string;
 }
 
-/** Dashboard reverse-proxy site (must not be overwritten by traffic switch). */
 const NGINX_SITE_CONF_PATH = "/etc/nginx/conf.d/versiongate.conf";
-/** App blue/green upstream rewritten by TrafficService on production promote/deploy. */
 const NGINX_UPSTREAM_CONF_PATH = "/etc/nginx/conf.d/upstream.conf";
 const DB_URL_REGEX = /^DATABASE_URL\s*=\s*"?([^"\n\r]+)"?\s*$/m;
 const ENCRYPTION_KEY_REGEX = /^ENCRYPTION_KEY\s*=\s*"?([0-9a-fA-F]{64})"?\s*$/m;
@@ -86,10 +84,10 @@ function resolveProjectsRootPath(): string {
 
 async function canConnectToDatabase(databaseUrl: string): Promise<boolean> {
   try {
-    const { PrismaClient } = await import("@prisma/client");
-    const testClient = new PrismaClient({ datasources: { db: { url: databaseUrl } } });
-    await testClient.$connect();
-    await testClient.$disconnect();
+    const postgres = (await import("postgres")).default;
+    const sql = postgres(databaseUrl, { connect_timeout: 5, max: 1 });
+    await sql`SELECT 1`;
+    await sql.end();
     return true;
   } catch {
     return false;
@@ -110,7 +108,6 @@ export async function getSetupStatusHandler(
     }
   }
 
-  /** `.env` exists but this process has no DATABASE_URL (e.g. not applied in-process yet). */
   const needsRestart = configured && !process.env.DATABASE_URL?.trim();
 
   return reply.code(200).send({ configured, dbConnected, needsRestart });
@@ -189,11 +186,6 @@ PUBLIC_BASE_PATH="/"
 ENCRYPTION_KEY="${encryptionKey}"
 `;
 
-  const inferredDirect = tryInferNeonDirectDatabaseUrl(databaseUrl);
-  if (inferredDirect) {
-    envContent += `DIRECT_DATABASE_URL="${escapeEnvValue(inferredDirect)}"\n`;
-  }
-
   if (geminiApiKey && geminiApiKey.trim().length > 0) {
     envContent += `GEMINI_API_KEY="${escapeEnvValue(geminiApiKey.trim())}"\n`;
   }
@@ -201,32 +193,16 @@ ENCRYPTION_KEY="${encryptionKey}"
   writeFileSync(envPath, envContent, "utf-8");
   logger.info("Setup: .env written successfully");
 
-  // 3. Generate Prisma client and push the schema so setup stays fully UI-driven.
-  logger.info("Setup: generating Prisma client…");
-  try {
-    execSync("bunx prisma generate", {
-      cwd: projectRoot,
-      env: { ...process.env, DATABASE_URL: databaseUrl, ENCRYPTION_KEY: encryptionKey },
-      stdio: "pipe",
-      timeout: 60_000,
-    });
-    logger.info("Setup: Prisma client generated");
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : String(err);
-    logger.error({ err: msg }, "Setup: prisma generate failed");
-    return reply.code(500).send({
-      error: "SetupError",
-      message: "Prisma client generation failed: " + msg,
-    });
-  }
+  process.env.DATABASE_URL = databaseUrl;
+  process.env.ENCRYPTION_KEY = encryptionKey;
 
-  logger.info("Setup: running database migrations…");
+  // 3. Sync database schema using Drizzle Kit
+  logger.info("Setup: running database schema sync with Drizzle Kit…");
   const setupEnv = { ...process.env, DATABASE_URL: databaseUrl, ENCRYPTION_KEY: encryptionKey };
   try {
-    runPrismaSchemaSync({
+    runDrizzleSchemaSync({
       cwd: projectRoot,
       env: setupEnv,
-      timeoutMs: 120_000,
     });
     logger.info("Setup: database migrations complete");
   } catch (err: unknown) {
@@ -238,29 +214,22 @@ ENCRYPTION_KEY="${encryptionKey}"
     });
   }
 
-  // 3b. Create first admin and session (dedicated client — global Prisma not wired yet)
-  const setupPrisma = new PrismaClient({ datasources: { db: { url: databaseUrl } } });
+  // 3b. Create first admin and session
   let sessionToken: string;
   try {
+    const db = getDb();
     const passwordHash = await hashPassword(password);
-    const user = await setupPrisma.user.create({
-      data: { email, passwordHash },
-    });
-    sessionToken = await createSessionWithClient(setupPrisma, user.id);
+    const [user] = await db.insert(users).values({ email, passwordHash }).returning();
+    sessionToken = await createSession(user.id);
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
     logger.error({ err: msg }, "Setup: failed to create admin user");
-    await setupPrisma.$disconnect().catch(() => {});
     return reply.code(500).send({
       error: "SetupError",
       message: "Failed to create admin account: " + msg,
     });
   }
-  await setupPrisma.$disconnect().catch(() => {});
 
-  process.env.DATABASE_URL = databaseUrl;
-  process.env.ENCRYPTION_KEY = encryptionKey;
-  await reconnectPrismaAfterSetup();
   notifySetupApplied();
 
   reply.header(
@@ -268,7 +237,7 @@ ENCRYPTION_KEY="${encryptionKey}"
     buildSetSessionCookie(sessionToken, SESSION_MAX_AGE_SEC, config.cookieSecure)
   );
 
-  // 4. Write Nginx config (best-effort — may not have permissions)
+  // 4. Write Nginx config (best-effort)
   try {
     const nginxConf = generateVersionGateNginxConf({
       serverName: domainIsIp ? "_" : normalizedDomain,

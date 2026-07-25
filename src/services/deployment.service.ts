@@ -1,9 +1,9 @@
-import { Deployment, DeploymentColor, DeploymentStatus } from "@prisma/client";
 import { config } from "../config/env";
 import { parseProjectEnv } from "../utils/env";
 import { DeploymentRepository } from "../repositories/deployment.repository";
 import { ProjectRepository } from "../repositories/project.repository";
 import { EnvironmentRepository, DEFAULT_ENVIRONMENT_NAME } from "../repositories/environment.repository";
+import { DeploymentSelect } from "../db/schema";
 import { buildImage, runContainer, stopContainer, removeContainer, freeHostPort } from "../utils/docker";
 import { ensureDockerfile } from "../utils/dockerfile";
 import { logger } from "../utils/logger";
@@ -17,7 +17,7 @@ export interface DeployOptions {
 }
 
 export interface DeployResult {
-  deployment: Deployment;
+  deployment: DeploymentSelect;
   message: string;
 }
 
@@ -71,11 +71,8 @@ export class DeploymentService {
       );
 
       const activeDeployment = await this.repo.findActiveForEnvironment(environmentId);
-      const newColor =
-        activeDeployment?.color === DeploymentColor.BLUE
-          ? DeploymentColor.GREEN
-          : DeploymentColor.BLUE;
-      const hostPort = newColor === DeploymentColor.BLUE ? envRow.basePort : envRow.basePort + 1;
+      const newColor = activeDeployment?.color === "BLUE" ? "GREEN" : "BLUE";
+      const hostPort = newColor === "BLUE" ? envRow.basePort : envRow.basePort + 1;
       const containerName = `${project.name}-${envRow.name}-${newColor.toLowerCase()}`;
       const imageTag = `versiongate-${project.name}:${Date.now()}`;
       const version = await this.repo.getNextVersionForEnvironment(environmentId);
@@ -91,7 +88,7 @@ export class DeploymentService {
         containerName,
         port: hostPort,
         color: newColor,
-        status: DeploymentStatus.DEPLOYING,
+        status: "DEPLOYING",
         environment: { connect: { id: environmentId } },
       });
       deploymentId = deployment.id;
@@ -127,7 +124,7 @@ export class DeploymentService {
         logger.info({ projectId, environmentId, envName: envRow.name }, "Skipping traffic switch (non-production)");
       }
 
-      await this.repo.updateStatus(deployment.id, DeploymentStatus.ACTIVE);
+      await this.repo.updateStatus(deployment.id, "ACTIVE");
 
       if (activeDeployment) {
         logger.info(
@@ -140,7 +137,7 @@ export class DeploymentService {
         await removeContainer(activeDeployment.containerName).catch((err) => {
           logger.warn({ err, containerName: activeDeployment.containerName }, "Failed to remove old container");
         });
-        await this.repo.updateStatus(activeDeployment.id, DeploymentStatus.ROLLED_BACK);
+        await this.repo.updateStatus(activeDeployment.id, "ROLLED_BACK");
       }
 
       logger.info(
@@ -149,14 +146,14 @@ export class DeploymentService {
       );
 
       return {
-        deployment: { ...deployment, status: DeploymentStatus.ACTIVE },
+        deployment: { ...deployment, status: "ACTIVE" },
         message: `Deployment successful — ${containerName} is live on port ${hostPort}`,
       };
     } catch (err) {
       if (deploymentId) {
         const errMsg = err instanceof Error ? err.message : String(err);
         await this.repo
-          .updateStatus(deploymentId, DeploymentStatus.FAILED, errMsg)
+          .updateStatus(deploymentId, "FAILED", errMsg)
           .catch(() => null);
       }
       throw err;
@@ -185,7 +182,7 @@ export class DeploymentService {
       await removeContainer(deploying.containerName).catch(() => null);
     }
 
-    await this.repo.updateStatus(deploying.id, DeploymentStatus.FAILED, "Cancelled by user").catch(() => null);
+    await this.repo.updateStatus(deploying.id, "FAILED", "Cancelled by user").catch(() => null);
 
     await this.releaseLock(defaultEnv.id);
     DeploymentService.cancelRequests.delete(defaultEnv.id);
@@ -194,16 +191,16 @@ export class DeploymentService {
     return { cancelled: true };
   }
 
-  async getActiveDeployment(projectId?: string): Promise<Deployment | null> {
+  async getActiveDeployment(projectId?: string): Promise<DeploymentSelect | null> {
     if (projectId) {
       const env = await this.envRepo.findDefaultForProject(projectId);
       if (!env) return null;
       return this.repo.findActiveForEnvironment(env.id);
     }
-    return this.repo.findAll().then((all) => all.find((d) => d.status === DeploymentStatus.ACTIVE) ?? null);
+    return this.repo.findAll().then((all) => all.find((d) => d.status === "ACTIVE") ?? null);
   }
 
-  async getAllDeployments(projectId?: string): Promise<Deployment[]> {
+  async getAllDeployments(projectId?: string): Promise<DeploymentSelect[]> {
     if (projectId) {
       return this.repo.findAllForProject(projectId);
     }
