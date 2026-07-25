@@ -188,6 +188,20 @@ export function Projects() {
                         </TableCell>
                         <TableCell className="pr-6 text-right">
                           <div className="flex justify-end gap-2">
+                            {url ? (
+                              <a
+                                href={url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className={cn(
+                                  buttonVariants({ variant: "default", size: "sm" }),
+                                  "bg-emerald-600 hover:bg-emerald-700 text-white font-medium border-emerald-500/30"
+                                )}
+                              >
+                                <span>Open App</span>
+                                <span className="font-mono text-[10px] opacity-80">(:{disp?.port})</span>
+                              </a>
+                            ) : null}
                             {jobId ? (
                               <Link
                                 to={`/projects/${proj.id}/deploy/${jobId}`}
@@ -197,7 +211,7 @@ export function Projects() {
                               </Link>
                             ) : null}
                             <Link to={`/projects/${proj.id}`} className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
-                              Open
+                              Details
                             </Link>
                             <Button type="button" variant="ghost" size="sm" className="text-destructive" onClick={() => setDeleteTarget(proj)}>
                               Delete

@@ -17,6 +17,7 @@ import {
 import { EnvironmentChain } from "@/components/badges/EnvironmentChain";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { StatusBadge } from "@/components/badges/StatusBadge";
 import { SlotBadge } from "@/components/badges/SlotBadge";
@@ -246,6 +247,25 @@ export function ProjectDetail() {
           </a>
         </div>
         <div className="flex flex-wrap gap-2">
+          {liveUrl ? (
+            <a
+              href={liveUrl}
+              target="_blank"
+              rel="noreferrer"
+              className={cn(
+                buttonVariants({ variant: "default", size: "default" }),
+                "gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-medium border-emerald-500/30"
+              )}
+            >
+              <span>Open Live App</span>
+              <span className="font-mono text-xs opacity-80">(:{liveHostPort})</span>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                <polyline points="15 3 21 3 21 9" />
+                <line x1="10" y1="14" x2="21" y2="3" />
+              </svg>
+            </a>
+          ) : null}
           <Button variant="outline" className="border-destructive/50 text-destructive" onClick={() => void onRollback()}>
             Rollback
           </Button>
