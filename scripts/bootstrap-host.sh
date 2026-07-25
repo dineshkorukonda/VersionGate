@@ -132,7 +132,18 @@ if [[ "$MINIMAL" -eq 0 ]]; then
 
   if command -v nginx >/dev/null 2>&1; then
     systemctl enable --now nginx || true
-    ok "nginx: $(nginx -v 2>&1)"
+    mkdir -p /etc/nginx/conf.d
+    chown -R root:www-data /etc/nginx/conf.d 2>/dev/null || true
+    chmod -R 775 /etc/nginx/conf.d 2>/dev/null || true
+    if id "$REAL_USER" >/dev/null 2>&1; then
+      usermod -aG www-data "$REAL_USER" 2>/dev/null || true
+    fi
+    # Add passwordless sudo rule for nginx reload and conf.d copy
+    cat << EOF > /etc/sudoers.d/versiongate
+$REAL_USER ALL=(ALL) NOPASSWD: /usr/sbin/nginx -s reload, /usr/sbin/nginx -t, /bin/cp * /etc/nginx/conf.d/*
+EOF
+    chmod 0440 /etc/sudoers.d/versiongate
+    ok "nginx configured with write permissions for $REAL_USER: $(nginx -v 2>&1)"
   fi
 
   log "Recommended: Node.js + npm + PM2"

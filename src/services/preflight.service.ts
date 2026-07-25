@@ -183,6 +183,27 @@ export async function runPreflightChecks(): Promise<PreflightReport> {
     });
   }
 
+  const parentDir = "/etc/nginx/conf.d";
+  let isDirWritable = false;
+  try {
+    await access(parentDir, constants.W_OK);
+    isDirWritable = true;
+  } catch {
+    const sudoCheck = await tryExec("sudo", ["-n", "true"]);
+    isDirWritable = sudoCheck.ok;
+  }
+
+  checks.push({
+    id: "nginx_config_writable",
+    label: "Nginx config permissions",
+    severity: "recommended",
+    ok: isDirWritable,
+    message: isDirWritable
+      ? `Writable / sudo-copy accessible for ${config.nginxConfigPath}`
+      : `Directory ${parentDir} is not writable and sudo is not configured for non-root process`,
+    detail: parentDir,
+  });
+
   // ── Certbot + nginx plugin (Settings → Obtain SSL) ─────────────────────────
   const certbotBin = findCertbotExecutablePath();
   const certbotCmd = certbotBin ?? "certbot";
