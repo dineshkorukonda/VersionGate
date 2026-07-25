@@ -1,0 +1,30 @@
+<timestamp>Wednesday, Jul 22, 2026, 4:11 PM (UTC+5:30)</timestamp>
+
+/home/azureuser/.pm2/logs/versiongate-api-error.log last 15 lines:
+/home/azureuser/.pm2/logs/versiongate-worker-error-1.log last 15 lines:
+/home/azureuser/.pm2/logs/versiongate-worker-out-1.log last 15 lines:
+1|versiong | [10:38:06.340] WARN (11144): ENCRYPTION_KEY is missing. Add this 32-byte hex string to .env to keep encrypted project env vars readable after restart.
+1|versiong |     encryptionKey: "REDACTED"
+1|versiong | [10:38:06.352] WARN (11144): DATABASE_URL not set — worker idle. Complete setup at /setup, then restart the worker (e.g. pm2 restart versiongate-worker).
+
+/home/azureuser/.pm2/logs/versiongate-api-out.log last 15 lines:
+0|versiong | [10:38:06.318] WARN (11142): ENCRYPTION_KEY is missing. Add this 32-byte hex string to .env to keep encrypted project env vars readable after restart.
+0|versiong |     encryptionKey: "REDACTED"
+0|versiong | {"level":30,"time":1784716686796,"pid":11142,"hostname":"alpha-vg","msg":"Server listening at http://0.0.0.0:9090"}
+0|versiong | [10:38:06.619] INFO (11142): Dashboard static files registered
+0|versiong |     dashboardPath: "/home/azureuser/VersionGate/dashboard/out"
+0|versiong | [10:38:06.620] WARN (11142): DATABASE_URL not set — skipping startup reconciliation. Complete setup at /setup
+0|versiong | [10:38:06.797] INFO (11142): VersionGate Engine is running
+0|versiong |     port: 9090
+0|versiong |     dockerNetwork: "versiongate-net"
+0|versiong |     nginxConfigPath: "/etc/nginx/conf.d/upstream.conf"
+0|versiong |     projectsRootPath: "/var/versiongate/projects"
+0|versiong | [10:38:06.797] WARN (11142): DATABASE_URL not set — container monitor disabled until database is configured
+0|versiong | [10:38:06.828] INFO (11142): SystemMetrics: started
+0|versiong |     intervalMs: 5000
+0|versiong | [10:38:06.828] INFO (11142): Setup wizard available at http://0.0.0.0:9090/setup
+
+^C
+azureuser@alpha-vg:~/VersionGate$ curl -s http://127.0.0.1:9090/api/health || curl -s http://127.0.0.1:9090/
+{"error":"Not Found","message":"GET /api/health not found"}azureuser@alph
+and nothing coming at ip:9090/setuo
