@@ -15,6 +15,7 @@ export class ProjectRepository {
     const project = await db.transaction(async (tx) => {
       const [created] = await tx.insert(projects).values(preparedData).returning();
 
+      const now = new Date();
       await tx.insert(environments).values([
         {
           name: "development",
@@ -23,6 +24,8 @@ export class ProjectRepository {
           serverHost: "localhost",
           basePort: created.basePort + 400,
           appPort: created.appPort,
+          createdAt: now,
+          updatedAt: now,
         },
         {
           name: "staging",
@@ -31,6 +34,8 @@ export class ProjectRepository {
           serverHost: "localhost",
           basePort: created.basePort + 200,
           appPort: created.appPort,
+          createdAt: now,
+          updatedAt: now,
         },
         {
           name: DEFAULT_ENVIRONMENT_NAME,
@@ -39,6 +44,8 @@ export class ProjectRepository {
           serverHost: "localhost",
           basePort: created.basePort,
           appPort: created.appPort,
+          createdAt: now,
+          updatedAt: now,
         },
       ]);
 
@@ -100,9 +107,12 @@ export class ProjectRepository {
 
   private prepareCreateData(data: Partial<ProjectInsert>): ProjectInsert {
     const rawEnv = data.env;
+    const now = new Date();
     return {
       ...(data as ProjectInsert),
       env: rawEnv !== undefined ? (this.encryptEnvValue(rawEnv) as any) : ({} as any),
+      createdAt: now,
+      updatedAt: now,
     };
   }
 
