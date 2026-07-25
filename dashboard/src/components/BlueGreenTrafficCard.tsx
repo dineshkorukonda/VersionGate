@@ -2,7 +2,7 @@ import type { Deployment, Project } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { SlotBadge } from "@/components/SlotBadge";
+import { SlotBadge } from "@/components/badges/SlotBadge";
 import { cn } from "@/lib/utils";
 import {
   type DeploymentColor,

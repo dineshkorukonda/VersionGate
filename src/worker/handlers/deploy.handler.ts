@@ -11,7 +11,7 @@ import { DeploymentError } from "../../utils/errors";
 import { TrafficService } from "../../services/traffic.service";
 import { GitService } from "../../services/git.service";
 import { ValidationService } from "../../services/validation.service";
-import { completeJob, failJob } from "../../services/job-queue";
+import { completeJob, failJob } from "../../services/job-queue.service";
 import { humanizeDeployFailure } from "../../utils/deploy-errors";
 import { logEmitter } from "../../events/log-emitter";
 

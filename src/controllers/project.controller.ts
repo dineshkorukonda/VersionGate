@@ -5,7 +5,7 @@ import { ProjectRepository } from "../repositories/project.repository";
 import { DeploymentRepository } from "../repositories/deployment.repository";
 import { EnvironmentRepository } from "../repositories/environment.repository";
 import { freeHostPort, removeContainer, stopContainer } from "../utils/docker";
-import { enqueueJob } from "../services/job-queue";
+import { enqueueJob } from "../services/job-queue.service";
 import { config } from "../config/env";
 import { logger } from "../utils/logger";
 import { validateEnvObject } from "../utils/env";

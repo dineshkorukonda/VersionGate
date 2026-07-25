@@ -5,9 +5,9 @@ import { runDrizzleSchemaSync } from "./utils/drizzle-schema-sync";
 import { disconnectDb } from "./db/client";
 import { ReconciliationService } from "./services/reconciliation.service";
 import { ContainerMonitorService } from "./services/container-monitor.service";
-import { registerAfterSetup } from "./services/post-setup-hooks";
+import { registerAfterSetup } from "./services/post-setup-hooks.service";
 import { systemMetrics } from "./controllers/system.controller";
-import { kickSelfUpdatePoll, stopSelfUpdatePoll } from "./services/self-update-poll";
+import { kickSelfUpdatePoll, stopSelfUpdatePoll } from "./services/self-update-poll.service";
 
 function databaseUrlLive(): string {
   return process.env.DATABASE_URL?.trim() ?? "";

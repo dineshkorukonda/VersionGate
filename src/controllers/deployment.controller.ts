@@ -1,6 +1,6 @@
 import { FastifyRequest, FastifyReply } from "fastify";
 import { DeploymentService } from "../services/deployment.service";
-import { enqueueJob } from "../services/job-queue";
+import { enqueueJob } from "../services/job-queue.service";
 import { logger } from "../utils/logger";
 import { EnvironmentRepository, DEFAULT_ENVIRONMENT_NAME } from "../repositories/environment.repository";
 

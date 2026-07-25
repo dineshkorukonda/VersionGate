@@ -9,7 +9,7 @@ import { envFilePath, projectRoot } from "../utils/paths";
 import { runDrizzleSchemaSync } from "../utils/drizzle-schema-sync";
 import { getDb } from "../db/client";
 import { users } from "../db/schema";
-import { notifySetupApplied } from "../services/post-setup-hooks";
+import { notifySetupApplied } from "../services/post-setup-hooks.service";
 import {
   AUTH_MIN_PASSWORD_LENGTH,
   createSession,

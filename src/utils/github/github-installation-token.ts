@@ -1,5 +1,5 @@
 import { createAppAuth } from "@octokit/auth-app";
-import { config } from "../config/env";
+import { config } from "../../config/env";
 
 export interface InstallationAccessToken {
   token: string;
