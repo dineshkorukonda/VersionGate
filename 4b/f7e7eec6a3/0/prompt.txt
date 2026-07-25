@@ -1,0 +1,11 @@
+<timestamp>Tuesday, Jul 21, 2026, 7:32 PM (UTC+5:30)</timestamp>
+
+Browser error to investigate:
+URL: http://localhost:5173/
+Local port: 5173
+Category: Connection failure
+Error: ERR_CONNECTION_REFUSED
+Details: Error Code: -102
+URL: http://localhost:5173/
+
+Please help me figure out the most likely cause and the fastest next checks.
