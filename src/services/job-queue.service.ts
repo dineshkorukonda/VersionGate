@@ -105,6 +105,7 @@ export async function enqueueJob(
   environmentId?: string
 ): Promise<string> {
   const db = getDb();
+  const now = new Date();
   const [job] = await db
     .insert(jobs)
     .values({
@@ -114,6 +115,8 @@ export async function enqueueJob(
       payload: payload as any,
       status: "PENDING",
       logs: sql`'[]'::jsonb`,
+      createdAt: now,
+      updatedAt: now,
     })
     .returning();
 
