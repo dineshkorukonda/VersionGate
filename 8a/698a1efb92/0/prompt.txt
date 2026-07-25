@@ -1,0 +1,8 @@
+<timestamp>Thursday, Jul 23, 2026, 11:26 AM (UTC+5:30)</timestamp>
+
+few things in ui side of things
+im not understand shit due to alot of text.
+even after promoting to dev and pord its coming at dev
+and urls are oping at 127. local instead of server ip.
+swirch to new branch and do the changes and check ci and pr and merge to main
+we have auto update , so it should work
