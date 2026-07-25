@@ -15,6 +15,7 @@ import {
   type Project,
 } from "@/lib/api";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { StatusBadge } from "@/components/badges/StatusBadge";
 import { SlotBadge } from "@/components/badges/SlotBadge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -394,14 +395,13 @@ export function Overview() {
                 return (
                   <Card
                     key={p.id}
-                    className="group relative border-border/50 bg-card/60 shadow-none ring-1 ring-border/30 transition-all hover:ring-primary/30 hover:shadow-md hover:shadow-primary/5"
+                    className="border-border/50 bg-card/60 shadow-none ring-1 ring-border/30 transition-all hover:ring-primary/30 hover:shadow-md hover:shadow-primary/5"
                   >
-                    <Link to={`/projects/${p.id}`} className="absolute inset-0 z-10" />
                     <CardHeader className="pb-3">
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0 flex-1">
-                          <CardTitle className="truncate text-base font-semibold transition-colors group-hover:text-primary">
-                            {p.name}
+                          <CardTitle className="truncate text-base font-semibold transition-colors hover:text-primary">
+                            <Link to={`/projects/${p.id}`}>{p.name}</Link>
                           </CardTitle>
                           <CardDescription className="mt-1 space-y-0.5 font-mono text-xs">
                             <div className="truncate">Branch: {p.branch}</div>
@@ -461,10 +461,12 @@ export function Overview() {
                               href={hostUrl}
                               target="_blank"
                               rel="noreferrer"
-                              onClick={(e) => e.stopPropagation()}
-                              className="relative z-20 truncate font-mono text-xs text-primary underline-offset-2 hover:underline"
+                              className={cn(
+                                buttonVariants({ variant: "default", size: "xs" }),
+                                "bg-emerald-600 hover:bg-emerald-700 text-white font-medium border-emerald-500/30 text-[10px]"
+                              )}
                             >
-                              Live {hostUrl.replace(/^https?:\/\//, "")}
+                              Open App ({hostUrl.replace(/^https?:\/\//, "")})
                             </a>
                           ) : (
                             <span className="text-xs text-muted-foreground/50">Not deployed</span>
