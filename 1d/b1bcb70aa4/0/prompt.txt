@@ -1,0 +1,17 @@
+[Image]
+[Image]
+<image_files>
+The following images were provided by the user and saved to the workspace for future use:
+1. /Users/dinesh/.cursor/projects/Users-dinesh-Developer-VersionGate/assets/image-14e3e881-758f-4576-be46-ad6b70c4be95.png
+2. /Users/dinesh/.cursor/projects/Users-dinesh-Developer-VersionGate/assets/image-1f6a6720-ee94-4eac-b206-3c2bc7e99319.png
+
+These images can be copied for use in other locations.
+</image_files>
+<timestamp>Tuesday, Jul 21, 2026, 1:22 PM (UTC+5:30)</timestamp>
+
+website looks shit.
+redesign the whole thing
+and create a new docs pages
+and we have black theme in main theme too.
+and dashboard shown in webiste is not the same we have in dashbaord.
+do like this
