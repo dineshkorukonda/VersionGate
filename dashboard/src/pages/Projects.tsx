@@ -148,10 +148,8 @@ export function Projects() {
                   {slice.map((proj) => {
                     const state = projectDeploymentStatus(proj.id, deployments);
                     const disp = getDisplayDeployment(proj.id, deployments);
-                    const url =
-                      disp && (disp.status === "ACTIVE" || disp.status === "DEPLOYING")
-                        ? publicServiceUrl(disp.port)
-                        : null;
+                    const port = disp ? disp.port : proj.basePort;
+                    const url = publicServiceUrl(port);
                     const envLabel = disp ? guessEnvironmentLabel(proj, disp) : "—";
                     const jobId = latestJobByProject.get(proj.id);
                     return (
