@@ -30,7 +30,6 @@
     "@fastify/websocket": "10.0.1",
     "@octokit/auth-app": "^8.2.0",
     "@octokit/rest": "^22.0.1",
-    "@prisma/client": "^5.10.0",
     "axios": "^1.6.7",
     "dotenv": "^16.4.5",
     "drizzle-orm": "^0.45.2",
@@ -45,7 +44,6 @@
     "@types/ioredis": "^5.0.0",
     "@types/node": "^20.11.20",
     "drizzle-kit": "^0.31.10",
-    "prisma": "^5.10.0",
     "typescript": "^5.3.3"
   }
 }
