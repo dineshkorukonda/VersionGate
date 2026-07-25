@@ -29,7 +29,12 @@ export function decryptProjectEnv(raw: unknown): Record<string, string> {
   const result: Record<string, string> = {};
 
   for (const [key, value] of Object.entries(parsed)) {
-    result[key] = decrypt(value);
+    try {
+      result[key] = decrypt(value);
+    } catch {
+      // Fall back to raw value if decryption fails (e.g. plaintext or ENCRYPTION_KEY changed)
+      result[key] = value;
+    }
   }
 
   return result;
