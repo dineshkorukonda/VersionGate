@@ -36,14 +36,11 @@ export async function requireApiAuth(req: AuthedRequest, reply: FastifyReply): P
   if (isPublicApiPath(path)) return;
 
   if (!process.env.DATABASE_URL?.trim()) {
-    if (path.startsWith("/api/v1/settings/")) {
-      await reply.code(503).send({
-        error: "ServiceUnavailable",
-        message: "Database is not configured. Open /setup to finish installation, or set DATABASE_URL and restart.",
-        code: "SETUP_REQUIRED",
-      });
-      return;
-    }
+    await reply.code(503).send({
+      error: "ServiceUnavailable",
+      message: "Database is not configured. Open /setup to finish installation, or set DATABASE_URL and restart.",
+      code: "SETUP_REQUIRED",
+    });
     return;
   }
 
