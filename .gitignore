@@ -30,3 +30,6 @@ Thumbs.db
 
 # Test coverage
 coverage/
+.cursor/
+.entire/
+.gemini/
