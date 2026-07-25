@@ -1,0 +1,6 @@
+<timestamp>Tuesday, Jul 21, 2026, 9:03 PM (UTC+5:30)</timestamp>
+
+can we build the github app integreation and setup process , for any new users the setup of app in thier vps is hard right now
+we need fesable solution
+search on internet
+Browser
