@@ -452,7 +452,7 @@ export function DeployLog() {
                   className="w-full bg-white text-primary hover:bg-white/90"
                   onClick={() => navigate(`/projects/${projectId}`)}
                 >
-                  Open project
+                  Manage Details
                 </Button>
               </CardContent>
             </Card>
