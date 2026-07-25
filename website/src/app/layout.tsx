@@ -19,7 +19,13 @@ export const metadata: Metadata = {
   title: "VersionGate — Self-hosted zero-downtime Docker deploys",
   description:
     "Self-hosted blue-green deployment engine. Push to GitHub — VersionGate builds, health-checks, and switches traffic on your own server with zero downtime.",
-  icons: { icon: "/favicon.svg" },
+  icons: {
+    icon: [
+      { url: "/favicon.png", type: "image/png" },
+      { url: "/favicon.ico" },
+    ],
+    apple: "/apple-touch-icon.png",
+  },
   openGraph: {
     title: "VersionGate",
     description:

@@ -1,31 +1,37 @@
-FROM node:20-alpine AS builder
+# ── Stage 1: Build dashboard & dependencies ──────────────────────────────────
+FROM oven/bun:1-alpine AS builder
 
 WORKDIR /app
 
-COPY package*.json ./
-RUN npm ci
+# Copy package manifests
+COPY package.json bun.lock ./
+RUN bun install --frozen-lockfile
+
+COPY dashboard/package.json dashboard/bun.lock* ./dashboard/
+RUN cd dashboard && bun install
 
 COPY tsconfig.json ./
-COPY prisma ./prisma
-RUN npx prisma generate
-
 COPY src ./src
-RUN npm run build
+COPY dashboard ./dashboard
 
-# ── Production image ──────────────────────────────────────────────────────────
-FROM node:20-alpine AS runner
+# Build Vite React dashboard to dashboard/out
+RUN cd dashboard && bun run build
+
+# ── Stage 2: Production Runner ────────────────────────────────────────────────
+FROM oven/bun:1-alpine AS runner
 
 WORKDIR /app
 
 ENV NODE_ENV=production
+ENV PORT=9090
 
-COPY package*.json ./
-RUN npm ci --omit=dev
+COPY package.json bun.lock ./
+RUN bun install --production --frozen-lockfile
 
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-COPY prisma ./prisma
+COPY --from=builder /app/src ./src
+COPY --from=builder /app/tsconfig.json ./tsconfig.json
+COPY --from=builder /app/dashboard/out ./dashboard/out
 
-EXPOSE 3000
+EXPOSE 9090
 
-CMD ["node", "dist/server.js"]
+CMD ["bun", "src/server.ts"]
