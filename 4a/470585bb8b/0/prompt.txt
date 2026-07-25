@@ -1,0 +1,4 @@
+<timestamp>Thursday, Jul 23, 2026, 12:04 PM (UTC+5:30)</timestamp>
+
+If you want zero GitHub secrets on the VPS, that’s a different product (all GitHub calls via versiongate.tech).
+i want this and u didn't tell me i need to create vecel redis bull shit
