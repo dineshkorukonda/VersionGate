@@ -1,0 +1,55 @@
+<timestamp>Wednesday, Jul 22, 2026, 4:05 PM (UTC+5:30)</timestamp>
+
+✓ built in 1.38s
+[plugin builtin:vite-reporter]
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+$ bun run scripts/preflight.ts
+VersionGate preflight — OK (2026-07-22T10:35:17.266Z)
+
+[ok] [required] Bun runtime: Bun 1.3.14
+[!] [recommended] Node.js CLI: `node` not in PATH (optional if you only use Bun)
+[ok] [required] Git: git version 2.43.0
+[ok] [required] Docker CLI: Client 29.6.2
+[ok] [required] Docker daemon: Server 29.6.2
+[ok] [required] Docker network "versiongate-net": Network versiongate-net exists
+[ok] [required] Projects directory: Readable & writable: /var/versiongate/projects
+[!] [recommended] PM2: `pm2` not in PATH (optional; use systemd or another supervisor)
+[ok] [recommended] Nginx: nginx version: nginx/1.24.0 (Ubuntu)
+[!] [info] Nginx config path: Not found yet: /etc/nginx/conf.d/upstream.conf — use Settings → Write nginx config after setting PUBLIC_DOMAIN
+[ok] [recommended] Certbot (Let's Encrypt): certbot 2.9.0 · /usr/bin/certbot
+[ok] [recommended] Certbot nginx plugin: `certbot --nginx` installer available
+[ok] [info] PUBLIC_DOMAIN (public URL): Not set — configure Settings → Dashboard URL & hostname when exposing VersionGate on a domain
+[ok] [recommended] CERTBOT_EMAIL: Optional until you use Obtain SSL with a hostname
+[ok] [recommended] COOKIE_SECURE (HTTPS sessions): COOKIE_SECURE unset/false — fine for HTTP or local access behind plain IP
+
+azureuser@alpha-vg:~/VersionGate$ npm i -g pm2
+pm2 start ecosystem.config.cjs
+pm2 save   # persist across reboots
+Command 'npm' not found, but can be installed with:
+sudo apt install npm
+Command 'pm2' not found, did you mean:
+  command 'pms' from deb pms (0.42-1.1)
+  command 'pmg' from deb python3-pymatgen (2023.06.23+dfsg1-2build1)
+  command 'wm2' from deb wm2 (4+svn20090216-4build1)
+  command 'gm2' from deb gm2 (4:13.2.0-2ubuntu1)
+  command 'pmc' from deb linuxptp (4.0-1ubuntu1.1)
+  command 'pmw' from deb pmw (1:5.22-1)
+  command 'pom2' from deb libpod-pom-perl (2.01-4)
+  command 'tpm2' from deb tpm2-tools (5.4-1)
+  command 'pm' from deb powerman (2.3.27-4)
+Try: sudo apt install <deb name>
+Command 'pm2' not found, did you mean:
+  command 'pmg' from deb python3-pymatgen (2023.06.23+dfsg1-2build1)
+  command 'wm2' from deb wm2 (4+svn20090216-4build1)
+  command 'gm2' from deb gm2 (4:13.2.0-2ubuntu1)
+  command 'pmc' from deb linuxptp (4.0-1ubuntu1.1)
+  command 'pm' from deb powerman (2.3.27-4)
+  command 'pms' from deb pms (0.42-1.1)
+  command 'pom2' from deb libpod-pom-perl (2.01-4)
+  command 'pmw' from deb pmw (1:5.22-1)
+  command 'tpm2' from deb tpm2-tools (5.4-1)
+Try: sudo apt install <deb name>
+azureuser@alpha-vg:~/VersionGate$ c
