@@ -50,16 +50,13 @@ export class EnvironmentRepository {
 
     // 2. Database lock update
     const db = getDb();
-    // Also auto-expire DB locks older than 15 minutes
-    const fifteenMinsAgo = new Date(Date.now() - 15 * 60 * 1000);
-
     const result = await db
       .update(environments)
       .set({ lockedAt: new Date() })
       .where(
         and(
           eq(environments.id, id),
-          sql`(${environments.lockedAt} IS NULL OR ${environments.lockedAt} < ${fifteenMinsAgo})`
+          sql`(${environments.lockedAt} IS NULL OR ${environments.lockedAt} < NOW() - INTERVAL '15 minutes')`
         )
       )
       .returning();
