@@ -1,0 +1,9 @@
+<timestamp>Thursday, Jul 23, 2026, 11:50 AM (UTC+5:30)</timestamp>
+
+okay done.
+we need a better alternative solution for prisma and all
+and use redis and all
+see we have some some part of MVP
+only github integration is left i think
+
+should we do that
