@@ -219,6 +219,9 @@ export function ProjectDetail() {
 
   const liveHostPort = active ? active.port : project.basePort;
   const liveUrl = publicEnvironmentUrl(project, "production", liveHostPort);
+  const repoHref = /^https?:\/\//i.test(project.repoUrl)
+    ? project.repoUrl
+    : `https://${project.repoUrl}`;
   const totalDeploys = productionDeployments.length;
 
   return (
@@ -238,7 +241,7 @@ export function ProjectDetail() {
             <StatusBadge status={displayStatus} />
           </div>
           <a
-            href={project.repoUrl}
+            href={repoHref}
             target="_blank"
             rel="noreferrer"
             className="block font-mono text-xs text-muted-foreground hover:text-foreground"

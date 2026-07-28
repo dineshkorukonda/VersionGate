@@ -186,7 +186,7 @@ export function Projects() {
                         </TableCell>
                         <TableCell className="pr-6 text-right">
                           <div className="flex justify-end gap-2">
-                            {url ? (
+                            {url && disp ? (
                               <a
                                 href={url}
                                 target="_blank"
@@ -197,7 +197,7 @@ export function Projects() {
                                 )}
                               >
                                 <span>Open App</span>
-                                <span className="font-mono text-[10px] opacity-80">(:{disp?.port})</span>
+                                <span className="font-mono text-[10px] opacity-80">(:{disp.port})</span>
                               </a>
                             ) : null}
                             {jobId ? (

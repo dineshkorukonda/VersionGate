@@ -5,15 +5,42 @@ export type DeploymentColor = "BLUE" | "GREEN";
 /** Hostname from Settings / setup (`PUBLIC_DOMAIN`), used for Open / Live links. */
 let configuredPublicHost: string | null = null;
 
+/**
+ * Strips protocol, port, path, and whitespace from a raw host string.
+ * Examples:
+ *   "http://4.240.101.7:9090/projects/123" -> "4.240.101.7"
+ *   "4.240.101.7:9090" -> "4.240.101.7"
+ *   "https://app.domain.com:8443" -> "app.domain.com"
+ *   "[::1]:9090" -> "::1"
+ */
+export function cleanHostname(rawHost: string): string {
+  let h = (rawHost ?? "").trim();
+  if (!h) return "";
+  // Remove protocol (e.g. http://, https://)
+  h = h.replace(/^[a-zA-Z]+:\/\//, "");
+  // Remove path, query params, hash
+  h = h.split("/")[0].split("?")[0].split("#")[0];
+  // Remove port if present
+  if (h.startsWith("[")) {
+    const endBracket = h.indexOf("]");
+    if (endBracket !== -1) {
+      h = h.slice(1, endBracket);
+    }
+  } else {
+    h = h.split(":")[0];
+  }
+  return h.trim();
+}
+
 export function isLoopbackHostname(host: string): boolean {
-  const h = host.trim().toLowerCase();
+  const h = cleanHostname(host).toLowerCase();
   return h === "localhost" || h === "127.0.0.1" || h === "::1" || h === "0.0.0.0";
 }
 
 /** Call when instance settings load so app links use the public IP/domain, not an SSH-tunnel host. */
 export function setConfiguredPublicHost(host: string | null | undefined): void {
-  const h = (host ?? "").trim();
-  configuredPublicHost = h && !isLoopbackHostname(h) ? h : null;
+  const cleaned = cleanHostname(host ?? "");
+  configuredPublicHost = cleaned && !isLoopbackHostname(cleaned) ? cleaned : null;
 }
 
 export function getConfiguredPublicHost(): string | null {
@@ -37,6 +64,7 @@ export function latestDeploymentForColor(
 /** Full URL to hit the app health check on a host slot (browser / curl). */
 export function healthCheckUrl(project: Project, hostPort: number): string {
   const base = publicServiceUrl(hostPort).replace(/\/$/, "");
+  if (!base) return "";
   const path = project.healthPath.startsWith("/") ? project.healthPath : `/${project.healthPath}`;
   return `${base}${path}`;
 }
@@ -58,21 +86,23 @@ export function slotLabel(color: string): string {
  * when it is not loopback (so SSH tunnels at 127.0.0.1 do not poison Open links).
  */
 export function resolvePublicHostname(hostname?: string): string {
-  const explicit = hostname?.trim();
+  const explicit = hostname ? cleanHostname(hostname) : "";
   if (explicit && !isLoopbackHostname(explicit)) return explicit;
   if (configuredPublicHost) return configuredPublicHost;
-  const fromWindow = typeof window !== "undefined" ? window.location.hostname : "";
+  const fromWindow = typeof window !== "undefined" ? cleanHostname(window.location.hostname || window.location.host) : "";
   if (fromWindow && !isLoopbackHostname(fromWindow)) return fromWindow;
   if (explicit) return explicit;
   return fromWindow || "localhost";
 }
 
 export function publicServiceUrl(port: number, hostname?: string): string {
+  if (!port || port <= 0) return "";
   const host = resolvePublicHostname(hostname);
   const windowProto =
     typeof window !== "undefined" && window.location.protocol === "https:" ? "https" : "http";
   // IPv4 public hosts are almost always plain HTTP on the published Docker port.
-  const proto = /^\d{1,3}(\.\d{1,3}){3}$/.test(host) ? "http" : windowProto;
+  const isIpv4 = /^\d{1,3}(\.\d{1,3}){3}$/.test(host);
+  const proto = isIpv4 ? "http" : windowProto;
   if (port === 80 && proto === "http") return `${proto}://${host}`;
   if (port === 443 && proto === "https") return `${proto}://${host}`;
   return `${proto}://${host}:${port}`;
