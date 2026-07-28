@@ -121,6 +121,7 @@ export interface EnvironmentSummary {
   branch: string;
   basePort: number;
   appPort: number;
+  env?: Record<string, string>;
   activeDeployment: {
     id: string;
     version: number;
@@ -202,6 +203,14 @@ export function triggerDeploy(
 
 export function listEnvironments(projectId: string): Promise<{ environments: EnvironmentSummary[] }> {
   return request("GET", `/projects/${projectId}/environments`);
+}
+
+export function patchEnvironmentEnv(
+  projectId: string,
+  envId: string,
+  env: Record<string, string>
+): Promise<{ environment: EnvironmentSummary }> {
+  return request("PATCH", `/projects/${projectId}/environments/${envId}/env`, { env });
 }
 
 export const getProjectEnvironments = listEnvironments;

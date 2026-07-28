@@ -4,11 +4,12 @@ import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/badges/StatusBadge";
+import { EnvironmentEnvModal } from "@/components/modals/EnvironmentEnvModal";
 import {
   promoteEnvironment,
   type EnvironmentSummary,
 } from "@/lib/api";
-import { publicServiceUrl } from "@/lib/deployment-display";
+import { publicEnvironmentUrl, publicServiceUrl } from "@/lib/deployment-display";
 
 function ChainArrow() {
   return (
@@ -30,6 +31,7 @@ function ChainArrow() {
 
 export interface EnvironmentChainProps {
   projectId: string;
+  projectName?: string;
   environments: EnvironmentSummary[];
   onRefresh: () => Promise<void>;
   /** Deploy/build for the leftmost environment in the chain (not always named “development”). */
@@ -38,12 +40,14 @@ export interface EnvironmentChainProps {
 
 export function EnvironmentChain({
   projectId,
+  projectName,
   environments,
   onRefresh,
   onDeployToEnvironment,
 }: EnvironmentChainProps) {
   const navigate = useNavigate();
   const [promotingId, setPromotingId] = useState<string | null>(null);
+  const [selectedEnvForVars, setSelectedEnvForVars] = useState<EnvironmentSummary | null>(null);
 
   const sorted = [...environments].sort((a, b) => a.chainOrder - b.chainOrder);
 
@@ -67,6 +71,16 @@ export function EnvironmentChain({
 
   return (
     <div className="space-y-3">
+      <EnvironmentEnvModal
+        projectId={projectId}
+        environment={selectedEnvForVars}
+        open={Boolean(selectedEnvForVars)}
+        onOpenChange={(open) => {
+          if (!open) setSelectedEnvForVars(null);
+        }}
+        onRefresh={onRefresh}
+      />
+
       <p className="text-xs text-muted-foreground">
         Deploy builds once on the first stage. Promote copies that image forward (no rebuild).
       </p>
@@ -79,8 +93,14 @@ export function EnvironmentChain({
           const promoteDisabled = !upstreamActive || promotingId !== null;
           const openUrl =
             active?.status === "ACTIVE" || active?.status === "DEPLOYING"
-              ? publicServiceUrl(active.port)
+              ? publicEnvironmentUrl(
+                  projectName ? { name: projectName, basePort: 0 } : undefined,
+                  env.name,
+                  active.port
+                )
               : null;
+          const directPortUrl = active ? publicServiceUrl(active.port) : null;
+          const hasCustomEnv = env.env && Object.keys(env.env).length > 0;
 
           return (
             <div key={env.id} className="flex flex-1 min-w-[200px] flex-col gap-3 sm:flex-row sm:items-stretch">
@@ -94,21 +114,35 @@ export function EnvironmentChain({
                 </CardHeader>
                 <CardContent className="space-y-3 pt-3">
                   {active ? (
-                    <div className="space-y-1 text-xs text-muted-foreground">
+                    <div className="space-y-1.5 text-xs text-muted-foreground">
                       <p>
                         <span className="text-foreground/80">v{active.version}</span>
                         <span className="mx-1.5 text-border">·</span>
                         <span className="font-mono">:{active.port}</span>
                       </p>
                       {openUrl ? (
-                        <a
-                          href={openUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="block truncate font-mono text-primary underline-offset-2 hover:underline"
-                        >
-                          Open {env.name}
-                        </a>
+                        <div className="flex flex-col gap-0.5">
+                          <a
+                            href={openUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="block truncate font-mono text-primary underline-offset-2 hover:underline"
+                            title={`Stage Path URL: ${openUrl}`}
+                          >
+                            Open {env.name}
+                          </a>
+                          {directPortUrl && directPortUrl !== openUrl ? (
+                            <a
+                              href={directPortUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="block truncate font-mono text-[10px] text-muted-foreground/75 hover:text-foreground"
+                              title={`Direct Port URL: ${directPortUrl}`}
+                            >
+                              Direct Port (:{active.port}) ↗
+                            </a>
+                          ) : null}
+                        </div>
                       ) : null}
                     </div>
                   ) : (
@@ -146,6 +180,15 @@ export function EnvironmentChain({
                         )}
                       </Button>
                     ) : null}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-xs border-border/80"
+                      onClick={() => setSelectedEnvForVars(env)}
+                      title={`Configure environment variables for ${env.name}`}
+                    >
+                      Env {hasCustomEnv ? `(${Object.keys(env.env!).length})` : ""}
+                    </Button>
                   </div>
                 </CardContent>
               </Card>

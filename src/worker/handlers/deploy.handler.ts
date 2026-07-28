@@ -119,7 +119,9 @@ export async function runDeployJob(
     await removeContainer(containerName).catch(() => null);
     await freeHostPort(hostPort);
     const projectEnv = parseProjectEnv(project.env);
-    const envKeys = Object.keys(projectEnv);
+    const stageEnv = parseProjectEnv((environment as typeof environment & { env?: unknown }).env);
+    const mergedEnv = { ...projectEnv, ...stageEnv };
+    const envKeys = Object.keys(mergedEnv);
     if (envKeys.length > 0) {
       await log(`Injecting env keys: ${envKeys.join(", ")}`);
     }
@@ -129,7 +131,7 @@ export async function runDeployJob(
       hostPort,
       environment.appPort,
       config.dockerNetwork,
-      projectEnv
+      mergedEnv
     );
     await checkCancelled(deploymentId, log);
 

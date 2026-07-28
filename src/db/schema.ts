@@ -122,6 +122,7 @@ export const environments = pgTable(
     serverHost: text("serverHost").default("localhost").notNull(),
     basePort: integer("basePort").notNull(),
     appPort: integer("appPort").notNull(),
+    env: jsonb("env").default(sql`'{}'::jsonb`).notNull(),
     lockedAt: timestamp("lockedAt", { mode: "date" }),
     createdAt: timestamp("createdAt", { mode: "date" }).defaultNow().notNull(),
     updatedAt: timestamp("updatedAt", { mode: "date" }).defaultNow().notNull(),

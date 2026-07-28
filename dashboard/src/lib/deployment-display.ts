@@ -108,6 +108,35 @@ export function publicServiceUrl(port: number, hostname?: string): string {
   return `${proto}://${host}:${port}`;
 }
 
+/** Path-based stage URL routed through VersionGate / Nginx reverse proxy (e.g. /p/my-app/production). */
+export function publicStageUrl(projectName: string, environmentName?: string, hostname?: string): string {
+  const host = resolvePublicHostname(hostname);
+  const windowProto =
+    typeof window !== "undefined" && window.location.protocol === "https:" ? "https:" : "http:";
+  const windowPort = typeof window !== "undefined" && window.location.port ? `:${window.location.port}` : "";
+  const env = (environmentName || "production").toLowerCase();
+  return `${windowProto}//${host}${windowPort}/p/${projectName}/${env}`;
+}
+
+/** Generates primary stage URL (path URL by default, or direct port if requested). */
+export function publicEnvironmentUrl(
+  project?: { name: string; basePort: number },
+  envName?: string,
+  port?: number,
+  preferPath: boolean = true
+): string {
+  if (preferPath && project?.name) {
+    return publicStageUrl(project.name, envName);
+  }
+  if (port) {
+    return publicServiceUrl(port);
+  }
+  if (project?.name) {
+    return publicStageUrl(project.name, envName);
+  }
+  return port ? publicServiceUrl(port) : "#";
+}
+
 /** production = project.basePort; staging +200; development +400 (see project.repository). */
 export function guessEnvironmentLabel(project: Project, deployment: Deployment): string {
   const p = deployment.port;
