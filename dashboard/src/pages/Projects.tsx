@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { getAllDeployments, getInstanceSettings, getProjects, getServerStats, listAllJobs, type Deployment, type JobRecord, type Project, type ServerStats } from "@/lib/api";
 import { projectDeploymentStatus } from "@/lib/project-deployment-status";
-import { getActiveDeployment, getDisplayDeployment, guessEnvironmentLabel, publicServiceUrl, setConfiguredPublicHost } from "@/lib/deployment-display";
+import { getActiveDeployment, getDisplayDeployment, guessEnvironmentLabel, publicEnvironmentUrl, setConfiguredPublicHost } from "@/lib/deployment-display";
 import { PageHeader } from "@/components/PageHeader";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { StatusBadge } from "@/components/badges/StatusBadge";
@@ -148,8 +148,9 @@ export function Projects() {
                   {slice.map((proj) => {
                     const state = projectDeploymentStatus(proj.id, deployments);
                     const disp = getDisplayDeployment(proj.id, deployments);
-                    const url = disp ? publicServiceUrl(disp.port) : null;
-                    const envLabel = disp ? guessEnvironmentLabel(proj, disp) : "—";
+                    const port = disp ? disp.port : proj.basePort;
+                    const envLabel = disp ? guessEnvironmentLabel(proj, disp) : "production";
+                    const url = publicEnvironmentUrl(proj, envLabel !== "—" ? envLabel : "production", port);
                     const jobId = latestJobByProject.get(proj.id);
                     return (
                       <TableRow key={proj.id}>
