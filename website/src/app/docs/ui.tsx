@@ -120,15 +120,14 @@ export function NextLinks({
     <div className="mt-10 flex flex-wrap gap-3">
       <Link
         href={primary.href}
-        className="inline-flex items-center gap-2 bg-primary px-5 py-2.5 font-mono text-[10px] uppercase tracking-wider text-primary-foreground transition hover:opacity-90"
+        className="inline-flex items-center gap-2 bg-white px-5 py-2.5 font-mono text-xs font-bold text-black transition hover:bg-zinc-200"
       >
         {primary.label}
-        <span aria-hidden>→</span>
       </Link>
       {secondary && (
         <Link
           href={secondary.href}
-          className="inline-flex items-center border border-border px-5 py-2.5 font-mono text-[10px] uppercase tracking-wider text-foreground transition hover:bg-muted"
+          className="inline-flex items-center border border-zinc-800 bg-zinc-900 px-5 py-2.5 font-mono text-xs text-white transition hover:bg-zinc-800"
         >
           {secondary.label}
         </Link>

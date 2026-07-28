@@ -4,65 +4,12 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const ITEMS = [
-  {
-    href: "/docs",
-    label: "Introduction",
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" className="size-4" stroke="currentColor" strokeWidth="1.7">
-        <circle cx="12" cy="12" r="9" />
-        <path d="M12 8h.01M11 12h1v4h1" strokeLinecap="round" />
-      </svg>
-    ),
-  },
-  {
-    href: "/docs/quick-start",
-    label: "Quick Start",
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" className="size-4" stroke="currentColor" strokeWidth="1.7">
-        <path d="M13 3L4 14h6l-1 7 9-11h-6l1-7z" strokeLinejoin="round" />
-      </svg>
-    ),
-  },
-  {
-    href: "/docs/architecture",
-    label: "Architecture",
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" className="size-4" stroke="currentColor" strokeWidth="1.7">
-        <rect x="3" y="3" width="7" height="7" rx="1.5" />
-        <rect x="14" y="3" width="7" height="7" rx="1.5" />
-        <rect x="3" y="14" width="7" height="7" rx="1.5" />
-        <rect x="14" y="14" width="7" height="7" rx="1.5" />
-      </svg>
-    ),
-  },
-  {
-    href: "/docs/deployment",
-    label: "Deployment",
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" className="size-4" stroke="currentColor" strokeWidth="1.7">
-        <path d="M5 12l5 5L20 7" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    ),
-  },
-  {
-    href: "/docs/networking",
-    label: "Networking",
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" className="size-4" stroke="currentColor" strokeWidth="1.7">
-        <circle cx="12" cy="12" r="9" />
-        <path d="M3 12h18M12 3c2.5 2.6 4 5.7 4 9s-1.5 6.4-4 9c-2.5-2.6-4-5.7-4-9s1.5-6.4 4-9z" />
-      </svg>
-    ),
-  },
-  {
-    href: "/docs/api-reference",
-    label: "API Reference",
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" className="size-4" stroke="currentColor" strokeWidth="1.7">
-        <path d="M8 9l-3 3 3 3m8-6 3 3-3 3M13 6l-2 12" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    ),
-  },
+  { href: "/docs", label: "Introduction", num: "01" },
+  { href: "/docs/quick-start", label: "Quick Start", num: "02" },
+  { href: "/docs/architecture", label: "Architecture", num: "03" },
+  { href: "/docs/deployment", label: "Deployment", num: "04" },
+  { href: "/docs/networking", label: "Networking", num: "05" },
+  { href: "/docs/api-reference", label: "API Reference", num: "06" },
 ] as const;
 
 export function DocsNav() {
@@ -78,11 +25,11 @@ export function DocsNav() {
             href={item.href}
             className={`flex items-center gap-2.5 border-l-2 px-3 py-2 font-mono text-xs transition ${
               active
-                ? "border-foreground bg-muted text-foreground"
-                : "border-transparent text-muted-foreground hover:border-border hover:bg-muted hover:text-foreground"
+                ? "border-white bg-zinc-900 text-white font-bold"
+                : "border-transparent text-zinc-400 hover:border-zinc-700 hover:bg-zinc-900/50 hover:text-white"
             }`}
           >
-            {item.icon}
+            <span className="text-[10px] text-zinc-500 font-bold">{item.num} //</span>
             {item.label}
           </Link>
         );
