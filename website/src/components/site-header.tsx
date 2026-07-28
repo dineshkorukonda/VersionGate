@@ -2,7 +2,7 @@ import Link from "next/link";
 
 const GITHUB_REPO = "https://github.com/dinexh/VersionGate";
 
-export function SiteHeader({ active }: { active?: "features" | "architecture" | "docs" | "get-started" }) {
+export function SiteHeader({ active }: { active?: "features" | "updates" | "architecture" | "docs" | "get-started" }) {
   const link = (href: string, label: string, key: string) => (
     <Link
       href={href}
@@ -22,6 +22,7 @@ export function SiteHeader({ active }: { active?: "features" | "architecture" | 
         </Link>
 
         <nav className="hidden items-center gap-6 md:flex">
+          {link("/#updates", "latest updates", "updates")}
           {link("/#features", "features", "features")}
           {link("/#architecture", "architecture", "architecture")}
           {link("/docs", "docs", "docs")}
