@@ -18,16 +18,16 @@
 }
 
 :root {
-  --background: #0a0a0a;
-  --foreground: #ededed;
-  --surface: #111111;
-  --card: #181818;
-  --muted: #1c1c1c;
-  --muted-foreground: #888888;
-  --primary: #e0e0e0;
-  --primary-foreground: #0a0a0a;
-  --border: #2d2d2d;
-  --terminal: #0f0f0f;
+  --background: #09090b;
+  --foreground: #f4f4f5;
+  --surface: #121215;
+  --card: #18181b;
+  --muted: #27272a;
+  --muted-foreground: #a1a1aa;
+  --primary: #38bdf8;
+  --primary-foreground: #09090b;
+  --border: #27272a;
+  --terminal: #0c0c0e;
   --warn: #f59e0b;
   --error: #ef4444;
 }
@@ -44,13 +44,32 @@ body {
 }
 
 ::selection {
-  background: #333333;
-  color: #ffffff;
+  background: rgba(56, 189, 248, 0.25);
+  color: #38bdf8;
 }
 
-.font-mono-label {
-  font-family: var(--font-mono);
-  font-size: 0.6875rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+.glow-blue {
+  box-shadow: 0 0 50px -10px rgba(56, 189, 248, 0.15);
+}
+
+.glow-emerald {
+  box-shadow: 0 0 50px -10px rgba(16, 185, 129, 0.15);
+}
+
+.glow-purple {
+  box-shadow: 0 0 50px -10px rgba(168, 85, 247, 0.15);
+}
+
+.bg-mesh-grid {
+  background-size: 32px 32px;
+  background-image: 
+    linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+}
+
+.glass-panel {
+  background: rgba(24, 24, 27, 0.65);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
