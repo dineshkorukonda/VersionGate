@@ -52,6 +52,7 @@ export function SiteHeader({ active }: { active?: "features" | "updates" | "arch
             {link("/#capabilities", "Capabilities", "features")}
             {link("/#architecture", "Topology", "architecture")}
             {link("/#sandbox", "Sandbox", "updates")}
+            {link("/#qna", "Q&A", "updates")}
             {link("/#calculator", "Calculator", "features")}
             {link("/docs", "Docs", "docs")}
           </nav>

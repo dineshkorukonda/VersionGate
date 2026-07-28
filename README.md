@@ -1,138 +1,45 @@
 # VersionGate
 
-Self-hosted zero-downtime deployment engine. Push to GitHub → VersionGate pulls the source, builds a Docker image, spins up the new container, switches Nginx traffic, and tears down the old one — all without a single second of downtime.
+> **Self-hosted zero-downtime Docker deployment engine.** Push code to GitHub → VersionGate builds your Docker container, validates endpoint health on an isolated slot, atomically switches Nginx traffic, and tears down the legacy slot with 0 ms downtime.
 
-Built for single-server (KVM/VPS) setups where you want Vercel-style deployments on your own hardware.
-
----
-
-## What It Does
-
-- **Blue-green deployments** — every project gets two container slots (blue/green). Deploys always target the idle slot; live traffic is never touched until the new container is confirmed healthy.
-- **Webhook auto-deploy** — add your project's webhook URL to GitHub and every push to the configured branch triggers a deploy automatically.
-- **One-click rollback** — restore the previous deployment instantly via the dashboard or API.
-- **Crash recovery** — on restart, stale `DEPLOYING` records are marked `FAILED` and orphaned containers are cleaned up automatically.
-- **AI CI pipeline generation** — generate a GitHub Actions workflow for any project with a single API call (requires Gemini API key).
-
-## Stack
-
-
-| Layer           | Technology                                        |
-| --------------- | ------------------------------------------------- |
-| Runtime         | Bun 1.x + TypeScript                              |
-| API server      | Fastify                                           |
-| Database        | PostgreSQL via Drizzle ORM                        |
-| Queue & Locks   | Redis (ioredis) pub/sub + atomic locking          |
-| Containers      | Docker CLI                                        |
-| Proxy           | Nginx upstream config management                  |
-| Process manager | PM2 (recommended)                                 |
-| Dashboard       | React / Vite (static build, served by Fastify)    |
-
+[![Version](https://img.shields.io/badge/Version-v1.4%20Stable-black?style=for-the-badge&logo=docker)](https://github.com/dineshkorukonda/VersionGate)
+[![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)](LICENSE)
+[![Documentation](https://img.shields.io/badge/Docs-Live-emerald?style=for-the-badge)](https://versiongate.tech/docs)
 
 ---
 
-## Setup
-
-### Prerequisites
-
-- [Bun](https://bun.sh) ≥ 1.0
-- Docker Engine + CLI (daemon running; user in `docker` group or root)
-- Docker network for deployments — default name `versiongate-net`:  `docker network create versiongate-net`
-- Git (for cloning repositories)
-- Nginx (recommended — automatic upstream switching)
-- PostgreSQL — local or [Neon](https://neon.tech) free tier
-- PM2 — `npm i -g pm2` (recommended for API + worker)
-
-### Verify the host
-
-Before or after install, check that the machine can run deployments:
+## ⚡ Quick 1-Command Bootstrap (Ubuntu / Debian VPS)
 
 ```bash
-bun run preflight
-```
-
-This validates Bun, Git, Docker CLI + daemon, the configured Docker network, writable `PROJECTS_ROOT_PATH`, and optionally Node, PM2, and Nginx. Exit code `0` means all **required** checks passed.
-
-With the API running (no database needed for this endpoint):
-
-```http
-GET /api/v1/system/preflight
-```
-
-Returns JSON: `{ "ok": boolean, "checkedAt": "ISO-8601", "checks": [...] }`.
-
-If Docker is installed but PM2 provides a minimal `PATH`, set `DOCKER_BIN=/usr/bin/docker` in `.env` and ensure `ecosystem.config.cjs` prepends `/usr/bin` (already done in this repo).
-
-### 1. Clone and install
-
-```bash
-git clone https://github.com/dinexh/VersionGate
+git clone https://github.com/dineshkorukonda/VersionGate.git
 cd VersionGate
-# Fresh Ubuntu/Debian VM — installs Docker, network, /var/versiongate/projects, nginx, …
-sudo bash scripts/bootstrap-host.sh
-newgrp docker
-npm run check-deps
-bun install
-cd dashboard && bun install && bun run build && cd ..
-bun run preflight
+sudo bash scripts/bootstrap-host.sh && bun install && bun run build:dashboard && pm2 start ecosystem.config.cjs
 ```
 
-### 2. Start the engine
+Open `http://your-server-ip:9090/setup` in your browser to run the 1-minute initialization wizard.
 
-```bash
-pm2 start ecosystem.config.cjs
-pm2 save
-```
-
-### 3. Complete setup in the UI
-
-Navigate to `http://your-server-ip:9090/setup` in your browser.
-
-Enter:
-
-- Your **PostgreSQL connection string**
-- Your **domain or server IP**
-- Optional **Gemini API key**
-
-The setup wizard will then:
-
-- Write the `.env` file
-- Set `PROJECTS_ROOT_PATH`
-- Generate and persist `ENCRYPTION_KEY`
-- Execute Drizzle ORM schema migrations (`runDrizzleSchemaSync`)
-- Write and reload Nginx config when permissions allow
-
-After setup finishes, open the dashboard and start adding projects.
-
-No manual `.env` edits or Prisma commands are required after running `bun run setup` or opening `/setup`.
-
-### GitHub App (Integrations)
-
-VersionGate uses **one official GitHub App** (`VersionGate-App`). Self-hosted users only click **Connect GitHub** — they do not create their own App.
-
-**Official App URLs (ops-owned, fixed for everyone):**
-
-| Setting | URL |
-|---------|-----|
-| Callback URL | `https://versiongate.tech/api/github/callback` |
-| Webhook URL | `https://versiongate.tech/api/webhooks/github` |
-
-**On each VPS `.env` (shared App credentials + instance identity):**
-
-- `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY`, `GITHUB_WEBHOOK_SECRET` — same values as the official App
-- `PUBLIC_URL` — this instance’s public base URL (no trailing slash)
-- `GITHUB_STATE_SECRET` — same value as the website relay’s `RELAY_SECRET`
-
-Flow: Connect → install App → relay stores `installation_id → PUBLIC_URL` → push events hit versiongate.tech → fan-out to `POST {PUBLIC_URL}/api/webhooks/github/relay` → deploy.
-
-Legacy per-project webhooks (`POST /api/v1/webhooks/:secret`) still work without the App.
 ---
 
-## Docs
+## 🔑 Core Engine Capabilities
 
-- [Setup & API](docs/SETUP.md) — detailed setup, environment variables, full API reference
-- [Architecture](docs/ARCHITECTURE.md) — deployment pipeline, blue-green state diagrams, rollback flow, crash recovery
-- [Website](website/) — marketing site + GitHub App install/webhook relay (versiongate.tech)
-- [GitHub App advanced (Phase 2)](docs/github-app-advanced.md) — future per-instance App Manifest (not shipped yet)
-- [Ops: App webhook URL](docs/github-app-ops-webhook.md) — point official App webhook at versiongate.tech
+- **Zero-Downtime Blue/Green Swaps**: Every deploy targets an isolated idle slot (`:3100` / `:3101`). Live traffic switches atomically via Nginx upstream reload only after health check passes (`200 OK`).
+- **Instant Warm-Swap Rollbacks (< 2s)**: Sub-second rollbacks reusing locally cached Docker image tags without git re-pulling or context rebuilds.
+- **Stage Path Reverse Proxy**: Exposes dev, staging, and production environments over clean path URLs (`/p/:projectName/:stage`) routed dynamically through Nginx without raw ports.
+- **Bearer API Access Tokens**: Generates persistent `vg_live_...` SHA-256 hashed API Bearer tokens for GitHub Actions, GitLab CI, and external automation scripts.
+- **Per-Environment Variable Overrides**: Configure stage-specific environment variables for development, staging, and production that seamlessly override global project defaults.
+- **Native Engine Background Monitor**: Continuous background thread inspecting PostgreSQL DB latency, Redis pub/sub state, container lifecycles, and system CPU/RAM/Disk limits.
+- **Signed GitHub Webhooks**: HMAC SHA-256 signature verification triggering automated deployments on git push.
 
+---
+
+## 🌐 Full Interactive Documentation & Web Portal
+
+For interactive command execution sandboxes, capability directories, topology maps, and full API references:
+
+👉 **[Explore Full Website & Interactive Docs](https://versiongate.tech)** (or run `cd website && bun run dev` locally).
+
+---
+
+## 📜 License
+
+Distributed under the **MIT License**. Created by **Dinesh Korukonda**.
