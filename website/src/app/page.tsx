@@ -8,6 +8,7 @@ import { CapabilityGrid } from "@/components/capability-grid";
 import { ExecutionSandbox } from "@/components/execution-sandbox";
 import { TopologyVisualizer } from "@/components/topology-visualizer";
 import { CostCalculator } from "@/components/cost-calculator";
+import { CommunityQnA } from "@/components/community-qna";
 
 const GITHUB_REPO = "https://github.com/dineshkorukonda/VersionGate";
 
@@ -159,8 +160,25 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Community Q&A Knowledge Base (Stack Overflow Style) */}
+      <section id="qna" className="border-b border-zinc-800/80 py-20 bg-black">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 space-y-8">
+          <div>
+            <div className="mb-2 inline-flex items-center gap-2 rounded border border-zinc-700 bg-zinc-900 px-2.5 py-0.5 font-mono text-[10px] font-bold text-zinc-300">
+              <span>Community Q&A & Troubleshooting</span>
+            </div>
+            <h2 className="text-2xl font-extrabold tracking-tight sm:text-3xl">Knowledge Base & Verified Solutions</h2>
+            <p className="mt-1 font-mono text-xs text-zinc-400">
+              StackOverflow-style technical Q&A threads with code snippets and upvoted solutions.
+            </p>
+          </div>
+
+          <CommunityQnA />
+        </div>
+      </section>
+
       {/* Quick Start Guide */}
-      <section id="get-started" className="py-20 bg-black">
+      <section id="get-started" className="py-20 bg-zinc-950/40">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 space-y-8">
           <div>
             <div className="mb-2 inline-flex items-center gap-2 rounded border border-zinc-700 bg-zinc-900 px-2.5 py-0.5 font-mono text-[10px] font-bold text-zinc-300">
