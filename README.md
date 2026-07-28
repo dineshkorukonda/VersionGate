@@ -1,6 +1,6 @@
 # VersionGate
 
-> **Self-hosted zero-downtime Docker deployment engine.** Push code to GitHub → VersionGate builds your Docker container, validates endpoint health on an isolated slot, atomically switches Nginx traffic, and tears down the legacy slot with 0 ms downtime.
+> **Self-hosted zero-downtime Docker deployment engine.** Push code to GitHub -> VersionGate builds your Docker container, validates endpoint health on an isolated slot, atomically switches Nginx traffic, and tears down the legacy slot with 0 ms downtime.
 
 [![Version](https://img.shields.io/badge/Version-v1.4%20Stable-black?style=for-the-badge&logo=docker)](https://github.com/dineshkorukonda/VersionGate)
 [![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)](LICENSE)
@@ -8,7 +8,7 @@
 
 ---
 
-## ⚡ Quick 1-Command Bootstrap (Ubuntu / Debian VPS)
+## Quick 1-Command Bootstrap (Ubuntu / Debian VPS)
 
 ```bash
 git clone https://github.com/dineshkorukonda/VersionGate.git
@@ -20,7 +20,7 @@ Open `http://your-server-ip:9090/setup` in your browser to run the 1-minute init
 
 ---
 
-## 🔑 Core Engine Capabilities
+## Core Engine Capabilities
 
 - **Zero-Downtime Blue/Green Swaps**: Every deploy targets an isolated idle slot (`:3100` / `:3101`). Live traffic switches atomically via Nginx upstream reload only after health check passes (`200 OK`).
 - **Instant Warm-Swap Rollbacks (< 2s)**: Sub-second rollbacks reusing locally cached Docker image tags without git re-pulling or context rebuilds.
@@ -32,14 +32,14 @@ Open `http://your-server-ip:9090/setup` in your browser to run the 1-minute init
 
 ---
 
-## 🌐 Full Interactive Documentation & Web Portal
+## Full Interactive Documentation & Web Portal
 
-For interactive command execution sandboxes, capability directories, topology maps, and full API references:
+For interactive command execution sandboxes, capability directories, topology maps, community Q&A, and full API references:
 
-👉 **[Explore Full Website & Interactive Docs](https://versiongate.tech)** (or run `cd website && bun run dev` locally).
+[Explore Full Website & Interactive Docs](https://versiongate.tech) (or run `cd website && bun run dev` locally).
 
 ---
 
-## 📜 License
+## License
 
 Distributed under the **MIT License**. Created by **Dinesh Korukonda**.

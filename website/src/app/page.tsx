@@ -177,41 +177,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Quick Start Guide */}
-      <section id="get-started" className="py-20 bg-zinc-950/40">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 space-y-8">
-          <div>
-            <div className="mb-2 inline-flex items-center gap-2 rounded border border-zinc-700 bg-zinc-900 px-2.5 py-0.5 font-mono text-[10px] font-bold text-zinc-300">
-              <span>5-Minute Bootstrap</span>
-            </div>
-            <h2 className="text-2xl font-extrabold tracking-tight sm:text-3xl">Get Up and Running Fast</h2>
-            <p className="mt-1 font-mono text-xs text-zinc-400">
-              Run VersionGate on any Ubuntu/Debian VPS. Bootstrap handles Docker, PostgreSQL, Redis, and Nginx automatically.
-            </p>
-          </div>
-
-          <div className="grid gap-6 lg:grid-cols-2">
-            <div className="rounded border border-zinc-800 bg-[#0a0a0c] p-6 space-y-3">
-              <div className="font-mono text-xs font-bold text-white">01 // Clone & Bootstrap Host</div>
-              <pre className="p-4 bg-black border border-zinc-800 font-mono text-xs text-zinc-300 rounded overflow-x-auto">
-{`git clone https://github.com/dineshkorukonda/VersionGate.git
-cd VersionGate
-sudo bash scripts/bootstrap-host.sh`}
-              </pre>
-            </div>
-
-            <div className="rounded border border-zinc-800 bg-[#0a0a0c] p-6 space-y-3">
-              <div className="font-mono text-xs font-bold text-white">02 // Install & Build Engine</div>
-              <pre className="p-4 bg-black border border-zinc-800 font-mono text-xs text-zinc-300 rounded overflow-x-auto">
-{`bun install
-cd dashboard && bun run build && cd ..
-bun run preflight`}
-              </pre>
-            </div>
-          </div>
-        </div>
-      </section>
-
       <SiteFooter />
     </div>
   );

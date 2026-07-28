@@ -1,20 +1,8 @@
 @import "tailwindcss";
 
 @theme inline {
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-jetbrains), ui-monospace, SFMono-Regular, Menlo, monospace;
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-surface: var(--surface);
-  --color-card: var(--card);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-border: var(--border);
-  --color-terminal: var(--terminal);
-  --color-warn: var(--warn);
-  --color-error: var(--error);
 }
 
 :root {
@@ -24,30 +12,38 @@
   --card: #0e0e10;
   --muted: #18181b;
   --muted-foreground: #888888;
-  --primary: #ffffff;
-  --primary-foreground: #000000;
   --border: #222225;
   --terminal: #050506;
-  --warn: #f59e0b;
-  --error: #ef4444;
+}
+
+[data-theme="light"], .light-theme {
+  --background: #ffffff;
+  --foreground: #09090b;
+  --surface: #f8f9fa;
+  --card: #ffffff;
+  --muted: #f1f3f5;
+  --muted-foreground: #64748b;
+  --border: #e2e8f0;
+  --terminal: #0f172a;
 }
 
 html, body {
-  background-color: #000000 !important;
-  color: #ffffff !important;
+  background-color: var(--background) !important;
+  color: var(--foreground) !important;
   scroll-behavior: smooth;
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 ::selection {
-  background: #ffffff;
-  color: #000000;
+  background: var(--foreground);
+  color: var(--background);
 }
 
 .bg-tech-grid {
   background-size: 40px 40px;
   background-image: 
-    linear-gradient(to right, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+    linear-gradient(to right, rgba(128, 128, 128, 0.08) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(128, 128, 128, 0.08) 1px, transparent 1px);
 }
