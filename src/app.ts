@@ -18,6 +18,7 @@ import { requireDatabaseConfigured } from "./middleware/require-database";
 import { requireApiAuth } from "./middleware/require-api-auth";
 import { authRoutes } from "./routes/auth.routes";
 import { githubAppRoutes } from "./routes/github-app.routes";
+import { proxyRoutes } from "./routes/proxy.routes";
 
 export async function buildApp(): Promise<FastifyInstance> {
   const app = Fastify({
@@ -165,6 +166,9 @@ export async function buildApp(): Promise<FastifyInstance> {
     await instance.register(dbRoutes);
     await jobRoutes(instance);
   }, { prefix: "/api/v1" });
+
+  // ── Stage/Project Reverse Proxy Routes ──────────────────────────────────────
+  await app.register(proxyRoutes);
 
   // ── Dashboard static serving ────────────────────────────────────────────────
   if (existsSync(dashboardOutDir)) {

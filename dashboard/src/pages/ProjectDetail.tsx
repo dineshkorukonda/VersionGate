@@ -25,7 +25,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { BlueGreenTrafficCard } from "@/components/BlueGreenTrafficCard";
-import { getDeployingDeployment, publicServiceUrl } from "@/lib/deployment-display";
+import { getDeployingDeployment, publicEnvironmentUrl, publicServiceUrl } from "@/lib/deployment-display";
 import { AggregateJobLogStream } from "@/components/AggregateJobLogStream";
 import { jobArtifactLabel, jobDurationLabel } from "@/lib/job-display";
 import {
@@ -218,7 +218,7 @@ export function ProjectDetail() {
           : "PENDING";
 
   const liveHostPort = active ? active.port : project.basePort;
-  const liveUrl = publicServiceUrl(liveHostPort);
+  const liveUrl = publicEnvironmentUrl(project, "production", liveHostPort);
   const totalDeploys = productionDeployments.length;
 
   return (
@@ -308,6 +308,7 @@ export function ProjectDetail() {
           {!environmentsError && environments.length > 0 ? (
             <EnvironmentChain
               projectId={project.id}
+              projectName={project.name}
               environments={environments}
               onRefresh={async () => {
                 await load();

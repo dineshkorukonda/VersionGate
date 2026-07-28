@@ -51,6 +51,11 @@ ${proxyHeaders}
         rewrite ^${prefix}/(.*)$ /$1 break;
         proxy_pass         ${upstream};
 ${proxyHeaders}
+    }
+
+    location /p/ {
+        proxy_pass         ${upstream};
+${proxyHeaders}
     }`;
   }
 
