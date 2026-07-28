@@ -50,6 +50,28 @@ export const sessions = pgTable(
   (table) => [index("Session_userId_idx").on(table.userId)]
 );
 
+// API Tokens (for CI/CD pipelines & external automation)
+export const apiTokens = pgTable(
+  "ApiToken",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    name: text("name").notNull(),
+    tokenHash: text("tokenHash").notNull().unique(),
+    tokenPrefix: text("tokenPrefix").notNull(),
+    userId: text("userId")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    lastUsedAt: timestamp("lastUsedAt", { mode: "date" }),
+    expiresAt: timestamp("expiresAt", { mode: "date" }),
+    createdAt: timestamp("createdAt", { mode: "date" }).defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt", { mode: "date" }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("ApiToken_userId_idx").on(table.userId),
+    index("ApiToken_tokenHash_idx").on(table.tokenHash),
+  ]
+);
+
 // GitHub Installations
 export const githubInstallations = pgTable(
   "GitHubInstallation",
@@ -175,12 +197,20 @@ export const deployments = pgTable(
 // Drizzle Relations
 export const usersRelations = relations(users, ({ many }) => ({
   sessions: many(sessions),
+  apiTokens: many(apiTokens),
   githubInstallations: many(githubInstallations),
 }));
 
 export const sessionsRelations = relations(sessions, ({ one }) => ({
   user: one(users, {
     fields: [sessions.userId],
+    references: [users.id],
+  }),
+}));
+
+export const apiTokensRelations = relations(apiTokens, ({ one }) => ({
+  user: one(users, {
+    fields: [apiTokens.userId],
     references: [users.id],
   }),
 }));
@@ -239,6 +269,8 @@ export const deploymentsRelations = relations(deployments, ({ one, many }) => ({
 export type UserSelect = typeof users.$inferSelect;
 export type UserInsert = typeof users.$inferInsert;
 export type SessionSelect = typeof sessions.$inferSelect;
+export type ApiTokenSelect = typeof apiTokens.$inferSelect;
+export type ApiTokenInsert = typeof apiTokens.$inferInsert;
 export type ProjectSelect = typeof projects.$inferSelect;
 export type ProjectInsert = typeof projects.$inferInsert;
 export type EnvironmentSelect = typeof environments.$inferSelect;

@@ -1,8 +1,8 @@
 import { createHash, randomBytes, scrypt, timingSafeEqual } from "crypto";
 import { promisify } from "util";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { getDb } from "../db/client";
-import { users, sessions } from "../db/schema";
+import { users, sessions, apiTokens } from "../db/schema";
 
 const scryptAsync = promisify(scrypt);
 
@@ -94,4 +94,96 @@ export async function getUserFromSessionToken(
 export function isValidEmail(email: string): boolean {
   const t = email.trim().toLowerCase();
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(t);
+}
+
+// ── API Token Management (CI/CD Bearer token auth) ─────────────────────────
+
+export async function createApiToken(
+  userId: string,
+  name: string
+): Promise<{ id: string; name: string; token: string; tokenPrefix: string; createdAt: Date }> {
+  const db = getDb();
+  const rawBytes = randomBytes(24).toString("hex");
+  const rawToken = `vg_live_${rawBytes}`;
+  const tokenHash = hashToken(rawToken);
+  const tokenPrefix = `vg_live_${rawBytes.slice(0, 6)}...`;
+
+  const [row] = await db
+    .insert(apiTokens)
+    .values({
+      name: name.trim(),
+      tokenHash,
+      tokenPrefix,
+      userId,
+    })
+    .returning();
+
+  return {
+    id: row.id,
+    name: row.name,
+    token: rawToken,
+    tokenPrefix: row.tokenPrefix,
+    createdAt: row.createdAt,
+  };
+}
+
+export async function listApiTokens(
+  userId: string
+): Promise<Array<{ id: string; name: string; tokenPrefix: string; lastUsedAt: Date | null; createdAt: Date }>> {
+  const db = getDb();
+  return db
+    .select({
+      id: apiTokens.id,
+      name: apiTokens.name,
+      tokenPrefix: apiTokens.tokenPrefix,
+      lastUsedAt: apiTokens.lastUsedAt,
+      createdAt: apiTokens.createdAt,
+    })
+    .from(apiTokens)
+    .where(eq(apiTokens.userId, userId));
+}
+
+export async function revokeApiToken(userId: string, tokenId: string): Promise<boolean> {
+  const db = getDb();
+  await db
+    .delete(apiTokens)
+    .where(and(eq(apiTokens.id, tokenId), eq(apiTokens.userId, userId)));
+  return true;
+}
+
+export async function getUserFromApiToken(
+  rawToken: string | undefined
+): Promise<{ id: string; email: string } | null> {
+  if (!rawToken || !rawToken.startsWith("vg_")) return null;
+  const db = getDb();
+  const tokenHash = hashToken(rawToken);
+
+  const { apiTokens, users } = await import("../db/schema");
+
+  const [row] = await db
+    .select({
+      tokenId: apiTokens.id,
+      expiresAt: apiTokens.expiresAt,
+      userId: users.id,
+      email: users.email,
+    })
+    .from(apiTokens)
+    .innerJoin(users, eq(apiTokens.userId, users.id))
+    .where(eq(apiTokens.tokenHash, tokenHash))
+    .limit(1);
+
+  if (!row) return null;
+
+  if (row.expiresAt && row.expiresAt < new Date()) {
+    await db.delete(apiTokens).where(eq(apiTokens.id, row.tokenId));
+    return null;
+  }
+
+  // Update lastUsedAt asynchronously
+  db.update(apiTokens)
+    .set({ lastUsedAt: new Date() })
+    .where(eq(apiTokens.id, row.tokenId))
+    .catch(() => null);
+
+  return { id: row.userId, email: row.email };
 }

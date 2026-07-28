@@ -11,12 +11,16 @@ import {
   applyNginxSite,
   applySelfUpdateFromSettings,
   checkSelfUpdateFromSettings,
+  createApiToken,
   enableSelfUpdateFromSettings,
+  getApiTokens,
   getInstanceSettings,
   getSelfUpdateSettings,
   getSetupStatus,
   patchInstanceEnv,
   requestCertbotSsl,
+  revokeApiToken,
+  type ApiTokenItem,
   type InstanceSettings,
   type SelfUpdateSettingsResponse,
   type SetupStatus,
@@ -51,6 +55,138 @@ const textareaClass = cn(
   "placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
   "disabled:cursor-not-allowed disabled:opacity-50"
 );
+
+function ApiTokensCard() {
+  const [tokens, setTokens] = useState<ApiTokenItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [name, setName] = useState("");
+  const [creating, setCreating] = useState(false);
+  const [newRawToken, setNewRawToken] = useState<string | null>(null);
+
+  const loadTokens = async () => {
+    try {
+      const res = await getApiTokens();
+      setTokens(res.tokens);
+    } catch {
+      // ignore
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void loadTokens();
+  }, []);
+
+  const handleCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim()) return;
+    setCreating(true);
+    try {
+      const res = await createApiToken(name.trim());
+      setNewRawToken(res.token.token);
+      setName("");
+      toast.success("API Token generated");
+      await loadTokens();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to create token");
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const handleRevoke = async (id: string, tokenName: string) => {
+    if (!confirm(`Revoke API token "${tokenName}"?`)) return;
+    try {
+      await revokeApiToken(id);
+      toast.success("API token revoked");
+      await loadTokens();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to revoke token");
+    }
+  };
+
+  const handleCopy = (text: string) => {
+    void navigator.clipboard.writeText(text);
+    toast.success("Copied to clipboard");
+  };
+
+  return (
+    <Card className="border-border bg-card">
+      <CardHeader>
+        <CardTitle>API Access Tokens</CardTitle>
+        <CardDescription>
+          Generate Bearer tokens for CI/CD pipelines, GitHub Actions, and external scripts (`Authorization: Bearer vg_live_...`).
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {newRawToken ? (
+          <Alert className="border-emerald-500/50 bg-emerald-500/10 text-emerald-300">
+            <AlertTitle className="font-semibold text-emerald-400">New API Token Generated!</AlertTitle>
+            <AlertDescription className="mt-2 space-y-2">
+              <p className="text-xs text-emerald-200">
+                Copy this token now. For security, it will <strong>never be shown again</strong>.
+              </p>
+              <div className="flex items-center gap-2">
+                <code className="flex-1 rounded bg-black/40 px-2.5 py-1.5 font-mono text-xs text-emerald-300 select-all border border-emerald-500/30">
+                  {newRawToken}
+                </code>
+                <Button size="sm" variant="secondary" onClick={() => handleCopy(newRawToken)}>
+                  Copy
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => setNewRawToken(null)}>
+                  Done
+                </Button>
+              </div>
+            </AlertDescription>
+          </Alert>
+        ) : null}
+
+        <form onSubmit={handleCreate} className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <Input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Token name (e.g. GitHub Actions CI)"
+            className="flex-1"
+          />
+          <Button type="submit" disabled={creating || !name.trim()}>
+            {creating ? "Generating…" : "Generate Token"}
+          </Button>
+        </form>
+
+        {loading ? (
+          <Skeleton className="h-16 w-full" />
+        ) : tokens.length === 0 ? (
+          <p className="text-xs text-muted-foreground">No API tokens generated yet.</p>
+        ) : (
+          <div className="rounded-md border border-border divide-y divide-border">
+            {tokens.map((t) => (
+              <div key={t.id} className="flex items-center justify-between p-3 text-xs">
+                <div className="space-y-1">
+                  <p className="font-medium text-foreground">{t.name}</p>
+                  <p className="font-mono text-muted-foreground">{t.tokenPrefix}</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-[11px] text-muted-foreground">
+                    {t.lastUsedAt ? `Used ${new Date(t.lastUsedAt).toLocaleDateString()}` : "Never used"}
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-xs text-destructive hover:bg-destructive/10 border-destructive/40"
+                    onClick={() => void handleRevoke(t.id, t.name)}
+                  >
+                    Revoke
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
 
 export function Settings() {
   const [instance, setInstance] = useState<InstanceSettings | null>(null);
@@ -954,6 +1090,8 @@ export function Settings() {
           </form>
         </CardContent>
       </Card>
+
+      <ApiTokensCard />
 
       <Card className="border-destructive/40 bg-destructive/5 ">
         <CardHeader>

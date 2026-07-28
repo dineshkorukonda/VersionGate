@@ -321,6 +321,26 @@ export function authLogout(): Promise<{ ok: boolean }> {
   return request("POST", "/auth/logout");
 }
 
+export interface ApiTokenItem {
+  id: string;
+  name: string;
+  tokenPrefix: string;
+  lastUsedAt: string | null;
+  createdAt: string;
+}
+
+export function getApiTokens(): Promise<{ tokens: ApiTokenItem[] }> {
+  return request("GET", "/auth/tokens");
+}
+
+export function createApiToken(name: string): Promise<{ token: { id: string; name: string; token: string; tokenPrefix: string; createdAt: string } }> {
+  return request("POST", "/auth/tokens", { name });
+}
+
+export function revokeApiToken(id: string): Promise<{ ok: boolean }> {
+  return request("DELETE", `/auth/tokens/${id}`);
+}
+
 export interface InstanceSettings {
   engineVersion: string;
   nodeEnv: string;
