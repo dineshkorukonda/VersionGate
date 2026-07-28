@@ -1,5 +1,5 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
-import { getUserFromSessionToken } from "../services/auth.service";
+import { getUserFromSessionToken, getUserFromApiToken } from "../services/auth.service";
 import { getSessionTokenFromRequest } from "../utils/cookie";
 
 function pathOnly(url: string): string {
@@ -26,9 +26,8 @@ export type AuthedRequest = FastifyRequest & {
 };
 
 /**
- * Session cookie gate for `/api/v1/*` when the database URL is configured.
- * Public paths remain open (setup wizard, login/register, webhooks, CI self-update).
- * Settings are blocked until DATABASE_URL is set so `.env` cannot be edited anonymously.
+ * Auth gate for `/api/v1/*` when the database URL is configured.
+ * Supports session cookies and API Bearer tokens (`Authorization: Bearer vg_live_...` or `X-API-Token`).
  */
 export async function requireApiAuth(req: AuthedRequest, reply: FastifyReply): Promise<void> {
   const path = pathOnly(req.url);
@@ -44,10 +43,23 @@ export async function requireApiAuth(req: AuthedRequest, reply: FastifyReply): P
     return;
   }
 
-  let user: { id: string; email: string } | null;
+  let user: { id: string; email: string } | null = null;
   try {
-    const raw = getSessionTokenFromRequest(req.headers.cookie);
-    user = await getUserFromSessionToken(raw);
+    const authHeader = req.headers["authorization"];
+    let token: string | undefined;
+    if (authHeader && authHeader.toLowerCase().startsWith("bearer ")) {
+      token = authHeader.slice(7).trim();
+    }
+    if (!token) {
+      token = req.headers["x-api-token"] as string | undefined;
+    }
+
+    if (token && token.startsWith("vg_")) {
+      user = await getUserFromApiToken(token);
+    } else {
+      const rawCookie = getSessionTokenFromRequest(req.headers.cookie);
+      user = await getUserFromSessionToken(rawCookie);
+    }
   } catch {
     await reply.code(503).send({
       error: "ServiceUnavailable",

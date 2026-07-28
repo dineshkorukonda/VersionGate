@@ -7,11 +7,14 @@ import { users } from "../db/schema";
 import {
   AUTH_MIN_PASSWORD_LENGTH,
   SESSION_MAX_AGE_SEC,
+  createApiToken,
   createSession,
   deleteSessionByRawToken,
   getUserFromSessionToken,
   hashPassword,
   isValidEmail,
+  listApiTokens,
+  revokeApiToken,
   verifyPassword,
 } from "../services/auth.service";
 import {
@@ -137,4 +140,46 @@ export async function authMeHandler(req: FastifyRequest, reply: FastifyReply): P
     return;
   }
   reply.code(200).send({ authenticated: true, user });
+}
+
+export async function listApiTokensHandler(req: FastifyRequest, reply: FastifyReply): Promise<void> {
+  const authed = req as FastifyRequest & { authUser?: { id: string; email: string } };
+  if (!authed.authUser) {
+    reply.code(401).send({ error: "Unauthorized", message: "Sign in required" });
+    return;
+  }
+  const tokens = await listApiTokens(authed.authUser.id);
+  reply.code(200).send({ tokens });
+}
+
+export async function createApiTokenHandler(
+  req: FastifyRequest<{ Body: { name: string } }>,
+  reply: FastifyReply
+): Promise<void> {
+  const authed = req as FastifyRequest & { authUser?: { id: string; email: string } };
+  if (!authed.authUser) {
+    reply.code(401).send({ error: "Unauthorized", message: "Sign in required" });
+    return;
+  }
+  const name = typeof req.body?.name === "string" ? req.body.name.trim() : "";
+  if (!name) {
+    reply.code(400).send({ error: "ValidationError", message: "Token name is required" });
+    return;
+  }
+  const token = await createApiToken(authed.authUser.id, name);
+  reply.code(201).send({ token });
+}
+
+export async function revokeApiTokenHandler(
+  req: FastifyRequest<{ Params: { id: string } }>,
+  reply: FastifyReply
+): Promise<void> {
+  const authed = req as FastifyRequest & { authUser?: { id: string; email: string } };
+  if (!authed.authUser) {
+    reply.code(401).send({ error: "Unauthorized", message: "Sign in required" });
+    return;
+  }
+  const { id } = req.params;
+  await revokeApiToken(authed.authUser.id, id);
+  reply.code(200).send({ ok: true });
 }

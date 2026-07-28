@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  getEngineHealth,
   getPreflight,
   getServerDashboard,
+  type EngineHealthReport,
   type PreflightReport,
   type SystemDashboardResponse,
   type ServerStats,
@@ -36,6 +38,7 @@ export function SystemHealth() {
   const [preflight, setPreflight] = useState<PreflightReport | null>(null);
   const [preflightBusy, setPreflightBusy] = useState(false);
   const [dashboard, setDashboard] = useState<SystemDashboardResponse | null>(null);
+  const [engineHealth, setEngineHealth] = useState<EngineHealthReport | null>(null);
   const { history, push } = useServerMetricHistory();
 
   const loadPreflight = useCallback(async () => {
@@ -58,9 +61,10 @@ export function SystemHealth() {
     let cancelled = false;
     const load = async () => {
       try {
-        const d = await getServerDashboard();
+        const [d, eh] = await Promise.all([getServerDashboard(), getEngineHealth().catch(() => null)]);
         if (!cancelled) {
           setDashboard(d);
+          if (eh) setEngineHealth(eh);
           push(d.system_stats as ServerStats);
         }
       } catch {
@@ -140,6 +144,52 @@ export function SystemHealth() {
           percent={Math.min(100, ((sentRate + recvRate) / (1024 * 1024)) * 15)}
         />
       </section>
+
+      {engineHealth ? (
+        <Card className="border-border bg-card">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <CardTitle className="text-base">Background Engine State & Health</CardTitle>
+                <Badge
+                  variant={engineHealth.status === "ok" ? "default" : engineHealth.status === "degraded" ? "secondary" : "destructive"}
+                  className="font-mono text-xs uppercase"
+                >
+                  {engineHealth.status}
+                </Badge>
+              </div>
+              <span className="text-[11px] text-muted-foreground">
+                Native Monitoring Service Active
+              </span>
+            </div>
+            <CardDescription className="text-xs">
+              Continuous background monitor inspecting control plane database latency, container lifecycles, and system thresholds.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 sm:grid-cols-3 text-xs font-mono">
+              <div className="rounded-md border border-border p-3 space-y-1">
+                <span className="text-muted-foreground uppercase text-[10px]">Database</span>
+                <p className="text-sm font-semibold text-foreground">
+                  {engineHealth.database.connected ? `Connected (${engineHealth.database.latencyMs}ms)` : "Disconnected"}
+                </p>
+              </div>
+              <div className="rounded-md border border-border p-3 space-y-1">
+                <span className="text-muted-foreground uppercase text-[10px]">Redis Pub/Sub</span>
+                <p className="text-sm font-semibold text-foreground">
+                  {engineHealth.redis.connected ? "Active & Healthy" : "Standalone mode"}
+                </p>
+              </div>
+              <div className="rounded-md border border-border p-3 space-y-1">
+                <span className="text-muted-foreground uppercase text-[10px]">Active Containers</span>
+                <p className="text-sm font-semibold text-foreground">
+                  {engineHealth.containers.healthyCount} / {engineHealth.containers.totalActive} Healthy
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
 
       {/* Preflight (mock-style columns) */}
       <section className="space-y-3">

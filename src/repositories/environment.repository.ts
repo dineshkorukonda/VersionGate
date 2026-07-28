@@ -97,4 +97,14 @@ export class EnvironmentRepository {
 
     return result.length;
   }
+
+  async updateEnv(id: string, env: Record<string, string>): Promise<EnvironmentSelect | null> {
+    const db = getDb();
+    const [updated] = await db
+      .update(environments)
+      .set({ env, updatedAt: new Date() })
+      .where(eq(environments.id, id))
+      .returning();
+    return updated ?? null;
+  }
 }

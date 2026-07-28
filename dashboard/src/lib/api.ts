@@ -121,6 +121,7 @@ export interface EnvironmentSummary {
   branch: string;
   basePort: number;
   appPort: number;
+  env?: Record<string, string>;
   activeDeployment: {
     id: string;
     version: number;
@@ -204,6 +205,14 @@ export function listEnvironments(projectId: string): Promise<{ environments: Env
   return request("GET", `/projects/${projectId}/environments`);
 }
 
+export function patchEnvironmentEnv(
+  projectId: string,
+  envId: string,
+  env: Record<string, string>
+): Promise<{ environment: EnvironmentSummary }> {
+  return request("PATCH", `/projects/${projectId}/environments/${envId}/env`, { env });
+}
+
 export const getProjectEnvironments = listEnvironments;
 
 export function rollback(projectId: string): Promise<{ jobId: string; status: string; environmentId?: string }> {
@@ -283,6 +292,21 @@ export function getServerDashboard(): Promise<SystemDashboardResponse> {
   return request("GET", "/system/server-dashboard");
 }
 
+export interface EngineHealthReport {
+  status: "ok" | "degraded" | "error";
+  timestamp: string;
+  uptime: number;
+  database: { connected: boolean; latencyMs: number };
+  redis: { connected: boolean; available: boolean };
+  containers: { totalActive: number; healthyCount: number; failedCount: number };
+  system: { cpuPercent: number; memoryPercent: number; diskPercent: number };
+  alerts: Array<{ id: string; type: string; message: string; severity: "low" | "medium" | "high" }>;
+}
+
+export function getEngineHealth(): Promise<EngineHealthReport> {
+  return request("GET", "/system/engine-health");
+}
+
 export interface SetupStatus {
   configured: boolean;
   dbConnected: boolean;
@@ -319,6 +343,26 @@ export function authLogin(body: { email: string; password: string }): Promise<{ 
 
 export function authLogout(): Promise<{ ok: boolean }> {
   return request("POST", "/auth/logout");
+}
+
+export interface ApiTokenItem {
+  id: string;
+  name: string;
+  tokenPrefix: string;
+  lastUsedAt: string | null;
+  createdAt: string;
+}
+
+export function getApiTokens(): Promise<{ tokens: ApiTokenItem[] }> {
+  return request("GET", "/auth/tokens");
+}
+
+export function createApiToken(name: string): Promise<{ token: { id: string; name: string; token: string; tokenPrefix: string; createdAt: string } }> {
+  return request("POST", "/auth/tokens", { name });
+}
+
+export function revokeApiToken(id: string): Promise<{ ok: boolean }> {
+  return request("DELETE", `/auth/tokens/${id}`);
 }
 
 export interface InstanceSettings {

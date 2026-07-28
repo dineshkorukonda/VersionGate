@@ -9,7 +9,7 @@ import {
   updateProjectEnvHandler,
   generatePipelineHandler,
 } from "../controllers/project.controller";
-import { listEnvironmentsHandler } from "../controllers/environment.controller";
+import { listEnvironmentsHandler, updateEnvironmentEnvHandler } from "../controllers/environment.controller";
 import { promoteEnvironmentHandler } from "../controllers/promote.controller";
 
 const envSchema = {
@@ -101,6 +101,13 @@ export async function projectRoutes(app: FastifyInstance): Promise<void> {
       },
     },
     handler: listEnvironmentsHandler,
+  });
+
+  app.patch("/projects/:id/environments/:envId/env", {
+    schema: {
+      body: updateEnvBodySchema,
+    },
+    handler: updateEnvironmentEnvHandler,
   });
 
   app.get("/projects/:id", {

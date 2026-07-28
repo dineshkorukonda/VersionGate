@@ -1,0 +1,123 @@
+import { useState } from "react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { patchEnvironmentEnv, type EnvironmentSummary } from "@/lib/api";
+import { toast } from "sonner";
+
+interface EnvironmentEnvModalProps {
+  projectId: string;
+  environment: EnvironmentSummary | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onRefresh: () => Promise<void>;
+}
+
+export function EnvironmentEnvModal({
+  projectId,
+  environment,
+  open,
+  onOpenChange,
+  onRefresh,
+}: EnvironmentEnvModalProps) {
+  const [envPairs, setEnvPairs] = useState<Array<{ key: string; value: string }>>(() => {
+    if (!environment?.env) return [{ key: "", value: "" }];
+    const entries = Object.entries(environment.env);
+    return entries.length > 0 ? entries.map(([key, value]) => ({ key, value })) : [{ key: "", value: "" }];
+  });
+  const [saving, setSaving] = useState(false);
+
+  if (!environment) return null;
+
+  const handleAddPair = () => {
+    setEnvPairs([...envPairs, { key: "", value: "" }]);
+  };
+
+  const handleRemovePair = (index: number) => {
+    setEnvPairs(envPairs.filter((_, i) => i !== index));
+  };
+
+  const handlePairChange = (index: number, field: "key" | "value", val: string) => {
+    const next = [...envPairs];
+    next[index][field] = val;
+    setEnvPairs(next);
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const obj: Record<string, string> = {};
+      for (const pair of envPairs) {
+        const k = pair.key.trim();
+        if (k) {
+          obj[k] = pair.value;
+        }
+      }
+      await patchEnvironmentEnv(projectId, environment.id, obj);
+      toast.success(`Environment variables updated for ${environment.name}`);
+      await onRefresh();
+      onOpenChange(false);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to save environment variables");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[540px]">
+        <DialogHeader>
+          <DialogTitle className="font-mono text-sm uppercase tracking-wide">
+            Stage Env Vars — {environment.name}
+          </DialogTitle>
+          <DialogDescription className="text-xs">
+            Environment variables set here will override global project defaults when deploying to the{" "}
+            <span className="font-semibold text-foreground">{environment.name}</span> stage.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-3 py-2 max-h-[300px] overflow-y-auto pr-1">
+          {envPairs.map((pair, idx) => (
+            <div key={idx} className="flex items-center gap-2">
+              <Input
+                placeholder="KEY (e.g. NODE_ENV)"
+                value={pair.key}
+                onChange={(e) => handlePairChange(idx, "key", e.target.value)}
+                className="font-mono text-xs uppercase"
+              />
+              <Input
+                placeholder="VALUE (e.g. staging)"
+                value={pair.value}
+                onChange={(e) => handlePairChange(idx, "value", e.target.value)}
+                className="font-mono text-xs"
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-9 px-2 text-destructive"
+                onClick={() => handleRemovePair(idx)}
+              >
+                ✕
+              </Button>
+            </div>
+          ))}
+
+          <Button type="button" variant="outline" size="sm" onClick={handleAddPair} className="w-full text-xs">
+            + Add Variable
+          </Button>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" type="button" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button type="button" disabled={saving} onClick={() => void handleSave()}>
+            {saving ? "Saving…" : "Save Variables"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}

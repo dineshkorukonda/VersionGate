@@ -9,6 +9,8 @@ import { registerAfterSetup } from "./services/post-setup-hooks.service";
 import { systemMetrics } from "./controllers/system.controller";
 import { kickSelfUpdatePoll, stopSelfUpdatePoll } from "./services/self-update-poll.service";
 
+import { engineHealthMonitor } from "./services/engine-monitor.service";
+
 function databaseUrlLive(): string {
   return process.env.DATABASE_URL?.trim() ?? "";
 }
@@ -20,6 +22,7 @@ async function start(): Promise<void> {
   registerAfterSetup(() => {
     if (!databaseUrlLive()) return;
     monitor.start();
+    engineHealthMonitor.start();
     void (async () => {
       try {
         const reconciliation = new ReconciliationService();
@@ -36,6 +39,7 @@ async function start(): Promise<void> {
     logger.info({ signal }, "Shutting down");
     stopSelfUpdatePoll();
     systemMetrics.stop();
+    engineHealthMonitor.stop();
     monitor.stop();
     await app.close();
     await disconnectDb();
@@ -101,6 +105,7 @@ async function start(): Promise<void> {
 
     if (databaseUrlLive()) {
       monitor.start();
+      engineHealthMonitor.start();
     } else {
       logger.warn("DATABASE_URL not set — container monitor disabled until database is configured");
     }

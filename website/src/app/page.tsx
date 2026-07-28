@@ -94,15 +94,47 @@ const GET_STARTED_STEPS = [
   },
 ] as const;
 
+const LATEST_UPDATES = [
+  {
+    version: "v1.4",
+    tag: "ROUTING",
+    badge: "NEW",
+    title: "Stage Path Reverse Proxy",
+    text: "Access your app environments over clean, path-based stage URLs (/p/project-name/staging) routed dynamically through Nginx without raw ports.",
+  },
+  {
+    version: "v1.4",
+    tag: "AUTH & CI/CD",
+    badge: "NEW",
+    title: "Bearer API Access Tokens",
+    text: "Generate secure, persistent vg_live_... API Bearer tokens with SHA-256 token hashing for GitHub Actions, GitLab CI, and external automation scripts.",
+  },
+  {
+    version: "v1.4",
+    tag: "CONFIG",
+    badge: "NEW",
+    title: "Per-Environment Env Overrides",
+    text: "Configure stage-specific environment variables for development, staging, and production that seamlessly override global project defaults during container startup.",
+  },
+  {
+    version: "v1.4",
+    tag: "MONITORING",
+    badge: "NEW",
+    title: "Native Engine Background Health Monitor",
+    text: "Built-in continuous monitoring thread inspecting database latency, Redis pub/sub state, container lifecycles, and system resource alerts.",
+  },
+] as const;
+
 const TERMINAL_LINES = [
   { text: "$ versiongate preflight", cls: "text-foreground" },
   { text: "[✔] docker daemon reachable", cls: "text-emerald-400" },
-  { text: "[✔] postgres connected", cls: "text-emerald-400" },
-  { text: "[✔] nginx config writable", cls: "text-emerald-400" },
-  { text: "$ versiongate deploy api-backend", cls: "text-foreground" },
-  { text: "[INFO] building slot green…", cls: "text-muted-foreground" },
-  { text: "[INFO] health check passed :3101", cls: "text-emerald-400" },
-  { text: "[INFO] traffic switched — zero downtime", cls: "text-emerald-400" },
+  { text: "[✔] postgres & redis connected", cls: "text-emerald-400" },
+  { text: "$ versiongate token create --name github-ci", cls: "text-foreground" },
+  { text: "[✔] generated Bearer token: vg_live_8f3a9e...", cls: "text-emerald-400" },
+  { text: "$ versiongate deploy api-backend --stage staging", cls: "text-foreground" },
+  { text: "[INFO] injecting per-environment stage env vars…", cls: "text-muted-foreground" },
+  { text: "[INFO] health check passed :3101 (/p/api-backend/staging)", cls: "text-emerald-400" },
+  { text: "[INFO] stage path active — zero downtime", cls: "text-emerald-400" },
 ] as const;
 
 export default function Home() {
@@ -180,6 +212,52 @@ export default function Home() {
               <p className="mt-2 text-2xl font-bold tabular-nums">{s.value}</p>
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* Latest Engine Updates Section */}
+      <section id="updates" className="border-b border-border bg-card/50 py-20">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6">
+          <div className="mb-12 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+            <div>
+              <div className="mb-2 inline-flex items-center gap-2 border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-0.5 font-mono text-[10px] uppercase text-emerald-400">
+                <span>Release v1.4 Highlights</span>
+              </div>
+              <h2 className="text-2xl font-bold uppercase tracking-tight sm:text-3xl">Latest Engine Features</h2>
+              <p className="mt-2 font-mono text-xs uppercase tracking-wider text-muted-foreground">
+                Recent architecture additions & platform updates
+              </p>
+            </div>
+            <span className="font-mono text-xs text-muted-foreground">Updated July 2026</span>
+          </div>
+
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {LATEST_UPDATES.map((u) => (
+              <div
+                key={u.title}
+                className="group relative flex flex-col justify-between border border-border bg-card p-6 transition-all duration-200 hover:border-foreground/40 hover:bg-card/80"
+              >
+                <div>
+                  <div className="mb-4 flex items-center justify-between">
+                    <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                      {u.tag}
+                    </span>
+                    <span className="rounded bg-emerald-500/20 px-2 py-0.5 font-mono text-[9px] font-semibold uppercase text-emerald-400 border border-emerald-500/30">
+                      {u.badge}
+                    </span>
+                  </div>
+                  <h3 className="mb-2 font-mono text-sm font-bold uppercase tracking-wider text-foreground group-hover:text-primary">
+                    {u.title}
+                  </h3>
+                  <p className="text-xs leading-relaxed text-muted-foreground">{u.text}</p>
+                </div>
+                <div className="mt-6 border-t border-border/60 pt-3 flex items-center justify-between font-mono text-[10px] text-muted-foreground">
+                  <span>Engine {u.version}</span>
+                  <span className="text-foreground/80">Available now</span>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 

@@ -46,6 +46,7 @@ export async function listEnvironmentsHandler(
       branch: e.branch,
       basePort: e.basePort,
       appPort: e.appPort,
+      env: (e as typeof e & { env?: Record<string, string> }).env ?? {},
       activeDeployment: active
         ? {
             id: active.id,
@@ -60,4 +61,24 @@ export async function listEnvironmentsHandler(
   }
 
   reply.code(200).send({ environments });
+}
+
+export async function updateEnvironmentEnvHandler(
+  req: FastifyRequest<{ Params: { id: string; envId: string }; Body: { env: Record<string, string> } }>,
+  reply: FastifyReply
+): Promise<void> {
+  const { id: projectId, envId } = req.params;
+  const project = await projectRepo.findById(projectId);
+  if (!project) {
+    return reply.code(404).send({ error: "NotFound", message: "Project not found" });
+  }
+
+  const envRow = await envRepo.findById(envId);
+  if (!envRow || envRow.projectId !== projectId) {
+    return reply.code(404).send({ error: "NotFound", message: "Environment not found" });
+  }
+
+  const newEnv = req.body?.env ?? {};
+  const updated = await envRepo.updateEnv(envId, newEnv);
+  reply.code(200).send({ environment: updated });
 }
