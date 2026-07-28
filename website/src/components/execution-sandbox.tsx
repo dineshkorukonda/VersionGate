@@ -2,162 +2,122 @@
 
 import { useState } from "react";
 
-export interface SandboxScenario {
-  id: string;
-  name: string;
-  command: string;
-  description: string;
-  payload: Record<string, unknown>;
-  logs: string[];
-}
-
-const SCENARIOS: SandboxScenario[] = [
-  {
-    id: "deploy-zero",
-    name: "Zero-Downtime Blue/Green Deploy",
-    command: "versiongate deploy --project api-service --env production",
-    description: "Compiles Docker container in idle green slot, runs health check on port 3101, then rewrites Nginx upstream atomically.",
-    payload: {
-      jobId: "job_99f8a12",
-      project: "api-service",
-      environment: "production",
-      targetPort: 3101,
-      healthCheck: "http://127.0.0.1:3101/health (200 OK)",
-      upstreamStatus: "REWRITTEN",
-      downtimeMs: 0,
-    },
-    logs: [
-      "[ INFO ] Enqueued deployment job #job_99f8a12 for project: api-service",
-      "[ INFO ] Target environment: production (App Port: 8080 -> Host Port: 3101)",
-      "[ INFO ] Building Docker image versiongate-api-service:v14...",
-      "[ INFO ] Container api-service_green started successfully on host port 3101",
-      "[ OK ] Validation check PASS http://127.0.0.1:3101/health (200 OK in 18ms)",
-      "[ OK ] Nginx upstream configuration updated: /p/api-service/production -> 127.0.0.1:3101",
-      "[ OK ] Stopped legacy container api-service_blue on host port 3100",
-      "[ OK ] Deployment v14 completed cleanly in 38.4s with 0 ms downtime!",
-    ],
-  },
-  {
-    id: "warm-swap",
-    name: "Instant Warm-Swap Rollback",
-    command: "versiongate rollback --project api-service --env production",
-    description: "Sub-second rollback reusing locally cached Docker image versiongate-api-service:v13.",
-    payload: {
-      jobId: "job_77b31c9",
-      project: "api-service",
-      rolledBackFrom: "v14",
-      restoredTo: "v13",
-      imageSource: "LOCAL_DOCKER_CACHE",
-      warmSwapDurationMs: 1420,
-      status: "COMPLETED",
-    },
-    logs: [
-      "[ INFO ] Initiating rollback for project api-service, env production",
-      "[ INFO ] Rollback target: v14 -> v13",
-      "[ WARM-SWAP ] Detected cached Docker image: versiongate-api-service:v13",
-      "[ WARM-SWAP ] Spinning up instant warm container api-service_blue on port 3100...",
-      "[ OK ] Validation check PASS http://127.0.0.1:3100/health (200 OK in 12ms)",
-      "[ OK ] Traffic switched to port 3100 in 1.4 seconds",
-      "[ OK ] Rollback completed instantly! Zero Downtime.",
-    ],
-  },
-  {
-    id: "api-token-gen",
-    name: "Bearer Token Generation & CI Trigger",
-    command: "versiongate tokens create --name 'GitHub Actions Pipeline'",
-    description: "Generates a persistent vg_live_... Bearer token and triggers a headless API deployment.",
-    payload: {
-      tokenId: "tok_8f3a9e",
-      name: "GitHub Actions Pipeline",
-      tokenPrefix: "vg_live_8f3a",
-      bearerHeader: "Authorization: Bearer vg_live_8f3a9e421c7d...",
-      expiresAt: null,
-      createdAt: "2026-07-29T00:30:00Z",
-    },
-    logs: [
-      "$ curl -X POST https://my-server.com/api/v1/auth/tokens \\",
-      "    -H 'Cookie: session=...' -d '{\"name\":\"GitHub Actions Pipeline\"}'",
-      "[ OK ] Token generated: vg_live_8f3a9e421c7d9a30b42f1...",
-      "$ curl -X POST https://my-server.com/api/v1/deploy \\",
-      "    -H 'Authorization: Bearer vg_live_8f3a9e421c7d...' \\",
-      "    -d '{\"projectId\":\"proj_123\",\"environmentId\":\"env_prod\"}'",
-      "HTTP/1.1 202 Accepted",
-      "{\"jobId\":\"job_99a8\",\"status\":\"QUEUED\",\"message\":\"Deployment enqueued\"}",
-    ],
-  },
-];
+export type Scenario = "deploy" | "rollback" | "tokens";
 
 export function ExecutionSandbox() {
-  const [activeId, setActiveId] = useState<string>("deploy-zero");
-  const scenario = SCENARIOS.find((s) => s.id === activeId) ?? SCENARIOS[0];
+  const [activeScenario, setActiveScenario] = useState<Scenario>("deploy");
+
+  const scenarios: Record<Scenario, { title: string; logs: string[]; jsonResponse: object }> = {
+    deploy: {
+      title: "Blue/Green Zero-Downtime Deployment",
+      logs: [
+        "[ INFO ] Job #4912 enqueued (Project: web-app, Environment: production)",
+        "[ INFO ] Inspecting container slots: BLUE (:3100) ACTIVE | GREEN (:3101) IDLE",
+        "[ INFO ] Building image tag versiongate-web-app:v14 from git commit 8f92a1c...",
+        "[ INFO ] Launching target container slot GREEN on host port 3101",
+        "[ OK ] Health check passed: http://127.0.0.1:3101/health returned 200 OK in 14ms",
+        "[ OK ] Atomically reloaded Nginx upstream config versiongate_web-app -> 127.0.0.1:3101",
+        "[ INFO ] Decommissioned legacy container slot BLUE (:3100)",
+        "[ OK ] Deployment completed with 0 ms downtime.",
+      ],
+      jsonResponse: {
+        status: "SUCCESS",
+        jobId: "job_4912",
+        project: "web-app",
+        environment: "production",
+        slot: "GREEN",
+        port: 3101,
+        durationMs: 1420,
+        healthCheck: { status: 200, latencyMs: 14 },
+      },
+    },
+    rollback: {
+      title: "Sub-Second Warm-Swap Rollback",
+      logs: [
+        "[ INFO ] Rollback job #4913 initiated -> targeting previous commit 3a1f8b",
+        "[ OK ] Local Docker image cache hit: versiongate-web-app:v13 exists",
+        "[ WARN-SWAP ] Skipping git clone and container build compilation",
+        "[ INFO ] Starting cached container on slot BLUE (:3100)",
+        "[ OK ] Health check passed: http://127.0.0.1:3100/health returned 200 OK in 8ms",
+        "[ OK ] Reloaded Nginx upstream -> 127.0.0.1:3100",
+        "[ OK ] Warm-swap rollback completed in 1.48s.",
+      ],
+      jsonResponse: {
+        status: "SUCCESS",
+        jobId: "job_4913",
+        mode: "WARM_SWAP",
+        imageTag: "versiongate-web-app:v13",
+        slot: "BLUE",
+        port: 3100,
+        durationMs: 1480,
+      },
+    },
+    tokens: {
+      title: "Bearer Token Generation & Verification",
+      logs: [
+        "[ REQUEST ] POST /api/v1/auth/tokens (Name: GitHub Actions CI)",
+        "[ INFO ] Generated SHA-256 token hash: vg_live_8f92a1c4b7e6d5a3...",
+        "[ OK ] Token registered successfully with scopes: ['deploy:write', 'project:read']",
+        "[ REQUEST ] POST /api/v1/deploy -H 'Authorization: Bearer vg_live_8f92a1c...'",
+        "[ OK ] Token authenticated successfully for user: dineshkorukonda",
+      ],
+      jsonResponse: {
+        status: "OK",
+        token: "vg_live_8f92a1c4b7e6d5a3...",
+        createdAt: new Date().toISOString(),
+        scopes: ["deploy:write", "project:read"],
+      },
+    },
+  };
+
+  const current = scenarios[activeScenario];
 
   return (
-    <div className="rounded border border-zinc-800 bg-[#050506] shadow-2xl overflow-hidden">
-      {/* Sandbox Header */}
-      <div className="flex flex-wrap items-center justify-between border-b border-zinc-800 px-4 py-3 bg-[#0a0a0c] gap-3">
-        <div className="flex items-center gap-3">
-          <span className="font-mono text-xs text-zinc-500">///</span>
-          <span className="font-mono text-xs font-bold text-white uppercase tracking-wider">
-            Interactive Engine Sandbox
-          </span>
-        </div>
-        <div className="flex items-center gap-2">
-          {SCENARIOS.map((s) => (
-            <button
-              key={s.id}
-              onClick={() => setActiveId(s.id)}
-              className={`px-3 py-1 font-mono text-xs rounded transition ${
-                activeId === s.id
-                  ? "bg-white text-black font-bold"
-                  : "bg-zinc-900 text-zinc-400 border border-zinc-800 hover:text-white"
-              }`}
-            >
-              {s.name}
-            </button>
-          ))}
-        </div>
+    <div className="space-y-4">
+      {/* Scenario Selector Tabs */}
+      <div className="flex flex-wrap items-center gap-2 border-b border-border pb-3">
+        {(Object.keys(scenarios) as Scenario[]).map((key) => (
+          <button
+            key={key}
+            onClick={() => setActiveScenario(key)}
+            className={`px-3 py-1.5 font-mono text-xs rounded-md transition ${
+              activeScenario === key
+                ? "bg-primary text-primary-foreground font-semibold"
+                : "bg-muted text-muted-foreground border border-border hover:text-foreground"
+            }`}
+          >
+            {key.toUpperCase()}
+          </button>
+        ))}
       </div>
 
-      {/* Description & CLI Command Box */}
-      <div className="p-4 border-b border-zinc-800 bg-black/60 space-y-2">
-        <p className="font-mono text-xs text-zinc-400">{scenario.description}</p>
-        <div className="p-3 bg-[#0a0a0c] border border-zinc-800 font-mono text-xs text-emerald-400 rounded">
-          $ {scenario.command}
-        </div>
-      </div>
-
-      {/* Output Grid */}
-      <div className="grid lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x divide-zinc-800">
-        {/* Execution Logs */}
-        <div className="p-4 space-y-2 font-mono text-xs leading-relaxed bg-[#050506]">
-          <div className="text-[10px] text-zinc-500 uppercase tracking-wider border-b border-zinc-900 pb-1 mb-2">
-            Execution Log Output Stream
+      {/* Terminal Sandbox Display */}
+      <div className="grid gap-4 lg:grid-cols-2">
+        {/* Terminal Log Stream */}
+        <div className="rounded-lg border border-border bg-card p-4 space-y-3 shadow-sm">
+          <div className="flex items-center justify-between border-b border-border pb-2">
+            <span className="font-mono text-xs font-semibold text-foreground">{current.title}</span>
+            <span className="font-mono text-[10px] text-muted-foreground">[ Real-time Stream ]</span>
           </div>
-          {scenario.logs.map((log, idx) => (
-            <div
-              key={idx}
-              className={
-                log.includes("[ OK ]")
-                  ? "text-emerald-400 font-semibold"
-                  : log.includes("[ WARM-SWAP ]")
-                  ? "text-sky-300 font-semibold"
-                  : log.includes("[ INFO ]")
-                  ? "text-zinc-300"
-                  : "text-zinc-400"
-              }
-            >
-              {log}
-            </div>
-          ))}
+
+          <div className="font-mono text-xs space-y-2 p-3 bg-muted rounded-md border border-border overflow-x-auto min-h-[220px]">
+            {current.logs.map((line, idx) => (
+              <div key={idx} className="text-foreground leading-relaxed">
+                {line}
+              </div>
+            ))}
+          </div>
         </div>
 
-        {/* JSON Payload Response */}
-        <div className="p-4 space-y-2 font-mono text-xs bg-[#0a0a0c]">
-          <div className="text-[10px] text-zinc-500 uppercase tracking-wider border-b border-zinc-900 pb-1 mb-2">
-            JSON Telemetry Payload Response
+        {/* JSON Telemetry Response */}
+        <div className="rounded-lg border border-border bg-card p-4 space-y-3 shadow-sm">
+          <div className="flex items-center justify-between border-b border-border pb-2">
+            <span className="font-mono text-xs font-semibold text-foreground">API Telemetry Payload</span>
+            <span className="font-mono text-[10px] text-muted-foreground">[ 200 OK ]</span>
           </div>
-          <pre className="overflow-x-auto text-zinc-300 leading-relaxed">
-            {JSON.stringify(scenario.payload, null, 2)}
+
+          <pre className="p-3 bg-muted border border-border font-mono text-xs text-foreground rounded-md overflow-x-auto min-h-[220px]">
+            {JSON.stringify(current.jsonResponse, null, 2)}
           </pre>
         </div>
       </div>
