@@ -1,201 +1,300 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 
-const GITHUB_REPO = "https://github.com/dinexh/VersionGate";
+const GITHUB_REPO = "https://github.com/dineshkorukonda/VersionGate";
 
 const STATS = [
-  { label: "Deploy Speed", value: "< 90s" },
-  { label: "Uptime SLA", value: "99.9%" },
-  { label: "Zero Downtime", value: "Blue/Green" },
-  { label: "Self-Hosted", value: "MIT" },
+  { label: "Warm-Swap Rollback", value: "< 2 sec", note: "Instant cached image swap" },
+  { label: "Traffic Downtime", value: "0 ms", note: "Atomic Nginx upstream rewrite" },
+  { label: "Zero-Downtime Architecture", value: "Blue / Green", note: "Isolated published port slots" },
+  { label: "Self-Hosted Control", value: "100% MIT", note: "Your VPS, your data & secrets" },
+] as const;
+
+const RELEASE_HIGHLIGHTS = [
+  {
+    version: "v1.4",
+    tag: "REVERSE PROXY ROUTING",
+    badge: "NEW",
+    title: "Stage Path Proxy Routing",
+    text: "Expose development, staging, and production environments over clean path-based URLs (/p/my-app/staging) routed dynamically through Nginx without raw ports.",
+    icon: "🔀",
+  },
+  {
+    version: "v1.4",
+    tag: "CI/CD AUTHENTICATION",
+    badge: "NEW",
+    title: "Bearer API Access Tokens",
+    text: "Generate secure vg_live_... API Bearer tokens with SHA-256 token hashing for GitHub Actions, GitLab CI, and external automation scripts.",
+    icon: "🔑",
+  },
+  {
+    version: "v1.4",
+    tag: "STAGE CONFIGURATION",
+    badge: "NEW",
+    title: "Per-Environment Variable Overrides",
+    text: "Configure stage-specific environment variables for development, staging, and production that seamlessly override global project defaults.",
+    icon: "⚙️",
+  },
+  {
+    version: "v1.4",
+    tag: "BACKGROUND ENGINE",
+    badge: "NEW",
+    title: "Native Engine Background Health Monitor",
+    text: "Continuous background thread inspecting PostgreSQL database latency, Redis pub/sub state, container lifecycles, and system threshold alerts.",
+    icon: "📡",
+  },
 ] as const;
 
 const FEATURES = [
   {
-    mod: "MOD_01",
-    title: "Zero-Downtime Deploys",
-    text: "Blue-green slot swaps with health checks before traffic moves. Nginx upstream rewrites keep users on one URL.",
+    mod: "01",
+    title: "Blue-Green Zero Downtime",
+    text: "Every deployment builds in an isolated idle slot. Traffic switches atomically via Nginx upstream reload only after health checks pass.",
   },
   {
-    mod: "MOD_02",
-    title: "Git-Backed Workflow",
-    text: "Connect the GitHub App, pick a repo and branch, and every push auto-deploys with signed webhooks.",
+    mod: "02",
+    title: "Instant Warm-Swap Rollback",
+    text: "Rollback instantly to previous deployments using cached Docker images without re-pulling or rebuilding context. Rollbacks complete in under 2s.",
   },
   {
-    mod: "MOD_03",
-    title: "Self-Hosted Control",
-    text: "Your VPS, your data. Postgres state, Docker containers, and encrypted secrets never leave your server.",
+    mod: "03",
+    title: "Git-Backed CI/CD Workflow",
+    text: "Signed GitHub webhooks trigger automated container builds on push. Access token support allows seamless integration into GitHub Actions.",
   },
   {
-    mod: "MOD_04",
-    title: "Environment Promotion",
-    text: "Dev → staging → production chain. Promote upstream images without rebuilding on each stage.",
+    mod: "04",
+    title: "Environment Promotion Chain",
+    text: "Dev → Staging → Production pipeline. Build once on the first stage, then promote identical Docker images upstream without rebuilding.",
+  },
+  {
+    mod: "05",
+    title: "Stage Path Reverse Proxy",
+    text: "Nginx reverse proxy maps /p/:projectName/:stage to published Docker container ports cleanly without exposing raw host ports.",
+  },
+  {
+    mod: "06",
+    title: "Native Health & Monitoring",
+    text: "Continuous background state engine audits database latency, Redis pub/sub locks, container health status, and system resource alerts.",
   },
 ] as const;
 
-const COMPONENTS = [
+const PAAS_COMPARISON = [
   {
-    tag: "API",
-    title: "Fastify Engine",
-    text: "REST API on :9090. Handles projects, deploy triggers, webhooks, setup wizard, and serves the built dashboard as static files.",
+    feature: "Zero Downtime Blue/Green",
+    versionGate: "Built-in (Atomic Nginx)",
+    cloudPaaS: "Paid addon / Enterprise",
+    traditionalVPS: "Manual shell scripts",
   },
   {
-    tag: "Worker",
-    title: "Job Queue",
-    text: "Background worker runs build/deploy/rollback jobs. Streams live logs to the dashboard over WebSockets.",
+    feature: "Infrastructure Cost",
+    versionGate: "Your VPS ($5 - $20/mo)",
+    cloudPaaS: "$50 - $500+/mo (Per Seat)",
+    traditionalVPS: "Your VPS ($5 - $20/mo)",
   },
   {
-    tag: "DB",
-    title: "PostgreSQL + Prisma",
-    text: "Source of truth for projects, deployments, environments, jobs, and encrypted env vars. Crash-safe state markers.",
+    feature: "Deployment Speed",
+    versionGate: "< 90s (Build) / < 2s (Warm Swap)",
+    cloudPaaS: "2 - 5 minutes",
+    traditionalVPS: "Manual / Slow SSH",
   },
   {
-    tag: "Runtime",
-    title: "Docker + Nginx",
-    text: "Docker CLI builds and runs containers on blue/green slots. Nginx upstream rewrites switch traffic atomically.",
+    feature: "Data & Secrets Security",
+    versionGate: "100% On-Prem / Local Postgres",
+    cloudPaaS: "Stored on vendor cloud",
+    traditionalVPS: "On-Prem",
+  },
+  {
+    feature: "CI/CD & API Automation",
+    versionGate: "Bearer Tokens + Webhooks",
+    cloudPaaS: "Vendor CLI / API",
+    traditionalVPS: "Complex SSH keys",
   },
 ] as const;
 
-const PIPELINE_STEPS = [
-  { step: "01", label: "Acquire lock", detail: "409 if a deploy is already running for this project" },
-  { step: "02", label: "Git clone / pull", detail: "Fetch the configured branch into the project workspace" },
-  { step: "03", label: "Pick idle slot", detail: "ACTIVE=BLUE → deploy GREEN on basePort+1, and vice versa" },
-  { step: "04", label: "Docker build & run", detail: "Image tagged versiongate-<name>:<timestamp>, container on idle port" },
-  { step: "05", label: "Health check", detail: "GET :port/health with retries — traffic only moves on PASS" },
-  { step: "06", label: "Traffic switch", detail: "Nginx upstream rewrite + reload; old slot marked ROLLED_BACK" },
-] as const;
+const TERMINAL_TABS = [
+  {
+    id: "deploy",
+    label: "Deploy Pipeline",
+    lines: [
+      { text: "$ versiongate deploy --project api-backend --branch main", cls: "text-foreground font-semibold" },
+      { text: "[INFO] Enqueued deployment job #d89f2a (project: api-backend)", cls: "text-muted-foreground" },
+      { text: "[INFO] Building Docker image versiongate-api-backend:172200142...", cls: "text-sky-400" },
+      { text: "[INFO] Starting container api-backend_green on host port 3101", cls: "text-sky-400" },
+      { text: "[INFO] Health check PASS http://127.0.0.1:3101/health (200 OK)", cls: "text-emerald-400 font-semibold" },
+      { text: "[INFO] Atomic Nginx upstream rewrite: /p/api-backend/production → :3101", cls: "text-emerald-400 font-semibold" },
+      { text: "[SUCCESS] Deployment v14 completed in 42s with ZERO downtime!", cls: "text-emerald-400 font-bold" },
+    ],
+  },
+  {
+    id: "rollback",
+    label: "Instant Warm Swap",
+    lines: [
+      { text: "$ versiongate rollback --project api-backend --env production", cls: "text-foreground font-semibold" },
+      { text: "[INFO] Rollback initiated: v14 → v13", cls: "text-amber-400 font-semibold" },
+      { text: "[⚡ WARM-SWAP] Found cached Docker image versiongate-api-backend:v13", cls: "text-emerald-400" },
+      { text: "[⚡ WARM-SWAP] Launching container api-backend_blue on port 3100...", cls: "text-emerald-400" },
+      { text: "[INFO] Health check PASS http://127.0.0.1:3100/health (200 OK)", cls: "text-emerald-400" },
+      { text: "[INFO] Traffic switched to port 3100 in 1.4 seconds", cls: "text-emerald-400 font-semibold" },
+      { text: "[SUCCESS] Rollback completed instantly! Zero Downtime.", cls: "text-emerald-400 font-bold" },
+    ],
+  },
+  {
+    id: "tokens",
+    label: "Bearer API Tokens",
+    lines: [
+      { text: "$ curl -X POST https://your-server.com/api/v1/auth/tokens \\", cls: "text-foreground font-semibold" },
+      { text: "    -H 'Cookie: session=...' -d '{\"name\":\"GitHub Actions CI\"}'", cls: "text-muted-foreground" },
+      { text: "[✔] Created API Access Token: vg_live_8f3a9e421c7d...", cls: "text-emerald-400 font-semibold" },
+      { text: "$ curl -X POST https://your-server.com/api/v1/deploy \\", cls: "text-foreground font-semibold" },
+      { text: "    -H 'Authorization: Bearer vg_live_8f3a9e421c7d...' \\", cls: "text-sky-400" },
+      { text: "    -d '{\"projectId\":\"proj_123\",\"environmentId\":\"env_prod\"}'", cls: "text-sky-400" },
+      { text: "{\"jobId\":\"job_99a8\",\"status\":\"QUEUED\",\"message\":\"Deployment enqueued\"}", cls: "text-emerald-400 font-mono" },
+    ],
+  },
+];
 
 const GET_STARTED_STEPS = [
   {
     step: "01",
-    title: "Clone",
-    code: "git clone https://github.com/dinexh/VersionGate\ncd VersionGate",
+    title: "Clone & Bootstrap Host",
+    code: "git clone https://github.com/dineshkorukonda/VersionGate.git\ncd VersionGate\nsudo bash scripts/bootstrap-host.sh",
   },
   {
     step: "02",
-    title: "Bootstrap host (Ubuntu/Debian)",
-    code: "sudo bash scripts/bootstrap-host.sh\nnewgrp docker\nnpm run check-deps",
-  },
-  {
-    step: "03",
-    title: "Install & verify",
+    title: "Install Dependencies & Build Dashboard",
     code: "bun install\ncd dashboard && bun run build && cd ..\nbun run preflight",
   },
   {
+    step: "03",
+    title: "Start Engine & Run Setup Wizard",
+    code: "pm2 start ecosystem.config.cjs\n# Open http://your-server-ip:9090/setup in browser",
+  },
+  {
     step: "04",
-    title: "Start & setup wizard",
-    code: "pm2 start ecosystem.config.cjs\nOpen http://your-server:9090/setup",
+    title: "Connect GitHub & Deploy Apps",
+    code: "# Dashboard → Integrations → Connect GitHub\n# Create project → Push code → Automatic Zero-Downtime Deploy!",
   },
-  {
-    step: "05",
-    title: "Connect GitHub & deploy",
-    code: "Integrations → Connect GitHub\n→ Create project → push to branch",
-  },
-] as const;
-
-const LATEST_UPDATES = [
-  {
-    version: "v1.4",
-    tag: "ROUTING",
-    badge: "NEW",
-    title: "Stage Path Reverse Proxy",
-    text: "Access your app environments over clean, path-based stage URLs (/p/project-name/staging) routed dynamically through Nginx without raw ports.",
-  },
-  {
-    version: "v1.4",
-    tag: "AUTH & CI/CD",
-    badge: "NEW",
-    title: "Bearer API Access Tokens",
-    text: "Generate secure, persistent vg_live_... API Bearer tokens with SHA-256 token hashing for GitHub Actions, GitLab CI, and external automation scripts.",
-  },
-  {
-    version: "v1.4",
-    tag: "CONFIG",
-    badge: "NEW",
-    title: "Per-Environment Env Overrides",
-    text: "Configure stage-specific environment variables for development, staging, and production that seamlessly override global project defaults during container startup.",
-  },
-  {
-    version: "v1.4",
-    tag: "MONITORING",
-    badge: "NEW",
-    title: "Native Engine Background Health Monitor",
-    text: "Built-in continuous monitoring thread inspecting database latency, Redis pub/sub state, container lifecycles, and system resource alerts.",
-  },
-] as const;
-
-const TERMINAL_LINES = [
-  { text: "$ versiongate preflight", cls: "text-foreground" },
-  { text: "[✔] docker daemon reachable", cls: "text-emerald-400" },
-  { text: "[✔] postgres & redis connected", cls: "text-emerald-400" },
-  { text: "$ versiongate token create --name github-ci", cls: "text-foreground" },
-  { text: "[✔] generated Bearer token: vg_live_8f3a9e...", cls: "text-emerald-400" },
-  { text: "$ versiongate deploy api-backend --stage staging", cls: "text-foreground" },
-  { text: "[INFO] injecting per-environment stage env vars…", cls: "text-muted-foreground" },
-  { text: "[INFO] health check passed :3101 (/p/api-backend/staging)", cls: "text-emerald-400" },
-  { text: "[INFO] stage path active — zero downtime", cls: "text-emerald-400" },
 ] as const;
 
 export default function Home() {
+  const [activeTab, setActiveTab] = useState<"deploy" | "rollback" | "tokens">("deploy");
+
+  const currentTab = TERMINAL_TABS.find((t) => t.id === activeTab) ?? TERMINAL_TABS[0];
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-[#09090b] text-[#f4f4f5] bg-mesh-grid">
       <SiteHeader active="features" />
 
-      {/* Hero */}
-      <section className="border-b border-border">
-        <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-24">
-          <div className="grid items-center gap-12 lg:grid-cols-2">
-            <div>
-              <div className="mb-6 inline-flex border border-border bg-card px-3 py-1 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-                v1.0 · Stable · MIT Licensed
+      {/* Hero Section */}
+      <section className="relative overflow-hidden border-b border-border/80 py-20 lg:py-28">
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[350px] bg-sky-500/10 blur-[120px] rounded-full pointer-events-none" />
+        <div className="absolute top-1/3 left-1/3 w-[400px] h-[250px] bg-indigo-500/10 blur-[100px] rounded-full pointer-events-none" />
+
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 relative z-10">
+          <div className="grid items-center gap-12 lg:grid-cols-12">
+            <div className="lg:col-span-6 space-y-6">
+              <div className="inline-flex items-center gap-2 rounded-full border border-sky-500/30 bg-sky-500/10 px-3 py-1 font-mono text-[11px] uppercase tracking-wider text-sky-400">
+                <span className="h-2 w-2 rounded-full bg-sky-400 animate-pulse" />
+                VersionGate Engine v1.4 Released
               </div>
-              <h1 className="text-4xl font-bold uppercase leading-[1.05] tracking-tight sm:text-5xl lg:text-6xl">
-                Command
+
+              <h1 className="text-4xl font-extrabold uppercase tracking-tight sm:text-5xl lg:text-6xl leading-[1.05]">
+                Zero-Downtime
                 <br />
-                The Cluster.
+                <span className="bg-gradient-to-r from-sky-400 via-emerald-400 to-indigo-400 bg-clip-text text-transparent">
+                  Docker Deploys.
+                </span>
               </h1>
-              <p className="mt-6 max-w-lg text-sm leading-relaxed text-muted-foreground">
-                Self-hosted zero-downtime Docker deploys on your own server. Git-backed workflows, blue-green routing,
-                and built-in health checks — without cloud lock-in.
+
+              <p className="max-w-xl text-base leading-relaxed text-muted-foreground">
+                Self-hosted zero-downtime deployment engine for your VPS. Atomic blue-green slot swaps, instant warm-swap rollbacks, path-based reverse proxy routing, and Bearer token CI/CD pipelines.
               </p>
-              <div className="mt-8 flex flex-wrap gap-3">
+
+              <div className="flex flex-wrap items-center gap-3 pt-2">
                 <Link
                   href="#get-started"
-                  className="bg-primary px-5 py-2.5 font-mono text-[10px] uppercase tracking-wider text-primary-foreground transition hover:opacity-90"
+                  className="rounded-lg bg-sky-500 px-6 py-3 font-mono text-xs font-semibold uppercase tracking-wider text-sky-950 transition-all hover:bg-sky-400 shadow-lg shadow-sky-500/20"
                 >
-                  Get Started
+                  Get Started Free
+                </Link>
+                <Link
+                  href={GITHUB_REPO}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="rounded-lg border border-border bg-card/80 px-6 py-3 font-mono text-xs font-semibold uppercase tracking-wider text-foreground transition hover:bg-muted hover:border-foreground/30"
+                >
+                  Star on GitHub ↗
                 </Link>
                 <Link
                   href="/docs"
-                  className="border border-border px-5 py-2.5 font-mono text-[10px] uppercase tracking-wider text-foreground transition hover:bg-muted"
+                  className="rounded-lg px-4 py-3 font-mono text-xs text-muted-foreground hover:text-foreground transition"
                 >
-                  Documentation
+                  Documentation →
                 </Link>
+              </div>
+
+              <div className="pt-4 flex items-center gap-6 font-mono text-xs text-muted-foreground">
+                <div className="flex items-center gap-2">
+                  <span className="text-emerald-400 font-bold">✔</span> MIT Licensed
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-emerald-400 font-bold">✔</span> 100% Self-Hosted
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-emerald-400 font-bold">✔</span> No Cloud Lock-In
+                </div>
               </div>
             </div>
 
-            <div className="border border-border bg-terminal">
-              <div className="flex items-center justify-between border-b border-border px-4 py-2">
-                <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-                  deploy / api-backend
-                </span>
-                <span className="font-mono text-[10px] uppercase text-emerald-400">Live</span>
-              </div>
-              <div className="space-y-1.5 p-4 font-mono text-[12px] leading-relaxed">
-                {TERMINAL_LINES.map((l, i) => (
-                  <div key={i} className={l.cls}>
-                    {l.text}
+            {/* Interactive Terminal Demo */}
+            <div className="lg:col-span-6">
+              <div className="rounded-xl border border-border/80 bg-[#0c0c0e] shadow-2xl overflow-hidden glass-panel glow-blue">
+                <div className="flex items-center justify-between border-b border-border/80 px-4 py-2.5 bg-[#121215]">
+                  <div className="flex items-center gap-2">
+                    <span className="h-3 w-3 rounded-full bg-red-500/80 inline-block" />
+                    <span className="h-3 w-3 rounded-full bg-amber-500/80 inline-block" />
+                    <span className="h-3 w-3 rounded-full bg-emerald-500/80 inline-block" />
+                    <span className="ml-2 font-mono text-xs font-medium text-muted-foreground">
+                      versiongate-cli ~ live execution
+                    </span>
                   </div>
-                ))}
-              </div>
-              <div className="border-t border-border px-4 py-3">
-                <div className="mb-1 flex justify-between font-mono text-[10px] uppercase text-muted-foreground">
-                  <span>Progress</span>
-                  <span>87%</span>
+                  <span className="font-mono text-[10px] font-semibold uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/30">
+                    Engine Active
+                  </span>
                 </div>
-                <div className="h-1 bg-muted">
-                  <div className="h-full w-[87%] bg-foreground" />
+
+                {/* Tabs */}
+                <div className="flex border-b border-border/60 bg-[#121215]/50 px-2 pt-1 gap-1">
+                  {TERMINAL_TABS.map((tab) => (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id as typeof activeTab)}
+                      className={`px-3 py-1.5 font-mono text-xs rounded-t transition-all ${
+                        activeTab === tab.id
+                          ? "bg-[#0c0c0e] text-sky-400 font-semibold border-t-2 border-sky-400"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="p-4 font-mono text-xs leading-relaxed space-y-2 min-h-[220px]">
+                  {currentTab.lines.map((l, idx) => (
+                    <div key={idx} className={l.cls}>
+                      {l.text}
+                    </div>
+                  ))}
+                </div>
+
+                <div className="border-t border-border/60 bg-[#121215]/80 px-4 py-2 flex items-center justify-between text-[11px] font-mono text-muted-foreground">
+                  <span>Engine: 127.0.0.1:9090</span>
+                  <span>Active Slot: GREEN (:3101)</span>
                 </div>
               </div>
             </div>
@@ -203,57 +302,58 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Stats bar */}
-      <section className="border-b border-border bg-card">
-        <div className="mx-auto grid max-w-6xl grid-cols-2 divide-x divide-border sm:grid-cols-4">
-          {STATS.map((s) => (
-            <div key={s.label} className="px-4 py-8 text-center sm:px-6">
-              <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">{s.label}</p>
-              <p className="mt-2 text-2xl font-bold tabular-nums">{s.value}</p>
-            </div>
-          ))}
+      {/* Stats Bar */}
+      <section className="border-b border-border/80 bg-card/40 py-10">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6">
+          <div className="grid grid-cols-2 gap-6 sm:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-border/60">
+            {STATS.map((s, idx) => (
+              <div key={s.label} className={`space-y-1 ${idx > 0 ? "sm:pl-6" : ""} ${idx >= 2 ? "pt-4 sm:pt-0" : ""}`}>
+                <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">{s.label}</p>
+                <p className="text-2xl font-black tracking-tight text-foreground">{s.value}</p>
+                <p className="text-xs text-sky-400/90 font-mono">{s.note}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
-      {/* Latest Engine Updates Section */}
-      <section id="updates" className="border-b border-border bg-card/50 py-20">
+      {/* Release v1.4 Highlights Section */}
+      <section id="updates" className="border-b border-border/80 py-20 bg-surface/30">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <div className="mb-12 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
             <div>
-              <div className="mb-2 inline-flex items-center gap-2 border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-0.5 font-mono text-[10px] uppercase text-emerald-400">
+              <div className="mb-2 inline-flex items-center gap-2 rounded-md border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wider text-emerald-400">
                 <span>Release v1.4 Highlights</span>
               </div>
-              <h2 className="text-2xl font-bold uppercase tracking-tight sm:text-3xl">Latest Engine Features</h2>
+              <h2 className="text-2xl font-extrabold uppercase tracking-tight sm:text-3xl">Latest Engine Features</h2>
               <p className="mt-2 font-mono text-xs uppercase tracking-wider text-muted-foreground">
-                Recent architecture additions & platform updates
+                Recent architecture additions & platform upgrades
               </p>
             </div>
             <span className="font-mono text-xs text-muted-foreground">Updated July 2026</span>
           </div>
 
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {LATEST_UPDATES.map((u) => (
+            {RELEASE_HIGHLIGHTS.map((u) => (
               <div
                 key={u.title}
-                className="group relative flex flex-col justify-between border border-border bg-card p-6 transition-all duration-200 hover:border-foreground/40 hover:bg-card/80"
+                className="group relative flex flex-col justify-between rounded-xl border border-border/80 bg-card p-6 transition-all duration-300 hover:border-sky-500/50 hover:shadow-xl hover:shadow-sky-500/5"
               >
                 <div>
                   <div className="mb-4 flex items-center justify-between">
-                    <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-                      {u.tag}
-                    </span>
-                    <span className="rounded bg-emerald-500/20 px-2 py-0.5 font-mono text-[9px] font-semibold uppercase text-emerald-400 border border-emerald-500/30">
+                    <span className="text-xl">{u.icon}</span>
+                    <span className="rounded bg-sky-500/20 px-2 py-0.5 font-mono text-[9px] font-bold uppercase tracking-wider text-sky-400 border border-sky-500/30">
                       {u.badge}
                     </span>
                   </div>
-                  <h3 className="mb-2 font-mono text-sm font-bold uppercase tracking-wider text-foreground group-hover:text-primary">
+                  <h3 className="mb-2 font-mono text-sm font-bold uppercase tracking-wider text-foreground group-hover:text-sky-400 transition">
                     {u.title}
                   </h3>
                   <p className="text-xs leading-relaxed text-muted-foreground">{u.text}</p>
                 </div>
                 <div className="mt-6 border-t border-border/60 pt-3 flex items-center justify-between font-mono text-[10px] text-muted-foreground">
                   <span>Engine {u.version}</span>
-                  <span className="text-foreground/80">Available now</span>
+                  <span className="text-emerald-400 font-semibold">Available now</span>
                 </div>
               </div>
             ))}
@@ -261,183 +361,109 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Features */}
-      <section id="features" className="py-20">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6">
-          <div className="mb-12">
-            <h2 className="text-2xl font-bold uppercase tracking-tight">Built for Production</h2>
-            <p className="mt-2 font-mono text-xs uppercase tracking-wider text-muted-foreground">
-              Enterprise deployment features for individual servers
-            </p>
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {FEATURES.map((f) => (
-              <article key={f.mod} className="relative border border-border bg-card p-6">
-                <span className="absolute right-4 top-4 font-mono text-[10px] text-muted-foreground">{f.mod}</span>
-                <h3 className="mb-2 font-mono text-xs uppercase tracking-wider">{f.title}</h3>
-                <p className="text-sm leading-relaxed text-muted-foreground">{f.text}</p>
-              </article>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Architecture — expanded */}
-      <section id="architecture" className="border-y border-border bg-card py-20">
+      {/* Core Features Grid */}
+      <section id="features" className="border-b border-border/80 py-20">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <div className="mb-12 max-w-2xl">
-            <p className="mb-3 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Architecture</p>
-            <h2 className="text-2xl font-bold uppercase tracking-tight">How VersionGate Works</h2>
-            <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
-              A Fastify API plus background worker, backed by PostgreSQL. The engine orchestrates Docker builds and
-              Nginx upstream rewrites — deploys always target the idle blue/green slot so live traffic never hits a
-              cold container.
+            <h2 className="text-2xl font-extrabold uppercase tracking-tight sm:text-3xl">Built for Production</h2>
+            <p className="mt-2 font-mono text-xs uppercase tracking-wider text-muted-foreground">
+              Enterprise deployment capability on your single server or cluster
             </p>
           </div>
 
-          {/* Component grid */}
-          <div className="mb-16 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {COMPONENTS.map((c) => (
-              <div key={c.tag} className="border border-border bg-background p-5">
-                <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">{c.tag}</span>
-                <h3 className="mt-2 font-mono text-xs uppercase tracking-wider">{c.title}</h3>
-                <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{c.text}</p>
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {FEATURES.map((f) => (
+              <div
+                key={f.mod}
+                className="rounded-xl border border-border/80 bg-card/60 p-6 transition hover:border-border"
+              >
+                <span className="font-mono text-xs font-bold text-sky-400">0{f.mod} //</span>
+                <h3 className="mt-2 mb-2 font-mono text-sm font-bold uppercase tracking-wider text-foreground">
+                  {f.title}
+                </h3>
+                <p className="text-xs leading-relaxed text-muted-foreground">{f.text}</p>
               </div>
             ))}
           </div>
+        </div>
+      </section>
 
-          {/* Request flow diagram */}
-          <div className="mb-16 grid gap-6 lg:grid-cols-2">
-            <div className="border border-border bg-terminal p-5 font-mono text-[11px] leading-relaxed">
-              <p className="mb-3 text-[10px] uppercase tracking-wider text-muted-foreground">Request flow</p>
-              <p className="text-muted-foreground"># incoming deploy trigger</p>
-              <p className="mt-1 text-foreground">GitHub webhook / POST /api/v1/deploy</p>
-              <p className="mt-3 text-muted-foreground">↓</p>
-              <p className="text-foreground">Fastify router → controller → service</p>
-              <p className="mt-3 text-muted-foreground">↓</p>
-              <p className="text-foreground">Prisma (state lock) + Job queue enqueue</p>
-              <p className="mt-3 text-muted-foreground">↓</p>
-              <p className="text-foreground">Worker: git pull → docker build → docker run</p>
-              <p className="mt-3 text-muted-foreground">↓</p>
-              <p className="text-emerald-400">Health check PASS → nginx upstream rewrite</p>
-              <p className="mt-3 text-muted-foreground">↓</p>
-              <p className="text-foreground">WebSocket log stream → Dashboard UI</p>
-            </div>
-
-            <div className="border border-border bg-terminal p-5 font-mono text-[11px] leading-relaxed">
-              <p className="mb-3 text-[10px] uppercase tracking-wider text-muted-foreground">Blue-green slots</p>
-              <p className="text-muted-foreground"># per environment (e.g. production)</p>
-              <p className="mt-2 text-foreground">slot_blue  :3100  [idle · waiting]</p>
-              <p className="text-emerald-400">slot_green :3101  [active · serving traffic]</p>
-              <p className="mt-4 text-muted-foreground"># nginx upstream (live)</p>
-              <p className="text-foreground">proxy_pass http://127.0.0.1:3101;</p>
-              <p className="mt-4 text-muted-foreground"># next deploy targets :3100</p>
-              <p className="text-foreground">build → health → switch → retire green</p>
-              <p className="mt-4 text-muted-foreground"># status lifecycle</p>
-              <p className="text-foreground">PENDING → DEPLOYING → ACTIVE</p>
-              <p className="text-amber-400">         └→ FAILED (rollback available)</p>
-            </div>
+      {/* Comparison Section */}
+      <section className="border-b border-border/80 py-20 bg-surface/30">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6">
+          <div className="mb-12 max-w-2xl">
+            <h2 className="text-2xl font-extrabold uppercase tracking-tight sm:text-3xl">Why VersionGate?</h2>
+            <p className="mt-2 font-mono text-xs uppercase tracking-wider text-muted-foreground">
+              Compare VersionGate against cloud PaaS vendor lock-in and manual VPS setups
+            </p>
           </div>
 
-          {/* Pipeline steps */}
-          <div className="mb-16">
-            <h3 className="mb-6 font-mono text-xs uppercase tracking-wider">Deployment Pipeline</h3>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {PIPELINE_STEPS.map((s) => (
-                <div key={s.step} className="flex gap-4 border border-border bg-background p-4">
-                  <span className="shrink-0 font-mono text-lg font-bold text-muted-foreground">{s.step}</span>
-                  <div>
-                    <p className="font-mono text-xs uppercase tracking-wider">{s.label}</p>
-                    <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{s.detail}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Crash recovery + promotion */}
-          <div className="grid gap-6 lg:grid-cols-2">
-            <div className="border border-border bg-background p-6">
-              <h3 className="font-mono text-xs uppercase tracking-wider">Crash Recovery</h3>
-              <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-                On startup, reconciliation scans for deployments stuck in <code className="border border-border bg-muted px-1 font-mono text-xs">DEPLOYING</code>,
-                stops orphaned containers, and marks them <code className="border border-border bg-muted px-1 font-mono text-xs">FAILED</code>.
-                Active deployments are verified against <code className="border border-border bg-muted px-1 font-mono text-xs">docker inspect</code> — if the
-                container is not running, state is corrected before the engine accepts requests.
-              </p>
-              <ul className="mt-4 space-y-2 font-mono text-xs text-muted-foreground">
-                <li className="flex gap-2"><span className="text-foreground">→</span> Job queue survives worker restarts</li>
-                <li className="flex gap-2"><span className="text-foreground">→</span> Automatic rollback on failed health checks</li>
-                <li className="flex gap-2"><span className="text-foreground">→</span> Encrypted env vars persisted across reboots</li>
-              </ul>
-            </div>
-
-            <div className="border border-border bg-background p-6">
-              <h3 className="font-mono text-xs uppercase tracking-wider">Environment Promotion</h3>
-              <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-                New projects get development, staging, and production environments on separate host port ranges.
-                Deploy to the first stage for a fresh build; <strong className="text-foreground">Promote</strong> reuses
-                the upstream Docker image on the next stage without rebuilding.
-              </p>
-              <div className="mt-4 border border-border bg-terminal p-4 font-mono text-[11px] leading-relaxed">
-                <p className="text-muted-foreground">dev :3000–3001</p>
-                <p className="text-muted-foreground">  ↓ promote (reuse image)</p>
-                <p className="text-muted-foreground">staging :3010–3011</p>
-                <p className="text-muted-foreground">  ↓ promote (reuse image)</p>
-                <p className="text-emerald-400">production :3100–3101  [live traffic]</p>
-              </div>
-              <Link
-                href="/docs/architecture"
-                className="mt-4 inline-flex font-mono text-[10px] uppercase tracking-wider text-foreground underline underline-offset-4 hover:opacity-80"
-              >
-                Full architecture docs →
-              </Link>
+          <div className="rounded-xl border border-border/80 bg-card overflow-hidden shadow-xl">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left font-mono text-xs">
+                <thead>
+                  <tr className="border-b border-border bg-[#121215] text-muted-foreground">
+                    <th className="p-4 font-semibold uppercase">Feature</th>
+                    <th className="p-4 font-semibold uppercase text-sky-400 bg-sky-500/10 border-x border-sky-500/20">VersionGate Engine</th>
+                    <th className="p-4 font-semibold uppercase">Cloud PaaS (Vercel/Heroku)</th>
+                    <th className="p-4 font-semibold uppercase">Traditional VPS Scripts</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/60">
+                  {PAAS_COMPARISON.map((c, i) => (
+                    <tr key={i} className="hover:bg-muted/30">
+                      <td className="p-4 font-medium text-foreground">{c.feature}</td>
+                      <td className="p-4 font-bold text-emerald-400 bg-sky-500/5 border-x border-sky-500/10">{c.versionGate}</td>
+                      <td className="p-4 text-muted-foreground">{c.cloudPaaS}</td>
+                      <td className="p-4 text-muted-foreground">{c.traditionalVPS}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Get Started */}
+      {/* Quick Start Guide */}
       <section id="get-started" className="py-20">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <div className="mb-12 max-w-2xl">
-            <p className="mb-3 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Get Started</p>
-            <h2 className="text-2xl font-bold uppercase tracking-tight">Running in Under 5 Minutes</h2>
-            <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
-              On a fresh Ubuntu/Debian VPS, bootstrap installs Docker and host deps, then you build
-              and open the setup wizard. You need a public HTTPS URL for GitHub push deploys. The
-              wizard handles the database and admin account — no hand-edited{" "}
-              <code className="border border-border bg-muted px-1 font-mono text-xs">.env</code> for
-              core setup (GitHub App credentials are pasted once after).
+            <div className="mb-2 inline-flex items-center gap-2 rounded-md border border-sky-500/30 bg-sky-500/10 px-2.5 py-0.5 font-mono text-[10px] font-bold uppercase text-sky-400">
+              <span>5-Minute Bootstrap</span>
+            </div>
+            <h2 className="text-2xl font-extrabold uppercase tracking-tight sm:text-3xl">Get Up and Running Fast</h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Run VersionGate on any Ubuntu/Debian VPS. Bootstrap handles Docker, PostgreSQL, Redis, and Nginx automatically.
             </p>
           </div>
 
-          <div className="grid gap-4 lg:grid-cols-2">
+          <div className="grid gap-6 lg:grid-cols-2">
             {GET_STARTED_STEPS.map((s) => (
-              <div key={s.step} className="border border-border bg-card">
-                <div className="flex items-center gap-3 border-b border-border px-4 py-3">
-                  <span className="font-mono text-lg font-bold text-muted-foreground">{s.step}</span>
-                  <h3 className="font-mono text-xs uppercase tracking-wider">{s.title}</h3>
+              <div key={s.step} className="rounded-xl border border-border/80 bg-card overflow-hidden shadow-lg">
+                <div className="flex items-center gap-3 border-b border-border/80 px-4 py-3 bg-[#121215]">
+                  <span className="font-mono text-sm font-bold text-sky-400">{s.step}</span>
+                  <h3 className="font-mono text-xs font-bold uppercase tracking-wider text-foreground">{s.title}</h3>
                 </div>
-                <pre className="overflow-x-auto bg-terminal p-4 font-mono text-[11px] leading-relaxed text-foreground/90">
+                <pre className="overflow-x-auto p-4 font-mono text-xs leading-relaxed text-foreground/90 bg-[#0c0c0e]">
                   {s.code}
                 </pre>
               </div>
             ))}
           </div>
 
-          <div className="mt-10 flex flex-wrap items-center gap-4">
+          <div className="mt-12 flex flex-wrap items-center justify-between gap-4 rounded-xl border border-sky-500/30 bg-gradient-to-r from-sky-500/10 via-emerald-500/10 to-indigo-500/10 p-8 glass-panel">
+            <div>
+              <h3 className="text-xl font-bold uppercase tracking-tight text-foreground">Ready to take control of your deployments?</h3>
+              <p className="mt-1 text-xs text-muted-foreground font-mono">Join developers self-hosting zero-downtime Docker deploys on their own infrastructure.</p>
+            </div>
             <Link
               href={GITHUB_REPO}
-              className="bg-primary px-6 py-3 font-mono text-[10px] uppercase tracking-wider text-primary-foreground transition hover:opacity-90"
+              target="_blank"
+              rel="noreferrer"
+              className="rounded-lg bg-sky-500 px-6 py-3 font-mono text-xs font-bold uppercase tracking-wider text-sky-950 transition hover:bg-sky-400 shadow-lg shadow-sky-500/20"
             >
-              Clone on GitHub
-            </Link>
-            <Link
-              href="/docs/quick-start"
-              className="border border-border px-6 py-3 font-mono text-[10px] uppercase tracking-wider text-foreground transition hover:bg-muted"
-            >
-              Full Quick Start Guide
+              Get Started on GitHub ↗
             </Link>
           </div>
         </div>

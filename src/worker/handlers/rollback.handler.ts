@@ -67,20 +67,44 @@ export async function runRollbackJob(
       `Rolling back from ${current.containerName} (v${current.version}) to ${previous.containerName} (v${previous.version})`
     );
 
-    await log(`Restarting previous container: ${previous.containerName}`);
     const projectEnv = parseProjectEnv(project.env);
-    const envKeys = Object.keys(projectEnv);
-    if (envKeys.length > 0) {
-      await log(`Injecting env keys: ${envKeys.join(", ")}`);
+    const stageEnv = parseProjectEnv((environment as typeof environment & { env?: unknown }).env);
+    const mergedEnv = { ...projectEnv, ...stageEnv };
+    const envKeys = Object.keys(mergedEnv);
+
+    const { inspectContainer, imageExists } = await import("../../utils/docker");
+    let isAlreadyRunning = false;
+    try {
+      isAlreadyRunning = await inspectContainer(previous.containerName);
+    } catch {
+      isAlreadyRunning = false;
     }
-    await runContainer(
-      previous.containerName,
-      previous.imageTag,
-      previous.port,
-      environment.appPort,
-      config.dockerNetwork,
-      projectEnv
-    );
+
+    if (isAlreadyRunning) {
+      await log(`⚡ Warm-Swap: Previous container ${previous.containerName} is already running. Verifying health…`);
+    } else {
+      const isCached = await imageExists(previous.imageTag);
+      if (isCached) {
+        await log(`⚡ Warm-Swap: Found cached Docker image ${previous.imageTag}. Spinning up instant container…`);
+      } else {
+        await log(`Starting container for image ${previous.imageTag}…`);
+      }
+
+      await stopContainer(previous.containerName).catch(() => null);
+      await removeContainer(previous.containerName).catch(() => null);
+
+      if (envKeys.length > 0) {
+        await log(`Injecting env keys: ${envKeys.join(", ")}`);
+      }
+      await runContainer(
+        previous.containerName,
+        previous.imageTag,
+        previous.port,
+        environment.appPort,
+        config.dockerNetwork,
+        mergedEnv
+      );
+    }
 
     await log(`Validating health at http://localhost:${previous.port}${project.healthPath}`);
     const result = await validation.validate(
