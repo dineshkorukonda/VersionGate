@@ -38,24 +38,24 @@ VersionGate is a self-hosted zero-downtime Docker deployment engine with two mai
 
 ---
 
-## 🤖 Mandatory AI Agent & LLM Guidelines
+## Mandatory AI Agent & LLM Guidelines
 
-Whenever an AI Agent or LLM CLI (`agy`, Antigravity, Cursor, Copilot, etc.) works on this codebase, it MUST adhere strictly to the following 5 rules:
+Whenever an AI Agent or LLM CLI (`agy`, Antigravity, Cursor, Copilot, etc.) works on this codebase, it MUST adhere strictly to the following 6 rules:
 
-1. 🔍 **Check Existing Files Before Creating New Ones:**
+1. **Check Existing Files Before Creating New Ones:**
    - Always search existing utility files, components, repositories, and helper functions in `src/` and `dashboard/` before writing custom helper code. Do not duplicate functionality.
 
-2. 💎 **Solid & Clean Architecture:**
-   - Enforce modularity, clear separation of concerns (Repositories $\rightarrow$ Services $\rightarrow$ Controllers $\rightarrow$ Routes), strict TypeScript typing, and clean code principles.
+2. **Solid & Clean Architecture:**
+   - Enforce modularity, clear separation of concerns (Repositories -> Services -> Controllers -> Routes), strict TypeScript typing, and clean code principles.
    - Preserve existing API contracts, function signatures, and docstrings.
 
-3. 🧪 **Comprehensive Verification & Testing:**
+3. **Comprehensive Verification & Testing:**
    - NEVER declare success without running verification commands:
      - **Backend Typecheck:** `bun run typecheck` (`bunx tsc --noEmit`)
      - **Dashboard Build:** `bun run build:dashboard`
      - **Backend Tests:** `bun test --pass-with-no-tests`
 
-4. 🏷️ **Strict Semantic Commit Messages:**
+4. **Strict Semantic Commit Messages:**
    - All commits MUST follow Conventional Commits standard:
      - `feat(...)`: New features
      - `fix(...)`: Bug fixes
@@ -64,12 +64,16 @@ Whenever an AI Agent or LLM CLI (`agy`, Antigravity, Cursor, Copilot, etc.) work
      - `ci(...)`: CI/CD & pipeline updates
      - `chore(...)`: Maintenance, configs, dependencies
 
-5. 📋 **Pull Request Workflow Standards:**
+5. **Pull Request Workflow Standards:**
    - When asked to commit and create a PR:
      - **Branching:** Work MUST be on a dedicated feature branch (`feat/*`, `fix/*`, `refactor/*`).
      - **PR Body:** Provide a clear, bulleted summary of changes, design choices, and empirical test results.
      - **Assignee:** ALWAYS assign the PR to `@dineshkorukonda` (`dineshkorukonda`).
      - **Labels:** Add relevant tags/labels (`enhancement`, `backend`, `frontend`, `infrastructure`, `database`, `bug`).
+
+6. **Strict No-Emoji & No-Icon Rule:**
+   - ABSOLUTELY NO EMOJIS OR DECORATIVE ICON SYMBOLS anywhere across the entire repository (including READMEs, markdown documentation, website UI, dashboard UI, code comments, and commit messages).
+   - Use clean, technical text badges (`[ OK ]`, `[ LIVE ]`, `01 //`), monospace typography, and precision layout lines instead.
 
 ---
 
