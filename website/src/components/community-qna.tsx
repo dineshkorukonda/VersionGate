@@ -104,16 +104,16 @@ export function CommunityQnA() {
   return (
     <div className="space-y-6">
       {/* Search & Category Filter Bar */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 border-b border-zinc-800 pb-4">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 border-b border-border pb-4">
         <div className="flex flex-wrap items-center gap-2">
           {categories.map((cat) => (
             <button
               key={cat}
               onClick={() => setSelectedCategory(cat)}
-              className={`px-3 py-1 font-mono text-xs rounded transition ${
+              className={`px-3 py-1 font-mono text-xs rounded-md transition ${
                 selectedCategory === cat
-                  ? "bg-white text-black font-bold"
-                  : "bg-zinc-900 text-zinc-400 border border-zinc-800 hover:text-white hover:border-zinc-700"
+                  ? "bg-primary text-primary-foreground font-semibold"
+                  : "bg-muted text-muted-foreground border border-border hover:text-foreground"
               }`}
             >
               {cat}
@@ -126,67 +126,67 @@ export function CommunityQnA() {
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Search Q&A knowledge base..."
-          className="bg-zinc-900 border border-zinc-800 rounded px-3 py-1.5 font-mono text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-600 sm:w-64"
+          className="bg-muted border border-border rounded-md px-3 py-1.5 font-mono text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-foreground/50 sm:w-64"
         />
       </div>
 
       {/* Threads List */}
       <div className="space-y-4">
         {filtered.length === 0 ? (
-          <div className="py-12 text-center font-mono text-xs text-zinc-500 rounded border border-zinc-800 bg-[#0a0a0c]">
+          <div className="py-12 text-center font-mono text-xs text-muted-foreground rounded-lg border border-border bg-card">
             No Q&A threads found matching "{searchQuery}".
           </div>
         ) : (
           filtered.map((thread) => (
             <div
               key={thread.id}
-              className="rounded border border-zinc-800 bg-[#0a0a0c] p-6 space-y-4 transition hover:border-zinc-700"
+              className="rounded-lg border border-border bg-card p-6 space-y-4 transition hover:border-foreground/30 shadow-sm"
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
-                    <span className="rounded bg-zinc-900 px-2 py-0.5 font-mono text-[9px] text-zinc-400 border border-zinc-800 font-bold">
+                    <span className="rounded bg-muted px-2 py-0.5 font-mono text-[9px] text-muted-foreground border border-border font-semibold">
                       {thread.category}
                     </span>
                     {thread.accepted && (
-                      <span className="rounded bg-emerald-500/10 px-2 py-0.5 font-mono text-[9px] text-emerald-400 border border-emerald-500/30 font-bold">
+                      <span className="rounded bg-emerald-500/10 px-2 py-0.5 font-mono text-[9px] text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 font-semibold">
                         [ ACCEPTED SOLUTION ]
                       </span>
                     )}
                   </div>
-                  <h3 className="font-mono text-sm font-bold text-white pt-1">
+                  <h3 className="font-sans text-sm font-bold text-foreground pt-1">
                     {thread.title}
                   </h3>
-                  <div className="font-mono text-[10px] text-zinc-500">
-                    Asked by <span className="text-zinc-400">{thread.author}</span> · {thread.date}
+                  <div className="font-mono text-[10px] text-muted-foreground">
+                    Asked by <span className="text-foreground">{thread.author}</span> · {thread.date}
                   </div>
                 </div>
 
                 {/* Upvote Button */}
                 <button
                   onClick={() => handleUpvote(thread.id)}
-                  className="flex flex-col items-center justify-center rounded border border-zinc-800 bg-zinc-900 px-3 py-2 text-zinc-400 hover:text-white hover:border-zinc-600 transition min-w-[50px]"
+                  className="flex flex-col items-center justify-center rounded-md border border-border bg-muted/60 px-3 py-2 text-muted-foreground hover:text-foreground hover:bg-muted transition min-w-[50px]"
                 >
-                  <span className="font-mono text-[10px] text-zinc-500">▲</span>
-                  <span className="font-mono text-xs font-bold text-white">{thread.upvotes}</span>
+                  <span className="font-mono text-[10px]">▲</span>
+                  <span className="font-mono text-xs font-bold text-foreground">{thread.upvotes}</span>
                 </button>
               </div>
 
               {/* Question Text */}
-              <div className="font-mono text-xs text-zinc-300 leading-relaxed border-l-2 border-zinc-800 pl-3">
+              <div className="font-sans text-xs text-muted-foreground leading-relaxed border-l-2 border-border pl-3">
                 {thread.question}
               </div>
 
               {/* Solution Answer Box */}
-              <div className="rounded bg-black border border-zinc-800/80 p-4 space-y-3">
-                <div className="font-mono text-[10px] text-emerald-400 font-bold uppercase tracking-wider">
+              <div className="rounded-md bg-muted border border-border p-4 space-y-3">
+                <div className="font-mono text-[10px] text-emerald-600 dark:text-emerald-400 font-bold uppercase tracking-wider">
                   Verified Engine Solution:
                 </div>
-                <p className="font-mono text-xs text-zinc-300 leading-relaxed">
+                <p className="font-sans text-xs text-foreground leading-relaxed">
                   {thread.answer}
                 </p>
                 {thread.codeSnippet && (
-                  <pre className="overflow-x-auto p-3 bg-[#050506] border border-zinc-800 font-mono text-xs text-zinc-300 rounded">
+                  <pre className="overflow-x-auto p-3 bg-background border border-border font-mono text-xs text-foreground rounded-md">
                     {thread.codeSnippet}
                   </pre>
                 )}

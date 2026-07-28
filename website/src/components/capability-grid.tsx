@@ -89,16 +89,16 @@ export function CapabilityGrid() {
   return (
     <div className="space-y-6">
       {/* Filter Tabs */}
-      <div className="flex flex-wrap items-center gap-2 border-b border-zinc-800 pb-4">
-        <span className="font-mono text-xs text-zinc-500 mr-2">Filter Category:</span>
+      <div className="flex flex-wrap items-center gap-2 border-b border-border pb-4">
+        <span className="font-mono text-xs text-muted-foreground mr-2">Filter:</span>
         {categories.map((cat) => (
           <button
             key={cat}
             onClick={() => setSelectedCategory(cat)}
-            className={`px-3 py-1 font-mono text-xs rounded transition ${
+            className={`px-3 py-1 font-mono text-xs rounded-md transition ${
               selectedCategory === cat
-                ? "bg-white text-black font-bold"
-                : "bg-zinc-900 text-zinc-400 border border-zinc-800 hover:text-white hover:border-zinc-700"
+                ? "bg-primary text-primary-foreground font-semibold"
+                : "bg-muted text-muted-foreground border border-border hover:text-foreground"
             }`}
           >
             {cat}
@@ -111,42 +111,42 @@ export function CapabilityGrid() {
         {filtered.map((cap) => (
           <div
             key={cap.id}
-            className="group relative rounded border border-zinc-800 bg-[#0a0a0c] p-6 transition-all duration-200 hover:border-zinc-500 flex flex-col justify-between"
+            className="group relative rounded-lg border border-border bg-card p-6 transition-all duration-200 hover:border-foreground/40 flex flex-col justify-between"
           >
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="rounded bg-zinc-900 px-2 py-0.5 font-mono text-[9px] text-zinc-400 border border-zinc-800 font-bold">
+                <span className="rounded bg-muted px-2 py-0.5 font-mono text-[10px] text-muted-foreground border border-border">
                   {cap.category}
                 </span>
-                <span className="rounded bg-zinc-800 px-2 py-0.5 font-mono text-[9px] text-white border border-zinc-700 font-semibold">
+                <span className="rounded bg-muted px-2 py-0.5 font-mono text-[10px] text-foreground border border-border font-semibold">
                   {cap.badge}
                 </span>
               </div>
 
-              <h3 className="font-mono text-sm font-bold text-white group-hover:text-zinc-200">
+              <h3 className="font-sans text-sm font-bold text-foreground">
                 {cap.title}
               </h3>
 
-              <p className="font-mono text-xs text-zinc-400 leading-relaxed">
+              <p className="font-sans text-xs text-muted-foreground leading-relaxed">
                 {cap.description}
               </p>
 
               {/* Command Code Box */}
-              <div className="relative mt-3 rounded bg-[#050506] border border-zinc-800 p-3 font-mono text-xs text-zinc-300 overflow-x-auto">
+              <div className="relative mt-3 rounded-md bg-muted border border-border p-3 font-mono text-xs text-foreground overflow-x-auto">
                 <code>{cap.command}</code>
               </div>
             </div>
 
-            <div className="mt-6 border-t border-zinc-800/80 pt-3 flex items-center justify-between">
+            <div className="mt-6 border-t border-border pt-3 flex items-center justify-between font-mono text-[11px]">
               <button
                 onClick={() => handleCopy(cap.id, cap.command)}
-                className="font-mono text-[10px] text-zinc-400 hover:text-white transition"
+                className="text-muted-foreground hover:text-foreground transition"
               >
                 {copiedId === cap.id ? "[ Copied! ]" : "[ Copy Command ]"}
               </button>
               <button
                 onClick={() => setActiveModalCap(cap)}
-                className="font-mono text-[10px] text-white font-bold hover:underline"
+                className="text-foreground font-semibold hover:underline"
               >
                 [ Inspect Spec ]
               </button>
@@ -157,30 +157,30 @@ export function CapabilityGrid() {
 
       {/* Detail Modal */}
       {activeModalCap && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-          <div className="w-full max-w-lg rounded border border-zinc-700 bg-zinc-950 p-6 space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-md">
+          <div className="w-full max-w-lg rounded-lg border border-border bg-card p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-border pb-3">
               <div className="flex items-center gap-2">
-                <span className="font-mono text-xs font-bold text-white">{activeModalCap.title}</span>
-                <span className="rounded bg-zinc-800 px-2 py-0.5 font-mono text-[9px] text-zinc-300">
+                <span className="font-sans text-sm font-bold text-foreground">{activeModalCap.title}</span>
+                <span className="rounded bg-muted px-2 py-0.5 font-mono text-[10px] text-muted-foreground border border-border">
                   {activeModalCap.category}
                 </span>
               </div>
               <button
                 onClick={() => setActiveModalCap(null)}
-                className="font-mono text-xs text-zinc-500 hover:text-white"
+                className="font-mono text-xs text-muted-foreground hover:text-foreground"
               >
                 [ Close ]
               </button>
             </div>
 
-            <p className="font-mono text-xs text-zinc-300 leading-relaxed">
+            <p className="font-sans text-xs text-muted-foreground leading-relaxed">
               {activeModalCap.details}
             </p>
 
             <div className="space-y-1">
-              <span className="font-mono text-[10px] text-zinc-500 uppercase">CLI Command Execution</span>
-              <div className="p-3 bg-black border border-zinc-800 font-mono text-xs text-emerald-400 rounded">
+              <span className="font-mono text-[10px] text-muted-foreground uppercase">CLI Command Execution</span>
+              <div className="p-3 bg-muted border border-border font-mono text-xs text-foreground rounded-md">
                 $ {activeModalCap.command}
               </div>
             </div>
@@ -191,7 +191,7 @@ export function CapabilityGrid() {
                   handleCopy(activeModalCap.id, activeModalCap.command);
                   setActiveModalCap(null);
                 }}
-                className="rounded bg-white px-4 py-2 font-mono text-xs font-bold text-black hover:bg-zinc-200"
+                className="rounded-md bg-primary px-4 py-2 font-sans text-xs font-semibold text-primary-foreground hover:opacity-90 transition"
               >
                 Copy Command
               </button>

@@ -2,118 +2,76 @@
 
 import { useState } from "react";
 
-export interface TopologyNode {
-  id: string;
-  step: string;
-  name: string;
-  sub: string;
-  desc: string;
-  tech: string;
-  status: "ACTIVE" | "READY" | "STANDBY";
-}
-
-const NODES: TopologyNode[] = [
-  {
-    id: "ingress",
-    step: "01",
-    name: "GitHub / API Ingress",
-    sub: "Signed Webhook or Bearer Token",
-    desc: "Ingresses git pushes, tag promotions, or authenticated REST API calls (/api/v1/deploy).",
-    tech: "HMAC SHA-256 Webhook / Bearer vg_live_...",
-    status: "ACTIVE",
-  },
-  {
-    id: "fastify",
-    step: "02",
-    name: "Fastify API & Lock Engine",
-    sub: "Port 9090 Server",
-    desc: "Validates payload, acquires Redis distributed deployment lock for the environment, and appends job to SQL queue.",
-    tech: "Bun Runtime + PostgreSQL 16 + Redis 6379",
-    status: "ACTIVE",
-  },
-  {
-    id: "worker",
-    step: "03",
-    name: "Worker Pipeline & Build",
-    sub: "Isolated BuildContext",
-    desc: "Executes git checkout, generates dockerfile, and runs Docker BuildKit with layer caching.",
-    tech: "Docker BuildKit + Docker Engine Socket",
-    status: "ACTIVE",
-  },
-  {
-    id: "slots",
-    step: "04",
-    name: "Blue / Green Container Slots",
-    sub: "Port :3100 (Blue) / :3101 (Green)",
-    desc: "Deploys container into the currently idle slot port, injects environment variables, and executes health validation.",
-    tech: "Docker Container Runtime + Health Validator",
-    status: "ACTIVE",
-  },
-  {
-    id: "nginx",
-    step: "05",
-    name: "Nginx Atomic Traffic Swap",
-    sub: "Reverse Proxy & Upstream Reload",
-    desc: "Switches upstream server target atomically via Nginx reload without dropping active HTTP connections.",
-    tech: "Nginx Upstream Reload + Stage Path Proxy",
-    status: "ACTIVE",
-  },
-];
-
 export function TopologyVisualizer() {
-  const [activeNodeId, setActiveNodeId] = useState<string>("slots");
-  const selectedNode = NODES.find((n) => n.id === activeNodeId) ?? NODES[0];
+  const [activeStep, setActiveStep] = useState<number>(0);
+
+  const steps = [
+    {
+      title: "01 // Git Webhook Ingress",
+      desc: "GitHub webhook sends a signed POST payload (/api/webhooks/github) verified with HMAC SHA-256.",
+      payload: "X-Hub-Signature-256: sha256=8f92a1c...",
+    },
+    {
+      title: "02 // Redis Mutex & Lock",
+      desc: "Acquires an atomic distributed lock on project:environment in Redis to prevent concurrent deploy race conditions.",
+      payload: "SET lock:project:web-app:production PX 300000 NX",
+    },
+    {
+      title: "03 // Idle Slot Compilation",
+      desc: "Determines idle container slot (GREEN on port 3101), pulls repository code, and builds Docker image.",
+      payload: "docker build -t versiongate-web-app:v14 .",
+    },
+    {
+      title: "04 // Health Verification",
+      desc: "Launches GREEN container on port 3101 and verifies health endpoint (GET http://127.0.0.1:3101/health).",
+      payload: "GET /health -> 200 OK (Latency: 12ms)",
+    },
+    {
+      title: "05 // Atomic Nginx Swap",
+      desc: "Generates new Nginx upstream configuration mapping to port 3101 and executes graceful Nginx reload.",
+      payload: "nginx -s reload -> Upstream swapped in 0 ms downtime",
+    },
+  ];
 
   return (
     <div className="space-y-6">
-      {/* Node Chain Bar */}
-      <div className="grid gap-3 sm:grid-cols-5">
-        {NODES.map((node) => {
-          const isSelected = activeNodeId === node.id;
-          return (
-            <button
-              key={node.id}
-              onClick={() => setActiveNodeId(node.id)}
-              className={`p-4 rounded border text-left transition-all ${
-                isSelected
-                  ? "border-white bg-zinc-900 shadow-lg"
-                  : "border-zinc-800 bg-[#0a0a0c] hover:border-zinc-700"
-              }`}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <span className="font-mono text-[10px] text-zinc-500 font-bold">{node.step} //</span>
-                <span className={`px-1.5 py-0.5 font-mono text-[8px] rounded border font-bold ${
-                  isSelected ? "bg-white text-black border-white" : "bg-zinc-800 text-zinc-400 border-zinc-700"
-                }`}>
-                  {node.status}
-                </span>
-              </div>
-              <p className="font-mono text-xs font-bold text-white truncate">{node.name}</p>
-              <p className="font-mono text-[10px] text-zinc-400 truncate mt-0.5">{node.sub}</p>
-            </button>
-          );
-        })}
+      {/* Interactive Step Buttons */}
+      <div className="grid gap-2 sm:grid-cols-5">
+        {steps.map((step, idx) => (
+          <button
+            key={idx}
+            onClick={() => setActiveStep(idx)}
+            className={`p-3 text-left rounded-md font-mono text-xs border transition ${
+              activeStep === idx
+                ? "bg-primary text-primary-foreground border-primary font-semibold shadow-sm"
+                : "bg-card text-muted-foreground border-border hover:text-foreground hover:border-foreground/30"
+            }`}
+          >
+            <div>{step.title}</div>
+          </button>
+        ))}
       </div>
 
-      {/* Selected Node Details Card */}
-      <div className="rounded border border-zinc-800 bg-[#0a0a0c] p-6 space-y-3">
-        <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
-          <div className="flex items-center gap-3">
-            <span className="font-mono text-xs font-bold text-white">STEP {selectedNode.step}</span>
-            <span className="font-mono text-xs text-zinc-400">/ {selectedNode.name}</span>
-          </div>
-          <span className="font-mono text-[10px] text-zinc-500 uppercase">Architecture Telemetry</span>
+      {/* Detail Inspector Card */}
+      <div className="rounded-lg border border-border bg-card p-6 space-y-4 shadow-sm">
+        <div className="flex items-center justify-between border-b border-border pb-3">
+          <span className="font-mono text-sm font-bold text-foreground">
+            {steps[activeStep].title}
+          </span>
+          <span className="font-mono text-[10px] text-muted-foreground">
+            Step {activeStep + 1} of {steps.length}
+          </span>
         </div>
 
-        <p className="font-mono text-xs text-zinc-300 leading-relaxed">
-          {selectedNode.desc}
+        <p className="font-sans text-xs text-muted-foreground leading-relaxed">
+          {steps[activeStep].desc}
         </p>
 
-        <div className="pt-2 flex items-center gap-2">
-          <span className="font-mono text-[10px] text-zinc-500 uppercase">Tech Stack:</span>
-          <span className="font-mono text-xs text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/30">
-            {selectedNode.tech}
-          </span>
+        <div className="space-y-1">
+          <span className="font-mono text-[10px] text-muted-foreground uppercase">System Operation Payload</span>
+          <pre className="p-3 bg-muted border border-border font-mono text-xs text-foreground rounded-md overflow-x-auto">
+            {steps[activeStep].payload}
+          </pre>
         </div>
       </div>
     </div>
