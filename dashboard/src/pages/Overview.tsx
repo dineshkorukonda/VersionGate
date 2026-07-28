@@ -31,6 +31,7 @@ import {
   getDisplayDeployment,
   guessEnvironmentLabel,
   latestDeploymentForColor,
+  publicEnvironmentUrl,
   publicServiceUrl,
   setConfiguredPublicHost,
 } from "@/lib/deployment-display";
@@ -381,8 +382,8 @@ export function Overview() {
                 const st = projectDeploymentStatus(p.id, deployments);
                 const job = latestJobs[p.id];
                 const hostPort = row?.port ?? null;
-                const hostUrl = hostPort != null ? publicServiceUrl(hostPort) : null;
-                const envLabel = row ? guessEnvironmentLabel(p, row) : null;
+                const envLabel = row ? guessEnvironmentLabel(p, row) : "production";
+                const hostUrl = hostPort != null ? publicEnvironmentUrl(p, envLabel !== "—" ? envLabel : "production", hostPort) : null;
                 const active = getActiveDeployment(p.id, deployments);
                 const deploying = getDeployingDeployment(p.id, deployments);
                 const bluePort = p.basePort;
