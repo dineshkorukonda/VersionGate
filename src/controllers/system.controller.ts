@@ -61,3 +61,11 @@ export async function getServerDashboardHandler(
   }
   reply.code(200).send(dashboard);
 }
+
+export async function getEngineHealthHandler(
+  _req: FastifyRequest,
+  reply: FastifyReply
+): Promise<void> {
+  const { engineHealthMonitor } = await import("../services/engine-monitor.service");
+  reply.code(200).send(engineHealthMonitor.getLatestReport());
+}

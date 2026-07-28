@@ -1,5 +1,5 @@
 import { FastifyInstance } from "fastify";
-import { reconcileHandler, getServerStatsHandler, getServerDashboardHandler } from "../controllers/system.controller";
+import { reconcileHandler, getServerStatsHandler, getServerDashboardHandler, getEngineHealthHandler } from "../controllers/system.controller";
 import { preflightHandler } from "../controllers/preflight.controller";
 import {
   selfUpdateApplyHandler,
@@ -14,6 +14,7 @@ export async function systemRoutes(app: FastifyInstance): Promise<void> {
   app.get("/server/stats", { handler: getServerStatsHandler });
   app.get("/system/server-stats", { handler: getServerStatsHandler });
   app.get("/system/server-dashboard", { handler: getServerDashboardHandler });
+  app.get("/system/engine-health", { handler: getEngineHealthHandler });
 
   app.get("/system/update/status", { handler: selfUpdateStatusHandler });
   app.post("/system/update/apply", { handler: selfUpdateApplyHandler });

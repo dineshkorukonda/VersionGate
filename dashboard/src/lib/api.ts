@@ -292,6 +292,21 @@ export function getServerDashboard(): Promise<SystemDashboardResponse> {
   return request("GET", "/system/server-dashboard");
 }
 
+export interface EngineHealthReport {
+  status: "ok" | "degraded" | "error";
+  timestamp: string;
+  uptime: number;
+  database: { connected: boolean; latencyMs: number };
+  redis: { connected: boolean; available: boolean };
+  containers: { totalActive: number; healthyCount: number; failedCount: number };
+  system: { cpuPercent: number; memoryPercent: number; diskPercent: number };
+  alerts: Array<{ id: string; type: string; message: string; severity: "low" | "medium" | "high" }>;
+}
+
+export function getEngineHealth(): Promise<EngineHealthReport> {
+  return request("GET", "/system/engine-health");
+}
+
 export interface SetupStatus {
   configured: boolean;
   dbConnected: boolean;
