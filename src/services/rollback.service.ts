@@ -63,20 +63,31 @@ export class RollbackService {
       "Rolling back"
     );
 
-    logger.info({ containerName: previous.containerName }, "Restarting previous container");
     const projectEnv = parseProjectEnv(project.env);
-    const envKeys = Object.keys(projectEnv);
-    if (envKeys.length > 0) {
-      logger.info({ projectId, envKeys }, "Injecting env keys");
+    const stageEnv = parseProjectEnv((envRow as typeof envRow & { env?: unknown }).env);
+    const mergedEnv = { ...projectEnv, ...stageEnv };
+
+    const { inspectContainer } = await import("../utils/docker");
+    let isAlreadyRunning = false;
+    try {
+      isAlreadyRunning = await inspectContainer(previous.containerName);
+    } catch {
+      isAlreadyRunning = false;
     }
-    await runContainer(
-      previous.containerName,
-      previous.imageTag,
-      previous.port,
-      envRow.appPort,
-      config.dockerNetwork,
-      projectEnv
-    );
+
+    if (!isAlreadyRunning) {
+      await stopContainer(previous.containerName).catch(() => null);
+      await removeContainer(previous.containerName).catch(() => null);
+
+      await runContainer(
+        previous.containerName,
+        previous.imageTag,
+        previous.port,
+        envRow.appPort,
+        config.dockerNetwork,
+        mergedEnv
+      );
+    }
 
     const result = await this.validation.validate(
       `http://localhost:${previous.port}`,

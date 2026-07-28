@@ -174,3 +174,15 @@ export async function getContainerLogs(name: string, tail = 200): Promise<string
     return [];
   }
 }
+
+/**
+ * Returns true if the specified Docker image tag exists in local cache.
+ */
+export async function imageExists(imageTag: string): Promise<boolean> {
+  try {
+    const { stdout } = await execFileAsync(dockerCmd(), ["images", "-q", imageTag]);
+    return stdout.trim().length > 0;
+  } catch {
+    return false;
+  }
+}
