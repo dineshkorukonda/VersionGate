@@ -32,14 +32,6 @@ Open `http://your-server-ip:9090/setup` in your browser to run the 1-minute init
 
 ---
 
-## Full Interactive Documentation & Web Portal
-
-For interactive command execution sandboxes, capability directories, topology maps, community Q&A, and full API references:
-
-[Explore Full Website & Interactive Docs](https://versiongate.tech) (or run `cd website && bun run dev` locally).
-
----
-
 ## License
 
 Distributed under the **MIT License**. Created by **Dinesh Korukonda**.
