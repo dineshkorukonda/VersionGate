@@ -18,16 +18,16 @@
 }
 
 :root {
-  --background: #09090b;
-  --foreground: #f4f4f5;
-  --surface: #121215;
-  --card: #18181b;
-  --muted: #27272a;
-  --muted-foreground: #a1a1aa;
-  --primary: #38bdf8;
-  --primary-foreground: #09090b;
-  --border: #27272a;
-  --terminal: #0c0c0e;
+  --background: #000000;
+  --foreground: #ffffff;
+  --surface: #0a0a0a;
+  --card: #0e0e10;
+  --muted: #18181b;
+  --muted-foreground: #888888;
+  --primary: #ffffff;
+  --primary-foreground: #000000;
+  --border: #222225;
+  --terminal: #050506;
   --warn: #f59e0b;
   --error: #ef4444;
 }
@@ -44,32 +44,22 @@ body {
 }
 
 ::selection {
-  background: rgba(56, 189, 248, 0.25);
-  color: #38bdf8;
+  background: #ffffff;
+  color: #000000;
 }
 
-.glow-blue {
-  box-shadow: 0 0 50px -10px rgba(56, 189, 248, 0.15);
-}
-
-.glow-emerald {
-  box-shadow: 0 0 50px -10px rgba(16, 185, 129, 0.15);
-}
-
-.glow-purple {
-  box-shadow: 0 0 50px -10px rgba(168, 85, 247, 0.15);
-}
-
-.bg-mesh-grid {
-  background-size: 32px 32px;
+.bg-tech-grid {
+  background-size: 40px 40px;
   background-image: 
-    linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+    linear-gradient(to right, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
 }
 
-.glass-panel {
-  background: rgba(24, 24, 27, 0.65);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+.tech-panel {
+  background: rgba(10, 10, 12, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.border-accent {
+  border-color: rgba(255, 255, 255, 0.15);
 }

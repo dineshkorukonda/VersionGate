@@ -1,13 +1,13 @@
 import Link from "next/link";
 
-const GITHUB_REPO = "https://github.com/dinexh/VersionGate";
+const GITHUB_REPO = "https://github.com/dineshkorukonda/VersionGate";
 
 export function SiteHeader({ active }: { active?: "features" | "updates" | "architecture" | "docs" | "get-started" }) {
   const link = (href: string, label: string, key: string) => (
     <Link
       href={href}
-      className={`font-mono text-[11px] lowercase tracking-wide transition ${
-        active === key ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+      className={`font-mono text-xs uppercase tracking-wider transition ${
+        active === key ? "text-white font-semibold" : "text-zinc-400 hover:text-white"
       }`}
     >
       {label}
@@ -15,32 +15,39 @@ export function SiteHeader({ active }: { active?: "features" | "updates" | "arch
   );
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur-sm">
-      <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:px-6">
-        <Link href="/" className="font-mono text-sm font-bold uppercase tracking-[0.2em] text-foreground">
-          VersionGate
-        </Link>
+    <header className="sticky top-0 z-50 border-b border-zinc-800/80 bg-black/90 backdrop-blur-md">
+      <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6">
+        <div className="flex items-center gap-3">
+          <Link href="/" className="font-mono text-sm font-bold uppercase tracking-[0.25em] text-white">
+            VERSIONGATE
+          </Link>
+          <span className="rounded bg-zinc-800/80 px-2 py-0.5 font-mono text-[9px] text-zinc-400 border border-zinc-700/50">
+            v1.4 ENGINE
+          </span>
+        </div>
 
-        <nav className="hidden items-center gap-6 md:flex">
-          {link("/#updates", "latest updates", "updates")}
-          {link("/#features", "features", "features")}
-          {link("/#architecture", "architecture", "architecture")}
-          {link("/docs", "docs", "docs")}
-          {link("/#get-started", "get started", "get-started")}
+        <nav className="hidden items-center gap-8 md:flex">
+          {link("/#updates", "UPDATES", "updates")}
+          {link("/#features", "FEATURES", "features")}
+          {link("/#architecture", "ARCHITECTURE", "architecture")}
+          {link("/docs", "DOCS", "docs")}
+          {link("/#get-started", "GET STARTED", "get-started")}
         </nav>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <Link
             href={GITHUB_REPO}
-            className="hidden border border-border px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider text-foreground transition hover:bg-muted sm:inline-flex"
+            target="_blank"
+            rel="noreferrer"
+            className="hidden rounded border border-zinc-700/80 bg-zinc-900/60 px-3 py-1.5 font-mono text-xs uppercase tracking-wider text-zinc-200 transition hover:bg-zinc-800 hover:text-white sm:inline-flex"
           >
-            Login
+            GITHUB
           </Link>
           <Link
             href="/#get-started"
-            className="bg-primary px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider text-primary-foreground transition hover:opacity-90"
+            className="rounded bg-white px-3.5 py-1.5 font-mono text-xs font-semibold uppercase tracking-wider text-black transition hover:bg-zinc-200"
           >
-            Get Started
+            DEPLOY NOW
           </Link>
         </div>
       </div>
