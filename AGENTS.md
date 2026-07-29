@@ -77,10 +77,10 @@ Whenever an AI Agent or LLM CLI (`agy`, Antigravity, Cursor, Copilot, etc.) work
    - ABSOLUTELY NO EMOJIS OR DECORATIVE ICON SYMBOLS anywhere across the entire repository (including READMEs, markdown documentation, website UI, dashboard UI, code comments, and commit messages).
    - Use clean, technical text badges (`[ OK ]`, `[ LIVE ]`, `01 //`), monospace typography, and precision layout lines instead.
 
-8. **Mandatory Landing Page & CHANGELOG Updates for Material Features:**
+8. **Mandatory Landing Page & Interactive Website Changelog Updates:**
    - Whenever any material feature, high-density change, or major architectural upgrade is introduced (such as reverse proxy stage routing, GitHub App relay, warm-swap rollbacks, or API token authentication), the AI Agent MUST update both:
-     a) The marketing website landing page (`website/`) to feature the new capability.
-     b) `CHANGELOG.md` in the root repository to maintain an up-to-date, comprehensive record of changes.
+     a) The marketing website landing page (`website/src/components/capability-grid.tsx`).
+     b) The interactive web changelog page (`website/src/app/changelog/page.tsx`).
 
 ---
 

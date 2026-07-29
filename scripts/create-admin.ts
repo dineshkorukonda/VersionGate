@@ -6,13 +6,14 @@
  *   bun run create-admin you@example.com 'your-secure-password'
  */
 import "../src/config/env";
-import { disconnectPrisma } from "../src/prisma/client";
-import prisma from "../src/prisma/client";
+import { UserRepository } from "../src/repositories/user.repository";
 import {
   AUTH_MIN_PASSWORD_LENGTH,
   hashPassword,
   isValidEmail,
 } from "../src/services/auth.service";
+
+const userRepo = new UserRepository();
 
 const emailRaw = process.argv[2];
 const password = process.argv[3];
@@ -41,7 +42,7 @@ if (password.length < AUTH_MIN_PASSWORD_LENGTH) {
 }
 
 try {
-  const n = await prisma.user.count();
+  const n = await userRepo.countUsers();
   if (n > 0) {
     console.error(
       "At least one user already exists. Sign in at the dashboard; this script only bootstraps an empty database."
@@ -50,15 +51,11 @@ try {
   }
 
   const passwordHash = await hashPassword(password);
-  await prisma.user.create({
-    data: { email, passwordHash },
-  });
+  await userRepo.createUser({ email, passwordHash });
 
   console.log(`Created administrator ${email}. Open the dashboard and sign in.`);
 } catch (e) {
   const msg = e instanceof Error ? e.message : String(e);
   console.error("Failed:", msg);
   process.exit(1);
-} finally {
-  await disconnectPrisma();
 }
