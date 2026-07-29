@@ -4,6 +4,7 @@ const GITHUB_REPO = "https://github.com/dineshkorukonda/VersionGate";
 
 const LINKS = [
   { label: "Documentation", href: "/docs" },
+  { label: "Changelog", href: "/changelog" },
   { label: "API Reference", href: "/docs/api-reference" },
   { label: "GitHub Repository", href: GITHUB_REPO },
   { label: "Issues & Support", href: `${GITHUB_REPO}/issues` },
