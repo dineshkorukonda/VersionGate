@@ -52,6 +52,12 @@ export function SiteHeader({ active }: { active?: "features" | "docs" }) {
               >
                 Docs
               </Link>
+              <Link
+                href="/changelog"
+                className="font-sans text-xs text-muted-foreground hover:text-foreground transition"
+              >
+                Changelog
+              </Link>
             </nav>
           </div>
 
