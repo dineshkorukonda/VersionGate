@@ -40,7 +40,7 @@ VersionGate is a self-hosted zero-downtime Docker deployment engine with two mai
 
 ## Mandatory AI Agent & LLM Guidelines
 
-Whenever an AI Agent or LLM CLI (`agy`, Antigravity, Cursor, Copilot, etc.) works on this codebase, it MUST adhere strictly to the following 6 rules:
+Whenever an AI Agent or LLM CLI (`agy`, Antigravity, Cursor, Copilot, etc.) works on this codebase, it MUST adhere strictly to the following 8 rules:
 
 1. **Check Existing Files Before Creating New Ones:**
    - Always search existing utility files, components, repositories, and helper functions in `src/` and `dashboard/` before writing custom helper code. Do not duplicate functionality.
@@ -64,18 +64,20 @@ Whenever an AI Agent or LLM CLI (`agy`, Antigravity, Cursor, Copilot, etc.) work
      - `ci(...)`: CI/CD & pipeline updates
      - `chore(...)`: Maintenance, configs, dependencies
 
-5. **Pull Request Workflow Standards:**
-   - When asked to commit and create a PR:
-     - **Branching:** Work MUST be on a dedicated feature branch (`feat/*`, `fix/*`, `refactor/*`).
-     - **PR Body:** Provide a clear, bulleted summary of changes, design choices, and empirical test results.
-     - **Assignee:** ALWAYS assign the PR to `@dineshkorukonda` (`dineshkorukonda`).
-     - **Labels:** Add relevant tags/labels (`enhancement`, `backend`, `frontend`, `infrastructure`, `database`, `bug`).
+5. **Domain-Driven Feature PR Workflow & Single PR per Milestone:**
+   - Work on ONE dedicated feature branch per milestone or discussion session (`feat/*`, `fix/*`, `refactor/*`).
+   - Group related full-stack changes (backend engine, dashboard UI, website docs, landing page, and changelog) into atomic commits on the same feature branch.
+   - Do NOT open micro-PRs for every individual prompt or minor edit. Open a SINGLE PR when the entire milestone or task scope is complete.
+   - ALWAYS assign PRs to `@dineshkorukonda` (`dineshkorukonda`) and attach relevant tags (`enhancement`, `backend`, `frontend`, `infrastructure`, `database`, `bug`).
 
-6. **Strict No-Emoji & No-Icon Rule:**
+6. **Automated GitHub Issue Linking & Auto-Closing:**
+   - Every PR created MUST list the GitHub issue numbers it resolves in the PR description body using GitHub closing keywords (`Closes #123`, `Fixes #124`, `Resolves #125`) so issues are automatically marked complete upon merging.
+
+7. **Strict No-Emoji & No-Icon Rule:**
    - ABSOLUTELY NO EMOJIS OR DECORATIVE ICON SYMBOLS anywhere across the entire repository (including READMEs, markdown documentation, website UI, dashboard UI, code comments, and commit messages).
    - Use clean, technical text badges (`[ OK ]`, `[ LIVE ]`, `01 //`), monospace typography, and precision layout lines instead.
 
-7. **Mandatory Landing Page & CHANGELOG Updates for Material Features:**
+8. **Mandatory Landing Page & CHANGELOG Updates for Material Features:**
    - Whenever any material feature, high-density change, or major architectural upgrade is introduced (such as reverse proxy stage routing, GitHub App relay, warm-swap rollbacks, or API token authentication), the AI Agent MUST update both:
      a) The marketing website landing page (`website/`) to feature the new capability.
      b) `CHANGELOG.md` in the root repository to maintain an up-to-date, comprehensive record of changes.
