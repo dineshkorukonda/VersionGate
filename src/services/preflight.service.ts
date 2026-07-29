@@ -318,6 +318,38 @@ export async function runPreflightChecks(): Promise<PreflightReport> {
         : "COOKIE_SECURE unset/false — fine for HTTP or local access behind plain IP",
   });
 
+  // ── Firewall & Ingress Port Accessibility Check ──────────────────────────────
+  const ufwStatus = await tryExec("ufw", ["status"]);
+  const firewalldStatus = await tryExec("firewall-cmd", ["--state"]);
+  let firewallMessage = "UFW / Firewalld not active locally. Ensure cloud security groups (AWS EC2 / GCP / Oracle / Azure) allow ingress on TCP ports 9090 (API), 5173 (Dashboard), 80 (HTTP), and 443 (HTTPS).";
+  let firewallOk = true;
+  let firewallDetail: string | undefined = undefined;
+
+  if (ufwStatus.ok && ufwStatus.out.includes("Status: active")) {
+    const allowsApi = ufwStatus.out.includes("9090");
+    const allowsDash = ufwStatus.out.includes("5173");
+    const allowsHttp = ufwStatus.out.includes("80");
+    firewallOk = allowsApi && allowsDash && allowsHttp;
+    if (!firewallOk) {
+      firewallMessage = "UFW active but ports 9090/5173/80/443 may be blocked. Run: sudo ufw allow 9090/tcp && sudo ufw allow 5173/tcp && sudo ufw allow 80/tcp && sudo ufw allow 443/tcp";
+      firewallDetail = "AWS/GCP/Oracle VPS users must also allow TCP 9090 & 5173 in Cloud Provider Security Groups.";
+    } else {
+      firewallMessage = "UFW active with rules configured for ports 9090, 5173, 80, 443.";
+    }
+  } else if (firewalldStatus.ok && firewalldStatus.out.includes("running")) {
+    firewallMessage = "Firewalld active. Run: sudo firewall-cmd --permanent --add-port=9090/tcp --add-port=5173/tcp --add-port=80/tcp --add-port=443/tcp && sudo firewall-cmd --reload";
+    firewallDetail = "Cloud security groups (AWS / GCP / Oracle) must also permit TCP 9090 & 5173.";
+  }
+
+  checks.push({
+    id: "firewall_ingress",
+    label: "Host Firewall & Port Access",
+    severity: "recommended",
+    ok: firewallOk,
+    message: firewallMessage,
+    detail: firewallDetail,
+  });
+
   const requiredOk = checks.filter((c) => c.severity === "required").every((c) => c.ok);
 
   return {

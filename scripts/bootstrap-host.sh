@@ -156,7 +156,18 @@ EOF
   fi
 else
   warn "Minimal mode — skipped nginx / certbot / pm2"
-fi
+  log "Firewall & Port Rules (UFW / Firewalld)"
+  if command -v ufw >/dev/null 2>&1; then
+    ufw allow 9090/tcp comment 'VersionGate API' 2>/dev/null || true
+    ufw allow 5173/tcp comment 'VersionGate Dashboard' 2>/dev/null || true
+    ufw allow 80/tcp comment 'HTTP Web' 2>/dev/null || true
+    ufw allow 443/tcp comment 'HTTPS Web' 2>/dev/null || true
+    ok "Configured UFW rules for ports 9090, 5173, 80, 443"
+  elif command -v firewall-cmd >/dev/null 2>&1; then
+    firewall-cmd --permanent --add-port=9090/tcp --add-port=5173/tcp --add-port=80/tcp --add-port=443/tcp 2>/dev/null || true
+    firewall-cmd --reload 2>/dev/null || true
+    ok "Configured Firewalld rules for ports 9090, 5173, 80, 443"
+  fi
 
 if [[ "$WITH_POSTGRES" -eq 1 ]]; then
   log "PostgreSQL (local)"
