@@ -84,7 +84,7 @@ const FALLBACK_RELEASES: ProcessedRelease[] = [
           {
             title: "Universal One-Line Host Installer Endpoint",
             description: "Direct host endpoint serving install.sh at versiongate.tech/install.sh for automated zero-downtime VM setup.",
-            command: "curl -fsSL https://versiongate.tech/install.sh | bash",
+            command: "curl -fsSL https://versiongate.tech/install.sh | sudo bash",
             prNumber: 135,
             prLink: "https://github.com/dineshkorukonda/VersionGate/pull/135",
           },

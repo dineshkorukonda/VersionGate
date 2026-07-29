@@ -80,7 +80,7 @@ const CAPABILITIES: Capability[] = [
     id: "cap-installer",
     category: "Deployment",
     title: "Universal One-Line Host Installer",
-    command: "curl -fsSL https://versiongate.tech/install.sh | bash",
+    command: "curl -fsSL https://versiongate.tech/install.sh | sudo bash",
     description: "Automated VM bootstrap installing base packages, Bun, Docker, UFW firewall rules, and launching Setup Mode.",
     details: "Downloads install.sh from versiongate.tech to configure Docker daemon networking, host firewall rules for ports 9090, 5173, 80, and 443, and initialize VersionGate in setup mode.",
     badge: "v1.4 Feature",

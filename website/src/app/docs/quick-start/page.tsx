@@ -13,7 +13,7 @@ export default function QuickStart() {
       <P>
         On a clean VPS with nothing installed (no Bun, Docker, or Git), copy and paste this single command:
       </P>
-      <Code title="terminal">{`curl -fsSL https://versiongate.tech/install.sh | bash`}</Code>
+      <Code title="terminal">{`curl -fsSL https://versiongate.tech/install.sh | sudo bash`}</Code>
       <P>
         This universal installer automatically installs <InlineCode>unzip</InlineCode>, <InlineCode>git</InlineCode>, <InlineCode>curl</InlineCode>, <InlineCode>Bun</InlineCode>, and <InlineCode>Docker Engine</InlineCode>, sets up UFW firewall rules for ports 9090, 5173, 80, and 443, and starts VersionGate in Setup Mode.
       </P>

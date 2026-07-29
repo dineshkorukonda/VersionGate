@@ -21,10 +21,12 @@ fi
 REAL_HOME="$(getent passwd "$REAL_USER" 2>/dev/null | cut -d: -f6 || echo /root)"
 
 if [[ "$(id -u)" -ne 0 ]]; then
-  if command -v sudo >/dev/null 2>&1; then
-    exec sudo -E bash "$0" "$@"
+  if [[ -f "$0" && "$0" != *"bash"* && "$0" != *"sh"* ]]; then
+    if command -v sudo >/dev/null 2>&1; then
+      exec sudo -E bash "$0" "$@"
+    fi
   fi
-  die "Run with sudo: sudo bash install.sh"
+  die "Please run with sudo: curl -fsSL https://versiongate.tech/install.sh | sudo bash"
 fi
 
 log "1. System Base Packages (curl, git, unzip, ca-certificates, tar)"
