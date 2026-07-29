@@ -33,16 +33,16 @@ if [[ "$(id -u)" -ne 0 ]]; then
   die "Please run with sudo: curl -fsSL https://versiongate.tech/install.sh | sudo bash"
 fi
 
-log "1. System Base Packages (curl, git, unzip, ca-certificates, tar)"
+log "1. System Base Packages (curl, git, unzip, ca-certificates, tar, nodejs, npm)"
 if command -v apt-get >/dev/null 2>&1; then
   export DEBIAN_FRONTEND=noninteractive
   apt-get update -y
   apt-get install -y --no-install-recommends \\
-    ca-certificates curl git gnupg lsb-release apt-transport-https unzip tar
+    ca-certificates curl git gnupg lsb-release apt-transport-https unzip tar nodejs npm
 elif command -v dnf >/dev/null 2>&1; then
-  dnf install -y curl git unzip ca-certificates tar
+  dnf install -y curl git unzip ca-certificates tar nodejs npm
 elif command -v yum >/dev/null 2>&1; then
-  yum install -y curl git unzip ca-certificates tar
+  yum install -y curl git unzip ca-certificates tar nodejs npm
 fi
 ok "Base dependencies verified"
 
@@ -101,7 +101,7 @@ elif command -v firewall-cmd >/dev/null 2>&1; then
 fi
 
 log "5. Repository Setup & Dependencies"
-SCRIPT_DIR="$(cd "$(dirname "\${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "\${BASH_SOURCE[0]:-\$0}")" 2>/dev/null && pwd || echo "$PWD")"
 if [[ ! -f "$SCRIPT_DIR/package.json" ]]; then
   TARGET_DIR="$REAL_HOME/VersionGate"
   if [[ ! -d "$TARGET_DIR" ]]; then
@@ -117,7 +117,7 @@ sudo -u "$REAL_USER" -H bash -lc "export PATH=\\"$REAL_HOME/.bun/bin:\$PATH\\"; 
 
 log "6. Starting VersionGate Engine in Setup Mode"
 if ! command -v pm2 >/dev/null 2>&1; then
-  npm install -g pm2 || true
+  npm install -g pm2 2>/dev/null || bun install -g pm2 2>/dev/null || true
 fi
 
 sudo -u "$REAL_USER" -H bash -lc "export PATH=\\"$REAL_HOME/.bun/bin:\$PATH\\"; pm2 start ecosystem.config.cjs 2>/dev/null || pm2 restart versiongate-api 2>/dev/null || true"
