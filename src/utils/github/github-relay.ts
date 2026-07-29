@@ -80,3 +80,76 @@ export async function registerInstallationWithRelay(opts: {
     throw new Error(`Relay register failed (${res.status}): ${text.slice(0, 200)}`);
   }
 }
+
+export interface RelayRepoRow {
+  id: number;
+  name: string;
+  fullName: string;
+  owner: string;
+  private: boolean;
+  defaultBranch: string;
+  cloneUrl: string;
+  htmlUrl: string;
+  language: string | null;
+  updatedAt: string | null;
+  pushedAt: string | null;
+}
+
+export async function fetchReposFromRelay(opts: {
+  installationId: string;
+  relaySecret: string;
+  relayOrigin?: string;
+}): Promise<RelayRepoRow[]> {
+  const origin = (opts.relayOrigin ?? DEFAULT_RELAY_ORIGIN).replace(/\/+$/, "");
+  const sig = createHmac("sha256", opts.relaySecret)
+    .update(`repos:${opts.installationId}`, "utf8")
+    .digest("hex");
+
+  const res = await fetch(
+    `${origin}/api/github/repos?installation_id=${opts.installationId}&sig=${sig}`,
+    {
+      method: "GET",
+      headers: { "Content-Type": "application/json" },
+      signal: AbortSignal.timeout(10_000),
+    }
+  );
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`Relay fetch repos failed (${res.status}): ${text.slice(0, 200)}`);
+  }
+
+  const data = (await res.json()) as { repositories?: RelayRepoRow[] };
+  return data.repositories ?? [];
+}
+
+export async function fetchBranchesFromRelay(opts: {
+  installationId: string;
+  owner: string;
+  repo: string;
+  relaySecret: string;
+  relayOrigin?: string;
+}): Promise<{ name: string; sha: string | undefined }[]> {
+  const origin = (opts.relayOrigin ?? DEFAULT_RELAY_ORIGIN).replace(/\/+$/, "");
+  const sig = createHmac("sha256", opts.relaySecret)
+    .update(`branches:${opts.installationId}:${opts.owner}/${opts.repo}`, "utf8")
+    .digest("hex");
+
+  const res = await fetch(
+    `${origin}/api/github/repos/${encodeURIComponent(opts.owner)}/${encodeURIComponent(opts.repo)}/branches?installation_id=${opts.installationId}&sig=${sig}`,
+    {
+      method: "GET",
+      headers: { "Content-Type": "application/json" },
+      signal: AbortSignal.timeout(10_000),
+    }
+  );
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`Relay fetch branches failed (${res.status}): ${text.slice(0, 200)}`);
+  }
+
+  const data = (await res.json()) as { branches?: { name: string; sha: string | undefined }[] };
+  return data.branches ?? [];
+}
+
