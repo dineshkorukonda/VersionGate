@@ -21,6 +21,7 @@
     "check-deps": "bash scripts/check-host-deps.sh",
     "bootstrap-host": "bash scripts/bootstrap-host.sh",
     "preflight": "bun run scripts/preflight.ts",
+    "agent": "bun scripts/agent.ts",
     "setup": "bun scripts/setup.ts",
     "self-update": "bun run scripts/self-update.ts",
     "create-admin": "bun scripts/create-admin.ts"

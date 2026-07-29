@@ -61,29 +61,24 @@ async function start(): Promise<void> {
         try {
           logger.info("Applying database migrations…");
           runDrizzleSchemaSync();
+
+          try {
+            const reconciliation = new ReconciliationService();
+            const report = await reconciliation.reconcile();
+            logger.info(report, "Startup reconciliation complete");
+          } catch (err) {
+            logger.warn({ err }, "Startup reconciliation failed");
+          }
         } catch (err) {
           const message = err instanceof Error ? err.message : String(err);
-          logger.fatal(
-            {
-              err: message,
-              stack: err instanceof Error ? err.stack : undefined,
-            },
-            "Database migration failed — API will not start. Fix DATABASE_URL."
+          logger.warn(
+            { err: message },
+            "Database unavailable on boot — entering Setup Mode. Complete setup at /setup"
           );
-          await disconnectDb();
-          process.exit(1);
         }
       }
-
-      try {
-        const reconciliation = new ReconciliationService();
-        const report = await reconciliation.reconcile();
-        logger.info(report, "Startup reconciliation complete");
-      } catch (err) {
-        logger.warn({ err }, "Startup reconciliation failed (database may not be ready)");
-      }
     } else {
-      logger.warn("DATABASE_URL not set — skipping startup reconciliation. Complete setup at /setup");
+      logger.warn("DATABASE_URL not set — entering Setup Mode on port 9090");
     }
 
     await app.listen({ port: PORT, host: "0.0.0.0" });
