@@ -67,6 +67,15 @@ const CAPABILITIES: Capability[] = [
     details: "Merged into container runtime environment at launch: { ...parseProjectEnv(project.env), ...parseProjectEnv(stage.env) }.",
     badge: "v1.4 Feature",
   },
+  {
+    id: "cap-githubrelay",
+    category: "Security",
+    title: "GitHub App Relay & Custom Manifests",
+    command: "versiongate github mode --type relay",
+    description: "Dual GitHub integration supporting zero-config central cloud relay or 1-click custom GitHub App Manifest creation.",
+    details: "Central relay fans out push webhooks securely with HMAC SHA-256 signatures; Custom Manifest mode builds self-hosted apps in 1-click.",
+    badge: "v1.4 Feature",
+  },
 ];
 
 export function CapabilityGrid() {
