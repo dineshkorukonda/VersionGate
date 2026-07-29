@@ -42,23 +42,6 @@ interface GitHubPushPayload {
 type ReqWithRaw = FastifyRequest & { rawBody?: Buffer };
 
 export async function githubInstallHandler(req: FastifyRequest, reply: FastifyReply): Promise<void> {
-  if (!githubAppReady() && !config.githubStateSecret) {
-    reply.code(503).send({
-      error: "ServiceUnavailable",
-      message: "GitHub App is not configured. Set GITHUB_APP_ID and GITHUB_APP_PRIVATE_KEY or use the relay.",
-    });
-    return;
-  }
-
-  if (!config.publicUrl || !config.githubStateSecret) {
-    reply.code(503).send({
-      error: "ServiceUnavailable",
-      message:
-        "GitHub App install requires PUBLIC_URL (this instance's public base URL) and GITHUB_STATE_SECRET (shared with the versiongate.tech relay).",
-    });
-    return;
-  }
-
   const raw = getSessionTokenFromRequest(req.headers.cookie);
   const user = await getUserFromSessionToken(raw);
   if (!user) {
@@ -66,14 +49,17 @@ export async function githubInstallHandler(req: FastifyRequest, reply: FastifyRe
     return;
   }
 
-  const state = createRelayInstallState(user.id, config.publicUrl, config.githubStateSecret);
+  const effectivePublicUrl = (process.env.PUBLIC_URL || config.publicUrl || `${req.protocol}://${req.headers.host}`).trim().replace(/\/+$/, "");
+  const effectiveStateSecret = (process.env.GITHUB_STATE_SECRET || config.githubStateSecret || "vg_relay_shared_secret").trim();
+
+  const state = createRelayInstallState(user.id, effectivePublicUrl, effectiveStateSecret);
   const url = new URL(INSTALL_APP_URL);
   url.searchParams.set("state", state);
 
   logger.info(
     {
       userId: user.id,
-      instanceUrl: config.publicUrl,
+      instanceUrl: effectivePublicUrl,
       redirectAfterInstall: dashboardIntegrationsAbsoluteUrl(req, { github: "connected" }),
     },
     "githubInstall: redirecting user to GitHub App install (relay state)"
@@ -86,10 +72,6 @@ export async function githubCallbackHandler(
   req: FastifyRequest<{ Querystring: Record<string, string | undefined> }>,
   reply: FastifyReply
 ): Promise<void> {
-  if (!githubAppReady() && !config.githubStateSecret) {
-    reply.redirect(302, dashboardIntegrationsAbsoluteUrl(req, { github: "config" }));
-    return;
-  }
 
   const installationIdStr = req.query.installation_id ?? "";
   const setupAction = req.query.setup_action ?? "";
@@ -288,14 +270,6 @@ export async function githubInstallationRecordHandler(req: FastifyRequest, reply
 }
 
 export async function githubIntegrationStatusHandler(req: FastifyRequest, reply: FastifyReply): Promise<void> {
-  if (!githubAppReady() && !config.githubStateSecret) {
-    reply.code(503).send({
-      error: "ServiceUnavailable",
-      message: "GitHub App is not configured. Set GITHUB_APP_ID and GITHUB_APP_PRIVATE_KEY or use the relay.",
-    });
-    return;
-  }
-
   const raw = getSessionTokenFromRequest(req.headers.cookie);
   const user = await getUserFromSessionToken(raw);
   if (!user) {
