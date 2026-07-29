@@ -6,44 +6,35 @@ export default function QuickStart() {
       <Breadcrumb page="Quick Start" />
       <PageTitle>Quick Start</PageTitle>
       <Lead>
-        Get VersionGate running on a fresh Ubuntu/Debian VPS. The bootstrap script installs Docker,
-        creates the deploy network, and sets up nginx — then you build, preflight, and open the setup
-        wizard.
+        Get VersionGate running on a fresh Ubuntu/Debian VPS in under 5 minutes. The setup script configures PostgreSQL, Redis, Docker, and Nginx — enabling instant GitHub repository sync and zero-downtime deployments.
       </Lead>
 
-      <H2>1. Clone the repo</H2>
-      <Code title="terminal">{`git clone https://github.com/dinexh/VersionGate
+      <H2>1. Clone the repository</H2>
+      <Code title="terminal">{`git clone https://github.com/dineshkorukonda/VersionGate.git
 cd VersionGate`}</Code>
 
-      <H2>2. Bootstrap the host (Ubuntu/Debian)</H2>
+      <H2>2. Bootstrap the host server (Ubuntu/Debian)</H2>
       <P>
-        On a clean VM this installs Docker, adds your user to the <InlineCode>docker</InlineCode>{" "}
-        group, creates <InlineCode>versiongate-net</InlineCode>, creates{" "}
-        <InlineCode>/var/versiongate/projects</InlineCode>, and installs nginx / certbot / PM2.
+        On a clean VM this installs Docker, adds your user to the <InlineCode>docker</InlineCode> group, creates the <InlineCode>versiongate-net</InlineCode> network, creates <InlineCode>/var/versiongate/projects</InlineCode>, and installs Nginx, Certbot, and PM2.
       </P>
       <Code title="terminal">{`sudo bash scripts/bootstrap-host.sh
-# or: sudo npm run bootstrap-host
-# options: --minimal | --with-postgres | --skip-docker
-
-newgrp docker          # apply docker group (or log out/in)
-npm run check-deps     # should pass required checks`}</Code>
-      <Callout title="Already have Docker?">
-        You can skip bootstrap and only run <InlineCode>npm run check-deps</InlineCode>, then fix
-        anything marked <InlineCode>[NO]</InlineCode>. Full host validation after install is{" "}
-        <InlineCode>bun run preflight</InlineCode>.
+newgrp docker          # apply docker group membership
+bun run preflight     # validate host requirements`}</Code>
+      <Callout title="Already have Docker & Node/Bun?">
+        You can skip bootstrap and directly execute <InlineCode>bun run preflight</InlineCode> to validate system prerequisites.
       </Callout>
 
       <H2>3. Install packages &amp; build the dashboard</H2>
       <Code title="terminal">{`bun install
-cd dashboard && bun install && bun run build && cd ..
-bun run preflight`}</Code>
+cd dashboard && bun install && bun run build && cd ..`}</Code>
+
+      <H2>4. Run guided setup wizard</H2>
+      <Code title="terminal">{`bun scripts/setup.ts`}</Code>
       <P>
-        Preflight validates Bun, Docker, the deploy network, writable project paths, and optional
-        Nginx/PM2/SSL readiness. Fix any <InlineCode>[NO]</InlineCode> required items before
-        continuing.
+        The interactive setup wizard configures your <InlineCode>DATABASE_URL</InlineCode>, generates encryption keys, sets your <InlineCode>PUBLIC_URL</InlineCode>, and writes your <InlineCode>GITHUB_STATE_SECRET</InlineCode>.
       </P>
 
-      <H2>4. Start the engine</H2>
+      <H2>5. Start VersionGate engine</H2>
       <Code title="terminal">{`# Production
 pm2 start ecosystem.config.cjs
 pm2 save
@@ -51,34 +42,28 @@ pm2 save
 # Development
 bun --watch src/server.ts`}</Code>
 
-      <H2>5. Complete the setup wizard</H2>
+      <H2>6. Connect GitHub &amp; deploy your first app</H2>
       <P>
-        Open <InlineCode>http://your-server-ip:9090/setup</InlineCode> and enter your PostgreSQL
-        connection string, domain (or server IP), and an optional Gemini API key. The wizard writes{" "}
-        <InlineCode>.env</InlineCode>, generates an encryption key, runs database migrations, and
-        configures Nginx when permissions allow.
+        Open your VersionGate dashboard at <InlineCode>http://your-server-ip:5173/integrations</InlineCode> (or your custom domain) and follow the 2-click setup:
+      </P>
+      
+      <H2>Option A: VersionGate Central Cloud Relay (Recommended — 0 Config)</H2>
+      <P>
+        Ensure your <InlineCode>.env</InlineCode> has <InlineCode>PUBLIC_URL=https://your-domain.com</InlineCode> and <InlineCode>GITHUB_STATE_SECRET=your_relay_secret</InlineCode>. In the dashboard, click <InlineCode>Connect with VersionGate Central Relay</InlineCode>, authorize your GitHub repositories, and you&apos;re done!
       </P>
 
-      <H2>6. Connect GitHub &amp; deploy</H2>
+      <H2>Option B: Custom GitHub App (Self-Service)</H2>
       <P>
-        Paste the official shared GitHub App credentials into <InlineCode>.env</InlineCode> once (
-        <InlineCode>GITHUB_APP_ID</InlineCode>, <InlineCode>GITHUB_APP_PRIVATE_KEY</InlineCode>,{" "}
-        <InlineCode>GITHUB_WEBHOOK_SECRET</InlineCode>, <InlineCode>PUBLIC_URL</InlineCode>,{" "}
-        <InlineCode>GITHUB_STATE_SECRET</InlineCode>), restart the engine, then open{" "}
-        <InlineCode>Integrations → Connect GitHub</InlineCode>. You install the official VersionGate
-        App — you do not create your own App. Create a project, pick a repository and branch, and
-        push to auto-deploy.
+        If you prefer full ownership of your own GitHub App, set <InlineCode>GITHUB_APP_ID</InlineCode>, <InlineCode>GITHUB_APP_PRIVATE_KEY</InlineCode>, and <InlineCode>GITHUB_WEBHOOK_SECRET</InlineCode> in <InlineCode>.env</InlineCode>, restart the engine, and install the app on your GitHub account.
       </P>
 
-      <Callout title="Shared App credentials">
-        After the setup wizard finishes, add the official App env vars (same for every self-hosted
-        instance) and a public <InlineCode>PUBLIC_URL</InlineCode> (HTTPS). Projects, environments,
-        secrets, and HTTPS are then managed from the dashboard.
+      <Callout title="Automatic Push Webhooks">
+        Once connected, VersionGate listens for <InlineCode>push</InlineCode> webhooks on your configured branches, building multi-stage Docker containers and executing zero-downtime Nginx upstream switches automatically on every commit.
       </Callout>
 
       <NextLinks
         primary={{ href: "/docs/architecture", label: "Architecture" }}
-        secondary={{ href: "/docs/api-reference", label: "API Reference" }}
+        secondary={{ href: "/docs/deployment", label: "Deployment & Promotion" }}
       />
     </article>
   );
