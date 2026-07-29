@@ -2,10 +2,6 @@
 
 > **Self-hosted zero-downtime Docker deployment engine.** Push code to GitHub -> VersionGate builds your Docker container, validates endpoint health on an isolated slot, atomically switches Nginx traffic, and tears down the legacy slot with 0 ms downtime.
 
-[![Version](https://img.shields.io/badge/Version-v1.4%20Stable-black?style=for-the-badge&logo=docker)](https://github.com/dineshkorukonda/VersionGate)
-[![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)](LICENSE)
-[![Documentation](https://img.shields.io/badge/Docs-Live-emerald?style=for-the-badge)](https://versiongate.tech/docs)
-
 ---
 
 ## Quick 1-Command Bootstrap (Ubuntu / Debian VPS)
