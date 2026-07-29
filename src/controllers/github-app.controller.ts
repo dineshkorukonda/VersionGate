@@ -42,10 +42,10 @@ interface GitHubPushPayload {
 type ReqWithRaw = FastifyRequest & { rawBody?: Buffer };
 
 export async function githubInstallHandler(req: FastifyRequest, reply: FastifyReply): Promise<void> {
-  if (!githubAppReady()) {
+  if (!githubAppReady() && !config.githubStateSecret) {
     reply.code(503).send({
       error: "ServiceUnavailable",
-      message: "GitHub App is not configured. Set GITHUB_APP_ID and GITHUB_APP_PRIVATE_KEY.",
+      message: "GitHub App is not configured. Set GITHUB_APP_ID and GITHUB_APP_PRIVATE_KEY or use the relay.",
     });
     return;
   }
@@ -86,7 +86,7 @@ export async function githubCallbackHandler(
   req: FastifyRequest<{ Querystring: Record<string, string | undefined> }>,
   reply: FastifyReply
 ): Promise<void> {
-  if (!githubAppReady()) {
+  if (!githubAppReady() && !config.githubStateSecret) {
     reply.redirect(302, dashboardIntegrationsAbsoluteUrl(req, { github: "config" }));
     return;
   }
@@ -138,23 +138,31 @@ export async function githubCallbackHandler(
     return;
   }
 
-  const auth = createAppAuth({
-    appId: Number(config.githubAppId),
-    privateKey: config.githubAppPrivateKey,
-  });
-  const { token } = await auth({ type: "app" });
-  const octokit = new Octokit({ auth: token });
-  const { data: installation } = await octokit.rest.apps.getInstallation({
-    installation_id: Number(installationIdStr),
-  });
+  let login = "";
+  let accountType = "unknown";
+  if (githubAppReady()) {
+    try {
+      const auth = createAppAuth({
+        appId: Number(config.githubAppId),
+        privateKey: config.githubAppPrivateKey,
+      });
+      const { token } = await auth({ type: "app" });
+      const octokit = new Octokit({ auth: token });
+      const { data: installation } = await octokit.rest.apps.getInstallation({
+        installation_id: Number(installationIdStr),
+      });
 
-  const account = installation.account;
-  if (!account || typeof account !== "object") {
-    reply.redirect(302, dashboardIntegrationsAbsoluteUrl(req, { github: "bad_installation" }));
-    return;
+      const account = installation.account;
+      if (!account || typeof account !== "object") {
+        reply.redirect(302, dashboardIntegrationsAbsoluteUrl(req, { github: "bad_installation" }));
+        return;
+      }
+      login = "login" in account ? account.login : "";
+      accountType = "type" in account ? String(account.type) : "unknown";
+    } catch (err) {
+      logger.warn({ err }, "githubCallback: direct app installation fetch failed");
+    }
   }
-  const login = "login" in account ? account.login : "";
-  const accountType = "type" in account ? String(account.type) : "unknown";
   const installationId = BigInt(installationIdStr);
 
   const db = getDb();
@@ -280,10 +288,10 @@ export async function githubInstallationRecordHandler(req: FastifyRequest, reply
 }
 
 export async function githubIntegrationStatusHandler(req: FastifyRequest, reply: FastifyReply): Promise<void> {
-  if (!githubAppReady()) {
+  if (!githubAppReady() && !config.githubStateSecret) {
     reply.code(503).send({
       error: "ServiceUnavailable",
-      message: "GitHub App is not configured. Set GITHUB_APP_ID and GITHUB_APP_PRIVATE_KEY.",
+      message: "GitHub App is not configured. Set GITHUB_APP_ID and GITHUB_APP_PRIVATE_KEY or use the relay.",
     });
     return;
   }
@@ -308,9 +316,16 @@ export async function githubIntegrationStatusHandler(req: FastifyRequest, reply:
   }
 
   const primary = rows[0];
-  const { token } = await getInstallationAccessToken(primary.installationId);
-  const octokit = new Octokit({ auth: token });
-  const avatarUrl = await avatarForInstallation(primary, octokit);
+  let avatarUrl: string | null = null;
+  if (githubAppReady()) {
+    try {
+      const { token } = await getInstallationAccessToken(primary.installationId);
+      const octokit = new Octokit({ auth: token });
+      avatarUrl = await avatarForInstallation(primary, octokit);
+    } catch (err) {
+      logger.warn({ err }, "githubIntegrationStatusHandler: avatar fetch failed");
+    }
+  }
 
   reply.code(200).send({
     connected: true,
@@ -334,10 +349,10 @@ export async function githubRepoBranchesHandler(
   req: FastifyRequest<{ Params: { owner: string; repo: string }; Querystring: { installationId?: string } }>,
   reply: FastifyReply
 ): Promise<void> {
-  if (!githubAppReady()) {
+  if (!githubAppReady() && !config.githubStateSecret) {
     reply.code(503).send({
       error: "ServiceUnavailable",
-      message: "GitHub App is not configured. Set GITHUB_APP_ID and GITHUB_APP_PRIVATE_KEY.",
+      message: "GitHub App is not configured. Set GITHUB_APP_ID and GITHUB_APP_PRIVATE_KEY or use the relay.",
     });
     return;
   }
