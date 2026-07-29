@@ -173,7 +173,15 @@ export async function applySetupHandler(
   const envPath = getEnvPath();
   logger.info({ envPath }, "Setup: writing .env file…");
   const encryptionKey = readExistingEncryptionKey() ?? randomBytes(32).toString("hex");
+  const githubStateSecret = process.env.GITHUB_STATE_SECRET?.trim() || randomBytes(32).toString("hex");
+  const jwtSecret = process.env.JWT_SECRET?.trim() || randomBytes(32).toString("hex");
   const projectsRootPath = resolveProjectsRootPath();
+
+  const publicUrl = normalizedDomain.startsWith("http://") || normalizedDomain.startsWith("https://")
+    ? normalizedDomain
+    : domainIsIp
+      ? `http://${normalizedDomain}:9090`
+      : `https://${normalizedDomain}`;
 
   let envContent = `DATABASE_URL="${escapeEnvValue(databaseUrl)}"
 PORT=9090
@@ -182,8 +190,11 @@ DOCKER_NETWORK="versiongate-net"
 NGINX_CONFIG_PATH="${NGINX_UPSTREAM_CONF_PATH}"
 PROJECTS_ROOT_PATH="${escapeEnvValue(projectsRootPath)}"
 PUBLIC_DOMAIN="${escapeEnvValue(normalizedDomain)}"
+PUBLIC_URL="${escapeEnvValue(publicUrl)}"
 PUBLIC_BASE_PATH="/"
 ENCRYPTION_KEY="${encryptionKey}"
+GITHUB_STATE_SECRET="${githubStateSecret}"
+JWT_SECRET="${jwtSecret}"
 `;
 
   if (geminiApiKey && geminiApiKey.trim().length > 0) {
@@ -195,6 +206,9 @@ ENCRYPTION_KEY="${encryptionKey}"
 
   process.env.DATABASE_URL = databaseUrl;
   process.env.ENCRYPTION_KEY = encryptionKey;
+  process.env.PUBLIC_URL = publicUrl;
+  process.env.GITHUB_STATE_SECRET = githubStateSecret;
+  process.env.JWT_SECRET = jwtSecret;
 
   // 3. Sync database schema using Drizzle Kit
   logger.info("Setup: running database schema sync with Drizzle Kit…");
