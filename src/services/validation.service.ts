@@ -1,4 +1,3 @@
-import axios from "axios";
 import { inspectContainer, getContainerRestartCount, getContainerLogs } from "../utils/docker";
 import { config } from "../config/env";
 import { logger } from "../utils/logger";
@@ -71,9 +70,9 @@ export class ValidationService {
         const url = urls[i];
         const start = Date.now();
         try {
-          const response = await axios.get(url, {
-            timeout: healthTimeoutMs,
-            validateStatus: () => true,
+          const response = await fetch(url, {
+            method: "GET",
+            signal: AbortSignal.timeout(healthTimeoutMs),
           });
           const latency = Date.now() - start;
 
