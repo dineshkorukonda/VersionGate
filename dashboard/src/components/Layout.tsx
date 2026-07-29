@@ -127,7 +127,7 @@ export function Layout() {
         if (s.user?.email) setHeaderUserEmail(s.user.email);
       })
       .catch(() => {
-        if (!cancelled) navigate("/login", { replace: true });
+        /* avoid redirect loop on transient API error */
       });
     return () => {
       cancelled = true;

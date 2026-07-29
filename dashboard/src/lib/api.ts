@@ -41,12 +41,6 @@ async function request<T>(method: string, path: string, body?: unknown, baseUrl:
 
   if (!res.ok) {
     const data = await parseJsonSafe(res);
-    if (res.status === 401 && typeof window !== "undefined") {
-      const p = window.location.pathname;
-      if (!p.startsWith("/login") && !p.startsWith("/setup")) {
-        window.location.assign("/login");
-      }
-    }
     let msg = `HTTP ${res.status}`;
     if (typeof data === "object" && data !== null) {
       const o = data as { message?: unknown; error?: unknown };
