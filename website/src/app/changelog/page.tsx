@@ -2,33 +2,47 @@ import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import Link from "next/link";
 
+export const revalidate = 3600; // Revalidate dynamic releases every 1 hour (ISR)
+
 export const metadata = {
   title: "Changelog // VersionGate",
   description: "Recent product updates, new features, and infrastructure improvements released in VersionGate.",
 };
 
-interface ReleaseCategory {
-  type: "Added" | "Changed" | "Fixed";
-  title: string;
-  badge: "NEW" | "IMPROVEMENT" | "FIX";
-  items: {
-    title: string;
-    description: string;
-    command?: string;
-    prLink?: string;
-    prNumber?: number;
-  }[];
+interface GitHubRelease {
+  id: number;
+  tag_name: string;
+  name: string;
+  published_at: string;
+  body: string;
+  html_url: string;
+  prerelease: boolean;
 }
 
-interface ReleaseEntry {
+interface ReleaseItem {
+  title: string;
+  description: string;
+  command?: string;
+  prLink?: string;
+  prNumber?: number;
+}
+
+interface ReleaseCategory {
+  title: string;
+  badge: "NEW" | "IMPROVEMENT" | "FIX";
+  items: ReleaseItem[];
+}
+
+interface ProcessedRelease {
   version: string;
   date: string;
   isLatest?: boolean;
   summary: string;
   categories: ReleaseCategory[];
+  url?: string;
 }
 
-const RELEASES: ReleaseEntry[] = [
+const FALLBACK_RELEASES: ProcessedRelease[] = [
   {
     version: "v1.4.0",
     date: "July 29, 2026",
@@ -36,7 +50,6 @@ const RELEASES: ReleaseEntry[] = [
     summary: "GitHub App Relay Proxying, Stage Path Reverse Proxy, Warm-Swap Rollbacks, API Bearer Tokens & Health Audit.",
     categories: [
       {
-        type: "Added",
         title: "New Features & Infrastructure",
         badge: "NEW",
         items: [
@@ -70,44 +83,6 @@ const RELEASES: ReleaseEntry[] = [
           },
         ],
       },
-      {
-        type: "Changed",
-        title: "UI & Theme Enhancements",
-        badge: "IMPROVEMENT",
-        items: [
-          {
-            title: "Vercel & shadcn Theme Redesign",
-            description: "Redesigned marketing website and management dashboard with Vercel and shadcn design tokens, Poppins typography, and working light/dark mode toggles.",
-            prNumber: 125,
-            prLink: "https://github.com/dineshkorukonda/VersionGate/pull/125",
-          },
-          {
-            title: "URL Hostname Sanitization Engine",
-            description: "Added cleanHostname in dashboard utilities to strip malformed schemes, duplicate ports, and request paths.",
-            prNumber: 117,
-            prLink: "https://github.com/dineshkorukonda/VersionGate/pull/117",
-          },
-        ],
-      },
-      {
-        type: "Fixed",
-        title: "Security & Database Fixes",
-        badge: "FIX",
-        items: [
-          {
-            title: "Nginx Permissive Directory Writes",
-            description: "Added safe write helper with sudo fallback and preflight write checks.",
-            prNumber: 112,
-            prLink: "https://github.com/dineshkorukonda/VersionGate/pull/112",
-          },
-          {
-            title: "Database Timestamp Null Constraints",
-            description: "Passed explicit createdAt and updatedAt Date objects in enqueueJob and DeploymentRepository.create.",
-            prNumber: 111,
-            prLink: "https://github.com/dineshkorukonda/VersionGate/pull/111",
-          },
-        ],
-      },
     ],
   },
   {
@@ -116,17 +91,12 @@ const RELEASES: ReleaseEntry[] = [
     summary: "Quality Gates, Multi-Stage Promotion Pipelines, and Environment Chain Visualization.",
     categories: [
       {
-        type: "Added",
         title: "Quality Gates & Promotion Pipelines",
         badge: "NEW",
         items: [
           {
             title: "Automated Soak & Health Check Gates",
             description: "Monitors latency and error rate thresholds for a defined soak window before promoting builds.",
-          },
-          {
-            title: "Manual Approval & Webhook Gates",
-            description: "Integrates team sign-offs and third-party webhook verification checks into deployment chains.",
           },
         ],
       },
@@ -138,17 +108,12 @@ const RELEASES: ReleaseEntry[] = [
     summary: "Multi-tenant GitHub App Central Relay and Neon Database Integration.",
     categories: [
       {
-        type: "Added",
         title: "Relay Architecture & Database Scaling",
         badge: "NEW",
         items: [
           {
             title: "Central GitHub App Relay Core",
             description: "HMAC-SHA256 signature verification (X-VG-Relay-Signature) and fan-out webhook forwarding.",
-          },
-          {
-            title: "PostgreSQL Migration Baselining",
-            description: "Split local vs hosted PostgreSQL migration baselines via Drizzle ORM.",
           },
         ],
       },
@@ -160,7 +125,6 @@ const RELEASES: ReleaseEntry[] = [
     summary: "Initial Release of Self-Hosted Zero-Downtime Deployment Engine.",
     categories: [
       {
-        type: "Added",
         title: "Core Deployment Engine",
         badge: "NEW",
         items: [
@@ -174,7 +138,89 @@ const RELEASES: ReleaseEntry[] = [
   },
 ];
 
-export default function ChangelogPage() {
+function parseReleaseBody(body: string): ReleaseCategory[] {
+  if (!body) return [];
+  const lines = body.split("\n");
+  const categories: ReleaseCategory[] = [];
+  let currentCategory: ReleaseCategory | null = null;
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (trimmed.startsWith("### Added") || trimmed.startsWith("## Added")) {
+      if (currentCategory) categories.push(currentCategory);
+      currentCategory = { title: "Added Capabilities", badge: "NEW", items: [] };
+    } else if (trimmed.startsWith("### Changed") || trimmed.startsWith("## Changed") || trimmed.startsWith("### Improved")) {
+      if (currentCategory) categories.push(currentCategory);
+      currentCategory = { title: "Improvements & Updates", badge: "IMPROVEMENT", items: [] };
+    } else if (trimmed.startsWith("### Fixed") || trimmed.startsWith("## Fixed")) {
+      if (currentCategory) categories.push(currentCategory);
+      currentCategory = { title: "Bug Fixes & Security", badge: "FIX", items: [] };
+    } else if (trimmed.startsWith("- ") || trimmed.startsWith("* ")) {
+      const itemText = trimmed.replace(/^[-*]\s+/, "");
+      const boldMatch = itemText.match(/^\*\*(.*?)\*\*:\s*(.*)/);
+      const title = boldMatch ? boldMatch[1] : itemText;
+      const description = boldMatch ? boldMatch[2] : itemText;
+
+      if (!currentCategory) {
+        currentCategory = { title: "Release Highlights", badge: "NEW", items: [] };
+      }
+      currentCategory.items.push({ title, description });
+    }
+  }
+
+  if (currentCategory) categories.push(currentCategory);
+  return categories;
+}
+
+async function fetchGitHubReleases(): Promise<ProcessedRelease[]> {
+  try {
+    const res = await fetch("https://api.github.com/repos/dineshkorukonda/VersionGate/releases", {
+      headers: {
+        "User-Agent": "VersionGate-Website-Changelog",
+        Accept: "application/vnd.github+json",
+      },
+      next: { revalidate: 3600 },
+    });
+
+    if (!res.ok) {
+      return FALLBACK_RELEASES;
+    }
+
+    const data: GitHubRelease[] = await res.json();
+    if (!Array.isArray(data) || data.length === 0) {
+      return FALLBACK_RELEASES;
+    }
+
+    return data.map((rel, idx) => {
+      const parsedCategories = parseReleaseBody(rel.body);
+      const rawTitle = rel.name || rel.tag_name;
+      const titleParts = rawTitle.split(" — ");
+      const summary = titleParts.length > 1 ? titleParts[1] : rel.tag_name;
+
+      const dateObj = new Date(rel.published_at);
+      const formattedDate = dateObj.toLocaleDateString("en-US", {
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+      });
+
+      return {
+        version: rel.tag_name,
+        date: formattedDate,
+        isLatest: idx === 0,
+        summary: summary,
+        categories: parsedCategories.length > 0 ? parsedCategories : FALLBACK_RELEASES[idx]?.categories || [],
+        url: rel.html_url,
+      };
+    });
+  } catch (err) {
+    return FALLBACK_RELEASES;
+  }
+}
+
+export default async function ChangelogPage() {
+  const releases = await fetchGitHubReleases();
+
   return (
     <div className="min-h-screen bg-background text-foreground transition-colors">
       <SiteHeader active="features" />
@@ -182,22 +228,27 @@ export default function ChangelogPage() {
       <main className="mx-auto max-w-5xl px-4 py-12 sm:px-6">
         {/* Page Header */}
         <div className="space-y-4 border-b border-border pb-8">
-          <div className="flex items-center gap-2">
-            <span className="font-mono text-xs text-muted-foreground uppercase tracking-wider">
-              Changelog // Product Updates
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-xs text-muted-foreground uppercase tracking-wider">
+                Changelog // GitHub API Auto-Sync
+              </span>
+            </div>
+            <span className="rounded bg-muted border border-border px-2.5 py-1 font-mono text-[11px] text-muted-foreground">
+              [ AUTO-UPDATED VIA GITHUB RELEASES ]
             </span>
           </div>
           <h1 className="font-sans text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl">
             Changelog
           </h1>
           <p className="max-w-2xl font-sans text-sm text-muted-foreground leading-relaxed">
-            New features, infrastructure upgrades, security patches, and release notes for VersionGate.
+            Live, automatically synced product updates, feature releases, and infrastructure improvements powered by GitHub Releases.
           </p>
         </div>
 
         {/* Timeline Entries */}
         <div className="mt-10 space-y-16">
-          {RELEASES.map((rel) => (
+          {releases.map((rel) => (
             <section key={rel.version} className="relative grid gap-8 md:grid-cols-12">
               {/* Left Column: Version & Date */}
               <div className="md:col-span-3 space-y-2">
@@ -214,6 +265,18 @@ export default function ChangelogPage() {
                 <p className="font-mono text-xs text-muted-foreground">
                   {rel.date}
                 </p>
+                {rel.url ? (
+                  <div className="pt-2">
+                    <Link
+                      href={rel.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="font-mono text-xs text-muted-foreground hover:text-foreground underline underline-offset-2"
+                    >
+                      View GitHub Release
+                    </Link>
+                  </div>
+                ) : null}
               </div>
 
               {/* Right Column: Release Content */}
@@ -225,15 +288,7 @@ export default function ChangelogPage() {
                 {rel.categories.map((cat, idx) => (
                   <div key={idx} className="space-y-4">
                     <div className="flex items-center gap-2">
-                      <span
-                        className={`rounded px-2 py-0.5 font-mono text-[10px] font-semibold border ${
-                          cat.badge === "NEW"
-                            ? "bg-muted text-foreground border-border"
-                            : cat.badge === "IMPROVEMENT"
-                              ? "bg-muted text-foreground border-border"
-                              : "bg-muted text-foreground border-border"
-                        }`}
-                      >
+                      <span className="rounded bg-muted text-foreground border border-border px-2 py-0.5 font-mono text-[10px] font-semibold">
                         [ {cat.badge} ]
                       </span>
                       <h2 className="font-sans text-xs font-bold uppercase tracking-wider text-muted-foreground">
