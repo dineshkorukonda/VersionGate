@@ -16,7 +16,12 @@ import { createRelayInstallState, parseRelayInstallState } from "../utils/github
 import { getInstallationAccessToken } from "../utils/github/github-installation-token";
 import { normalizeGithubRepoUrl } from "../utils/github/github-repo-url";
 import { verifyGithubWebhookSignature } from "../utils/github/github-webhook-signature";
-import { registerInstallationWithRelay, verifyRelayHopSignature } from "../utils/github/github-relay";
+import {
+  registerInstallationWithRelay,
+  verifyRelayHopSignature,
+  fetchReposFromRelay,
+  fetchBranchesFromRelay,
+} from "../utils/github/github-relay";
 import { dashboardIntegrationsAbsoluteUrl } from "../utils/public-app-origin";
 
 const projectRepo = new ProjectRepository();
@@ -361,40 +366,61 @@ export async function githubRepoBranchesHandler(
     return;
   }
 
-  const { token } = await getInstallationAccessToken(row.installationId);
-  const octokit = new Octokit({ auth: token });
+  if (githubAppReady()) {
+    const { token } = await getInstallationAccessToken(row.installationId);
+    const octokit = new Octokit({ auth: token });
 
-  const names: { name: string; sha: string | undefined }[] = [];
-  let page = 1;
-  for (;;) {
-    const { data } = await octokit.rest.repos.listBranches({
-      owner,
-      repo,
-      per_page: 100,
-      page,
-    });
-    for (const b of data) {
-      names.push({ name: b.name, sha: b.commit?.sha });
+    const names: { name: string; sha: string | undefined }[] = [];
+    let page = 1;
+    for (;;) {
+      const { data } = await octokit.rest.repos.listBranches({
+        owner,
+        repo,
+        per_page: 100,
+        page,
+      });
+      for (const b of data) {
+        names.push({ name: b.name, sha: b.commit?.sha });
+      }
+      if (data.length < 100) break;
+      page += 1;
     }
-    if (data.length < 100) break;
-    page += 1;
-  }
 
-  reply.code(200).send({
-    installationId: row.installationId.toString(),
-    branches: names,
-  });
-}
-
-export async function githubReposHandler(req: FastifyRequest, reply: FastifyReply): Promise<void> {
-  if (!githubAppReady()) {
-    reply.code(503).send({
-      error: "ServiceUnavailable",
-      message: "GitHub App is not configured. Set GITHUB_APP_ID and GITHUB_APP_PRIVATE_KEY.",
+    reply.code(200).send({
+      installationId: row.installationId.toString(),
+      branches: names,
     });
     return;
   }
 
+  if (config.githubStateSecret) {
+    try {
+      const branches = await fetchBranchesFromRelay({
+        installationId: row.installationId.toString(),
+        owner,
+        repo,
+        relaySecret: config.githubStateSecret,
+      });
+      reply.code(200).send({
+        installationId: row.installationId.toString(),
+        branches,
+      });
+      return;
+    } catch (err) {
+      logger.warn({ err }, "githubRepoBranchesHandler: relay fetch failed");
+    }
+  }
+
+  reply.code(503).send({
+    error: "ServiceUnavailable",
+    message: "GitHub App is not configured. Set GITHUB_APP_ID and GITHUB_APP_PRIVATE_KEY or use the relay.",
+  });
+}
+
+export async function githubReposHandler(
+  req: FastifyRequest<{ Querystring: { installationId?: string } }>,
+  reply: FastifyReply
+): Promise<void> {
   const raw = getSessionTokenFromRequest(req.headers.cookie);
   const user = await getUserFromSessionToken(raw);
   if (!user) {
@@ -413,40 +439,65 @@ export async function githubReposHandler(req: FastifyRequest, reply: FastifyRepl
     return;
   }
 
-  const { token } = await getInstallationAccessToken(row.installationId);
-  const octokit = new Octokit({ auth: token });
+  if (githubAppReady()) {
+    const { token } = await getInstallationAccessToken(row.installationId);
+    const octokit = new Octokit({ auth: token });
 
-  const repositories: Awaited<
-    ReturnType<Octokit["rest"]["apps"]["listReposAccessibleToInstallation"]>
-  >["data"]["repositories"] = [];
+    const repositories: Awaited<
+      ReturnType<Octokit["rest"]["apps"]["listReposAccessibleToInstallation"]>
+    >["data"]["repositories"] = [];
 
-  let page = 1;
-  for (;;) {
-    const { data } = await octokit.rest.apps.listReposAccessibleToInstallation({
-      per_page: 100,
-      page,
+    let page = 1;
+    for (;;) {
+      const { data } = await octokit.rest.apps.listReposAccessibleToInstallation({
+        per_page: 100,
+        page,
+      });
+      repositories.push(...data.repositories);
+      if (data.repositories.length < 100) break;
+      page += 1;
+    }
+
+    reply.code(200).send({
+      installationId: row.installationId.toString(),
+      totalCount: repositories.length,
+      repositories: repositories.map((r) => ({
+        id: r.id,
+        name: r.name,
+        fullName: r.full_name,
+        owner: r.owner?.login ?? r.full_name.split("/")[0] ?? "",
+        private: r.private,
+        defaultBranch: r.default_branch,
+        cloneUrl: r.clone_url,
+        htmlUrl: r.html_url,
+        language: r.language ?? null,
+        updatedAt: r.updated_at ?? null,
+        pushedAt: r.pushed_at ?? null,
+      })),
     });
-    repositories.push(...data.repositories);
-    if (data.repositories.length < 100) break;
-    page += 1;
+    return;
   }
 
-  reply.code(200).send({
-    installationId: row.installationId.toString(),
-    totalCount: repositories.length,
-    repositories: repositories.map((r) => ({
-      id: r.id,
-      name: r.name,
-      fullName: r.full_name,
-      owner: r.owner?.login ?? r.full_name.split("/")[0] ?? "",
-      private: r.private,
-      defaultBranch: r.default_branch,
-      cloneUrl: r.clone_url,
-      htmlUrl: r.html_url,
-      language: r.language ?? null,
-      updatedAt: r.updated_at ?? null,
-      pushedAt: r.pushed_at ?? null,
-    })),
+  if (config.githubStateSecret) {
+    try {
+      const repositories = await fetchReposFromRelay({
+        installationId: row.installationId.toString(),
+        relaySecret: config.githubStateSecret,
+      });
+      reply.code(200).send({
+        installationId: row.installationId.toString(),
+        totalCount: repositories.length,
+        repositories,
+      });
+      return;
+    } catch (err) {
+      logger.warn({ err }, "githubReposHandler: relay fetch failed");
+    }
+  }
+
+  reply.code(503).send({
+    error: "ServiceUnavailable",
+    message: "GitHub App is not configured. Set GITHUB_APP_ID and GITHUB_APP_PRIVATE_KEY or use the relay.",
   });
 }
 
