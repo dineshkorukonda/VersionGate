@@ -94,6 +94,15 @@ const CAPABILITIES: Capability[] = [
     details: "Downloads install.sh from versiongate.tech to configure Docker daemon networking, host firewall rules for ports 9090, 5173, 80, and 443, and initialize VersionGate in setup mode.",
     badge: "v1.4 Feature",
   },
+  {
+    id: "cap-vercel-redesign",
+    category: "Design",
+    title: "Vercel SalesOps Aesthetics Redesign",
+    command: "bun run build:dashboard",
+    description: "Full Vercel-style UI dashboard overhaul adhering to strict monochromatic aesthetic.",
+    details: "Features an ultra-clean #000000 background surface, unified #0a0a0a cards, animated circular SVG loading metrics, brutalist font choices, and no decorative emojis or emojis. Stat strips instead of box grids.",
+    badge: "v1.5 UI Refresh",
+  },
 ];
 
 export function CapabilityGrid() {

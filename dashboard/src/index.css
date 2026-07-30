@@ -68,9 +68,9 @@
   --background: #000000;
   --foreground: #ededed;
   --surface: #0a0a0a;  
-  --card: #111111;
+  --card: #0a0a0a;
   --card-foreground: #ededed;
-  --popover: #111111;
+  --popover: #0a0a0a;
   --popover-foreground: #ededed;
   --primary: #ffffff;
   --primary-foreground: #000000;
@@ -91,7 +91,7 @@
   --warning: #f59e0b;
   --error: #ef4444;
   --radius: 0.375rem;
-  --sidebar: #0a0a0a;
+  --sidebar: #050505;
   --sidebar-foreground: #737373;
   --sidebar-primary: #ededed;
   --sidebar-primary-foreground: #000000;

@@ -14,10 +14,11 @@ export function StatCard({
   borderless?: boolean;
 }) {
   return (
-    <div className={cn("flex flex-col justify-center px-6 py-4", borderless ? "" : "border border-border/50 bg-card rounded-md ring-1 ring-border/20 transition-all hover:ring-primary/20")}>
-      <span className="text-sm font-medium text-muted-foreground">{label}</span>
-      <div className={cn("mt-1 text-3xl font-semibold tabular-nums tracking-tight", valueClassName)}>{value}</div>
-      {hint ? <p className="mt-1 text-xs text-muted-foreground/70">{hint}</p> : null}
+    <div className={cn("group relative bg-card border border-border rounded-xl p-5 hover:border-accent/50 transition-all duration-300 overflow-hidden", borderless && "border-none hover:border-none bg-transparent")}>
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-accent/5 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+      <span className="relative z-10 text-sm font-medium text-muted-foreground">{label}</span>
+      <div className={cn("relative z-10 mt-2 text-2xl lg:text-3xl font-bold tracking-tight tabular-nums", valueClassName)}>{value}</div>
+      {hint ? <p className="relative z-10 mt-1 text-xs text-muted-foreground/70">{hint}</p> : null}
     </div>
   );
 }

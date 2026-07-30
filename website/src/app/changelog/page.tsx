@@ -60,6 +60,11 @@ const FALLBACK_RELEASES: ProcessedRelease[] = [
             prNumber: 149,
           },
           {
+            title: "Vercel SalesOps Aesthetics Redesign",
+            description: "Full Vercel-style UI dashboard overhaul adhering to strict monochromatic aesthetic.",
+            prNumber: 151,
+          },
+          {
             title: "Base Href HTML Response Proxying",
             description: "Automatic injection of base href tags into proxied HTML responses for seamless CSS, JS, and static asset rendering across Next.js and Vite apps.",
             command: "versiongate proxy test",
