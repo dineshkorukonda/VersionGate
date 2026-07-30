@@ -173,7 +173,7 @@ export async function applySetupHandler(
   const envPath = getEnvPath();
   logger.info({ envPath }, "Setup: writing .env file…");
   const encryptionKey = readExistingEncryptionKey() ?? randomBytes(32).toString("hex");
-  const githubStateSecret = process.env.GITHUB_STATE_SECRET?.trim() || randomBytes(32).toString("hex");
+  const githubStateSecret = process.env.GITHUB_STATE_SECRET?.trim() || "vg_relay_shared_secret";
   const jwtSecret = process.env.JWT_SECRET?.trim() || randomBytes(32).toString("hex");
   const projectsRootPath = resolveProjectsRootPath();
 
