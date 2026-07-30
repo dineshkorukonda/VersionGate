@@ -59,6 +59,15 @@ const CAPABILITIES: Capability[] = [
     badge: "v1.5 Feature",
   },
   {
+    id: "cap-vercellayout",
+    category: "Deployment",
+    title: "Vercel SalesOps Layout UI",
+    command: "cd dashboard && bun run dev",
+    description: "Ultra-sleek dark theme UI overhaul with Vercel SalesOps navigation, active indicator bars, and circular progress metrics.",
+    details: "Pixel-perfect black dashboard UI with active sidebar indicator strips, sticky backdrop-blur header, 4-column metric cards, and SVG circular progress indicators.",
+    badge: "v1.6 Feature",
+  },
+  {
     id: "cap-healthmonitor",
     category: "Monitoring",
     title: "Native Background Health Audit",

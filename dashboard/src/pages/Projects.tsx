@@ -134,20 +134,23 @@ export function Projects() {
                 const url = publicEnvironmentUrl(proj, envLabel !== "—" ? envLabel : "production", port);
                 return (
                   <Link key={proj.id} to={`/projects/${proj.id}`} className="block group">
-                    <Card className="h-full transition-all hover:border-muted-foreground/30 hover:bg-accent/40 bg-card">
-                      <CardHeader className="pb-3">
-                        <div className="flex items-start justify-between">
-                          <CardTitle className="text-base font-medium">{proj.name}</CardTitle>
-                          <StatusBadge status={state} />
-                        </div>
-                        <CardDescription className="text-xs truncate">{url ? url.replace(/^https?:\/\//, "") : "Not deployed"}</CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="text-xs text-muted-foreground mt-4 flex items-center justify-between">
-                           <span>{formatUptime(proj.id, deployments)} uptime</span>
-                           <span className="capitalize">{envLabel}</span>
-                        </div>
-                      </CardContent>
+                    <Card className="group relative bg-[#0a0a0a] border border-[#1f1f1f] rounded-xl p-5 hover:border-[#0070f3]/50 transition-all duration-300 overflow-hidden h-full">
+                      <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-[#0070f3]/5 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+                      <div className="flex items-start justify-between mb-3">
+                        <span className="text-base font-semibold text-white tracking-tight group-hover:text-[#0070f3] transition-colors">
+                          {proj.name}
+                        </span>
+                        <StatusBadge status={state} />
+                      </div>
+                      <p className="text-xs font-mono text-muted-foreground truncate mb-4">
+                        {url ? url.replace(/^https?:\/\//, "") : "Not deployed"}
+                      </p>
+                      <div className="text-xs text-muted-foreground pt-4 border-t border-[#1f1f1f] flex items-center justify-between">
+                        <span className="font-mono">{formatUptime(proj.id, deployments)} uptime</span>
+                        <span className="font-mono uppercase text-[10px] px-2 py-0.5 rounded bg-[#161616] border border-[#1f1f1f] text-foreground">
+                          {envLabel}
+                        </span>
+                      </div>
                     </Card>
                   </Link>
                 );

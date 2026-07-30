@@ -44,9 +44,34 @@ interface ProcessedRelease {
 
 const FALLBACK_RELEASES: ProcessedRelease[] = [
   {
-    version: "v1.5.0",
+    version: "v1.6.0",
     date: "July 30, 2026",
     isLatest: true,
+    summary: "Complete Vercel SalesOps UI Overhaul, 260px Active Indicator Sidebar, Backdrop Header & Circular Progress Indicators.",
+    categories: [
+      {
+        title: "New Features & UI Overhaul",
+        badge: "NEW",
+        items: [
+          {
+            title: "Vercel SalesOps Layout & Active Bar Navigation",
+            description: "Full redesign of dashboard layout featuring 260px dark sidebar with active blue indicator bars, sticky backdrop-blur top header, search modal trigger, and initial avatar badges.",
+            command: "cd dashboard && bun run dev",
+            prNumber: 154,
+          },
+          {
+            title: "4-Column Metric Cards & SVG Circular Loaders",
+            description: "Overhauled hero metrics into hover-glowing StatCards with upper right icon boxes, trend percentage badges, and smooth SVG circular progress indicators.",
+            prNumber: 154,
+          },
+        ],
+      },
+    ],
+  },
+  {
+    version: "v1.5.0",
+    date: "July 30, 2026",
+    isLatest: false,
     summary: "Automated Worker Self-Healing, Base-Href HTML Proxying, Auto-Detect Build Context & Relay Fixes.",
     categories: [
       {

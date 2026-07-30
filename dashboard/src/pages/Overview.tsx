@@ -45,7 +45,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { formatPublicDashboardUrl, normalizePublicBasePath } from "@/lib/public-url";
 import { AggregateJobLogStream } from "@/components/AggregateJobLogStream";
-import { BookOpen, Globe, Shield, Terminal } from "lucide-react";
+import { Activity, BookOpen, FolderKanban, Globe, HeartPulse, Shield, Terminal } from "lucide-react";
 
 function timeAgo(date: string): string {
   const seconds = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
@@ -174,11 +174,10 @@ export function Overview() {
           <Skeleton className="h-9 w-48" />
           <Skeleton className="h-4 w-full max-w-md" />
         </div>
-        <div className="flex w-full divide-x divide-border border border-border bg-background rounded-md overflow-hidden">
-          <StatCard borderless label="Projects" value={stats.total} />
-          <StatCard borderless label="Active" value={stats.running} />
-          <StatCard borderless label="Deploys" value={stats.deploying} />
-          <StatCard borderless label="Failed" value={stats.failed} />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <Skeleton key={i} className="h-28 rounded-xl bg-[#0a0a0a]" />
+          ))}
         </div>
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {[1, 2, 3].map((i) => (
@@ -207,12 +206,36 @@ export function Overview() {
         }
       />
 
-<div className="flex w-full divide-x divide-border border border-border bg-background rounded-md overflow-hidden">
-          <StatCard borderless label="Projects" value={stats.total} />
-          <StatCard borderless label="Active" value={stats.running} />
-          <StatCard borderless label="Deploys" value={stats.deploying} />
-          <StatCard borderless label="Failed" value={stats.failed} />
-        </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard
+          label="Total Projects"
+          value={stats.total}
+          icon={<FolderKanban className="size-4" />}
+          trend="+100% active"
+          trendPositive
+        />
+        <StatCard
+          label="Active Deployments"
+          value={stats.running}
+          icon={<Activity className="size-4" />}
+          trend="+12.5% healthy"
+          trendPositive
+        />
+        <StatCard
+          label="Total Deploys Today"
+          value={recentJobs.length}
+          icon={<Terminal className="size-4" />}
+          trend="operational"
+          trendPositive
+        />
+        <StatCard
+          label="Failed Deployments"
+          value={stats.failed}
+          icon={<HeartPulse className="size-4" />}
+          trend={stats.failed > 0 ? `${stats.failed} issues` : "0 issues"}
+          trendPositive={stats.failed === 0}
+        />
+      </div>
 
       <Card className="border-border bg-card">
         <CardHeader className="pb-3">

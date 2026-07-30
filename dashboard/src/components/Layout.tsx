@@ -24,7 +24,6 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { Separator } from "@/components/ui/separator";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
 import { useEffect, useState } from "react";
@@ -38,7 +37,6 @@ import { SidebarBreadcrumbs } from "@/components/SidebarBreadcrumbs";
 import { UpdateAvailableBanner } from "@/components/UpdateAvailableBanner";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -48,8 +46,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 const DOCS_HREF = "https://github.com/dinexh/VersionGate/blob/main/docs/SETUP.md";
-const API_HREF = "https://github.com/dinexh/VersionGate/blob/main/docs/SETUP.md";
-const SUPPORT_HREF = "https://github.com/dinexh/VersionGate/issues";
 
 const nav = [
   { to: "/", label: "Overview", end: true, icon: LayoutGrid },
@@ -61,7 +57,7 @@ const nav = [
 ] as const;
 
 const navBtn =
-  "peer/menu-button flex w-full items-center gap-3 overflow-hidden px-3 py-2 text-sm font-medium text-sidebar-foreground transition-colors hover:text-white border-l-4 border-transparent [&>span:last-child]:truncate";
+  "peer/menu-button flex w-full items-center gap-3 overflow-hidden px-3 py-2.5 text-sm font-medium transition-all duration-200 group relative text-muted-foreground hover:text-foreground hover:bg-[#121212] rounded-lg [&>span:last-child]:truncate";
 
 export function Layout() {
   const navigate = useNavigate();
@@ -133,7 +129,6 @@ export function Layout() {
     };
   }, [setupGate, navigate]);
 
-
   useEffect(() => {
     let cancelled = false;
     const loadProjects = async () => {
@@ -163,7 +158,7 @@ export function Layout() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  const avatarLetter = headerUserEmail?.trim()?.[0]?.toUpperCase() ?? "?";
+  const avatarLetter = headerUserEmail?.trim()?.[0]?.toUpperCase() ?? "VG";
 
   const signOut = () => {
     void authLogout()
@@ -175,15 +170,22 @@ export function Layout() {
     <TooltipProvider>
       <CreateProjectLaunchContext.Provider value={() => setCreateProjectOpen(true)}>
         <SidebarProvider>
-          <Sidebar collapsible="icon" className="border-r border-sidebar-border bg-sidebar">
-            <SidebarHeader className="gap-3 border-b border-sidebar-border px-3 py-4">
-              <div className="flex items-center"><span className="text-base font-semibold text-white">VersionGate</span></div>
+          <Sidebar collapsible="icon" className="border-r border-[#1f1f1f] bg-[#050505] w-[260px]">
+            <SidebarHeader className="h-16 flex items-center px-4 border-b border-[#1f1f1f]">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center shrink-0 text-black font-extrabold text-sm">
+                  VG
+                </div>
+                <span className="font-semibold text-lg text-white whitespace-nowrap group-data-[collapsible=icon]:hidden">
+                  VersionGate
+                </span>
+              </div>
             </SidebarHeader>
-            <SidebarContent className="gap-0 px-2 py-3">
+
+            <SidebarContent className="gap-1 px-3 py-4">
               <SidebarGroup className="p-0">
-                
                 <SidebarGroupContent>
-                  <SidebarMenu className="gap-0.5">
+                  <SidebarMenu className="gap-1">
                     {nav.map((item) => {
                       const Icon = item.icon;
                       return (
@@ -194,13 +196,22 @@ export function Layout() {
                             className={({ isActive }) =>
                               cn(
                                 navBtn,
-                                isActive &&
-                                  "border-white text-white bg-sidebar-accent/10"
+                                isActive && "bg-[#161616] text-white font-semibold"
                               )
                             }
                           >
-                            <Icon className="size-4 shrink-0 opacity-80" aria-hidden />
-                            <span>{item.label}</span>
+                            {({ isActive }) => (
+                              <>
+                                <span
+                                  className={cn(
+                                    "absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 rounded-r-full bg-[#0070f3] transition-all duration-300",
+                                    isActive ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                <Icon className="size-4 shrink-0 transition-transform group-hover:scale-110" aria-hidden />
+                                <span className="group-data-[collapsible=icon]:hidden">{item.label}</span>
+                              </>
+                            )}
                           </NavLink>
                         </SidebarMenuItem>
                       );
@@ -211,7 +222,9 @@ export function Layout() {
 
               {projects.length > 0 && (
                 <SidebarGroup className="mt-4 p-0">
-                  
+                  <div className="px-3 pb-2 text-[11px] font-mono uppercase tracking-wider text-muted-foreground group-data-[collapsible=icon]:hidden">
+                    Projects ({projects.length})
+                  </div>
                   <SidebarGroupContent>
                     <SidebarMenu className="gap-0.5">
                       {projects.map((p) => (
@@ -221,12 +234,22 @@ export function Layout() {
                             className={({ isActive }) =>
                               cn(
                                 navBtn,
-                                isActive && "border-white text-white bg-sidebar-accent/10"
+                                isActive && "bg-[#161616] text-white font-semibold"
                               )
                             }
                           >
-                            <FolderKanban className="size-4 shrink-0 opacity-70" aria-hidden />
-                            <span className="truncate">{p.name}</span>
+                            {({ isActive }) => (
+                              <>
+                                <span
+                                  className={cn(
+                                    "absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 rounded-r-full bg-[#0070f3] transition-all duration-300",
+                                    isActive ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                <FolderKanban className="size-4 shrink-0 transition-transform group-hover:scale-110 opacity-70" aria-hidden />
+                                <span className="truncate group-data-[collapsible=icon]:hidden">{p.name}</span>
+                              </>
+                            )}
                           </NavLink>
                         </SidebarMenuItem>
                       ))}
@@ -236,11 +259,10 @@ export function Layout() {
               )}
             </SidebarContent>
 
-            <SidebarFooter className="p-4">
-              
+            <SidebarFooter className="p-3 border-t border-[#1f1f1f]">
               <Button
                 type="button"
-                className="w-full gap-2 bg-white text-black hover:bg-zinc-200"
+                className="w-full gap-2 bg-white text-black hover:bg-zinc-200 font-medium"
                 onClick={() => setCreateProjectOpen(true)}
               >
                 <Plus className="size-4" />
@@ -249,145 +271,128 @@ export function Layout() {
             </SidebarFooter>
           </Sidebar>
 
-          <SidebarInset className="flex min-h-svh flex-col bg-background">
-            <header className="sticky top-0 z-30 flex h-12 shrink-0 items-center gap-3 border-b border-border bg-background px-4">
-              <SidebarTrigger className="md:hidden" />
-              <div className="hidden min-w-0 flex-col gap-0.5 sm:flex md:max-w-[min(40%,20rem)]">
-                
-                <SidebarBreadcrumbs />
+          <SidebarInset className="flex min-h-svh flex-col bg-[#000000]">
+            <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center justify-between gap-4 border-b border-[#1f1f1f] bg-black/80 backdrop-blur-md px-6">
+              <div className="flex items-center gap-4">
+                <SidebarTrigger className="md:hidden" />
+                <div className="flex items-center gap-3">
+                  <SidebarBreadcrumbs />
+                  <div className="hidden md:flex items-center gap-2 px-2.5 py-1 rounded-full border border-[#1f1f1f] bg-[#0a0a0a] text-xs text-muted-foreground">
+                    <span className="status-dot-live" />
+                    <span>Cluster operational</span>
+                  </div>
+                </div>
               </div>
 
-              <div className="mx-auto hidden max-w-md flex-1 px-2 sm:block">
-                <div className="relative">
-                  <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+              <div className="flex items-center gap-3">
+                <div className="relative hidden sm:flex items-center w-56">
+                  <Search className="pointer-events-none absolute left-3 size-4 text-muted-foreground" />
                   <Input
                     readOnly
                     aria-label="Search projects"
                     title="Open search (⌘K or Ctrl+K)"
-                    placeholder="Search projects…"
+                    placeholder="Search projects… (⌘K)"
                     onClick={() => setSearchOpen(true)}
-                    className="h-8 cursor-pointer rounded-md border-border bg-card pl-9 text-sm text-foreground placeholder:text-muted-foreground"
+                    className="h-9 w-full cursor-pointer rounded-lg border-[#1f1f1f] bg-[#121212] pl-9 pr-3 text-xs text-foreground placeholder:text-muted-foreground focus:ring-1 focus:ring-[#0070f3]"
                   />
                 </div>
-              </div>
 
-              <div className="ml-auto flex shrink-0 items-center gap-0.5 sm:gap-1">
-                <Button type="button" size="sm" className="hidden gap-1.5 sm:inline-flex" onClick={() => setCreateProjectOpen(true)}>
+                <Button
+                  type="button"
+                  size="sm"
+                  className="hidden sm:inline-flex gap-1.5 bg-[#0070f3] text-white hover:bg-[#0070f3]/90 text-xs font-medium h-9 px-3 rounded-lg"
+                  onClick={() => setCreateProjectOpen(true)}
+                >
                   <Plus className="size-3.5" />
-                  New project
+                  New Project
                 </Button>
-                <a
-                  href={DOCS_HREF}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="hidden rounded-md px-2 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground lg:inline"
-                >
-                  Docs
-                </a>
-                <a
-                  href={API_HREF}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="hidden rounded-md px-2 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground lg:inline"
-                >
-                  API
-                </a>
-                <a
-                  href={SUPPORT_HREF}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="hidden rounded-md px-2 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground xl:inline"
-                >
-                  Support
-                </a>
-                <Separator orientation="vertical" className="hidden h-6 sm:block" />
+
                 <DropdownMenu>
                   <DropdownMenuTrigger
                     className={cn(
                       buttonVariants({ variant: "ghost", size: "icon-sm" }),
-                      "text-muted-foreground"
+                      "relative size-9 rounded-lg text-muted-foreground hover:bg-[#121212] hover:text-white"
                     )}
                     aria-label="Notifications"
                   >
                     <Bell className="size-4" />
+                    <span className="absolute top-2 right-2 size-2 rounded-full bg-[#0070f3] animate-pulse" />
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-64">
-                    <div className="px-3 py-8 text-center text-sm text-muted-foreground">No notifications</div>
+                  <DropdownMenuContent align="end" className="w-64 border-[#1f1f1f] bg-[#0a0a0a]">
+                    <div className="px-3 py-6 text-center text-xs text-muted-foreground">No pending notifications</div>
                   </DropdownMenuContent>
                 </DropdownMenu>
+
                 <Button
                   type="button"
                   variant="ghost"
                   size="icon-sm"
-                  className="text-muted-foreground"
-                  aria-label="Help"
+                  className="size-9 rounded-lg text-muted-foreground hover:bg-[#121212] hover:text-white"
+                  aria-label="Documentation"
                   onClick={() => window.open(DOCS_HREF, "_blank", "noopener,noreferrer")}
                 >
                   <CircleHelp className="size-4" />
                 </Button>
+
                 <DropdownMenu>
                   <DropdownMenuTrigger
-                    className={cn(
-                      buttonVariants({ variant: "ghost", size: "icon-sm" }),
-                      "rounded-full p-0 ring-offset-background focus-visible:ring-2"
-                    )}
+                    className="size-9 rounded-lg overflow-hidden ring-1 ring-border/50 hover:ring-[#0070f3]/60 transition-all cursor-pointer"
                     aria-label="Account menu"
                   >
-                    <Avatar size="sm" className="size-8 border border-border/80">
-                      <AvatarFallback className="bg-primary/10 text-xs font-semibold text-primary">{avatarLetter}</AvatarFallback>
-                    </Avatar>
+                    <div className="size-full bg-gradient-to-br from-[#0070f3]/80 to-[#22c55e] flex items-center justify-center text-xs font-bold text-white uppercase">
+                      {avatarLetter}
+                    </div>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuContent align="end" className="w-56 border-[#1f1f1f] bg-[#0a0a0a]">
                     {headerUserEmail ? (
                       <>
-                        <div className="px-2 py-1.5">
+                        <div className="px-3 py-2">
                           <p className="truncate text-xs text-muted-foreground">Signed in as</p>
-                          <p className="truncate text-sm font-medium">{headerUserEmail}</p>
+                          <p className="truncate text-sm font-medium text-white">{headerUserEmail}</p>
                         </div>
-                        <DropdownMenuSeparator />
+                        <DropdownMenuSeparator className="bg-[#1f1f1f]" />
                       </>
                     ) : null}
-                    <DropdownMenuItem onClick={() => void signOut()}>Sign out</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => void signOut()} className="text-red-400 hover:text-red-300 cursor-pointer">
+                      Sign out
+                    </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
             </header>
 
-            <div className="flex border-b border-border bg-card px-3 py-2 sm:hidden">
-              <SidebarBreadcrumbs />
-            </div>
-
             <UpdateAvailableBanner />
             {needsRestartBanner ? (
               <div
-                className="flex items-center justify-center gap-3 border-b border-amber-500/30 bg-amber-500/5 px-4 py-2.5 text-sm"
+                className="flex items-center justify-center gap-3 border-b border-amber-500/30 bg-amber-500/5 px-4 py-2.5 text-xs text-amber-400"
                 role="status"
               >
-                <span className="inline-block h-2 w-2 rounded-full bg-amber-500" />
-                <span className="text-amber-400">
+                <span className="size-2 rounded-full bg-amber-500 animate-pulse" />
+                <span>
                   Configuration change detected — the engine will apply it automatically on the next job cycle.
                 </span>
               </div>
             ) : null}
-            <div className="flex flex-1 flex-col gap-4 bg-background px-4 py-4 md:px-6 md:py-6 lg:px-8">
+
+            <div className="flex flex-1 flex-col gap-6 bg-[#000000] p-6 md:p-8">
               {setupGate === "loading" ? (
                 <div className="flex flex-1 items-center justify-center">
-                  <span className="text-sm text-muted-foreground">Loading...</span>
+                  <span className="text-xs font-mono text-muted-foreground uppercase tracking-widest animate-pulse">
+                    Initializing cluster state...
+                  </span>
                 </div>
               ) : (
                 <Outlet />
               )}
             </div>
-            
+
             <CreateProjectModal
               open={createProjectOpen}
               onOpenChange={setCreateProjectOpen}
               onCreated={() => {
                 void getProjects()
                   .then((r) => setProjects(r.projects))
-                  .catch(() => {
-                    /* sidebar project list is non-critical */
-                  });
+                  .catch(() => {});
               }}
             />
             <GlobalSearchDialog open={searchOpen} onOpenChange={setSearchOpen} />
