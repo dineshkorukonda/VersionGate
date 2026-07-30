@@ -44,9 +44,41 @@ interface ProcessedRelease {
 
 const FALLBACK_RELEASES: ProcessedRelease[] = [
   {
+    version: "v1.5.0",
+    date: "July 30, 2026",
+    isLatest: true,
+    summary: "Automated Worker Self-Healing, Base-Href HTML Proxying, Auto-Detect Build Context & Relay Fixes.",
+    categories: [
+      {
+        title: "New Features & Infrastructure",
+        badge: "NEW",
+        items: [
+          {
+            title: "Automated In-Process Worker Engine",
+            description: "Embedded background worker started automatically on server boot, eliminating queue delays and removing the requirement for manual PM2 terminal restarts.",
+            command: "versiongate worker status",
+            prNumber: 149,
+          },
+          {
+            title: "Base Href HTML Response Proxying",
+            description: "Automatic injection of base href tags into proxied HTML responses for seamless CSS, JS, and static asset rendering across Next.js and Vite apps.",
+            command: "versiongate proxy test",
+            prNumber: 149,
+          },
+          {
+            title: "Smart Repository Context Auto-Detection",
+            description: "Vercel-style auto-fill of project names and subdirectory detection (website, dashboard, frontend) upon picking GitHub repositories.",
+            command: "versiongate project create",
+            prNumber: 149,
+          },
+        ],
+      },
+    ],
+  },
+  {
     version: "v1.4.0",
     date: "July 29, 2026",
-    isLatest: true,
+    isLatest: false,
     summary: "GitHub App Relay Proxying, Stage Path Reverse Proxy, Warm-Swap Rollbacks, API Bearer Tokens & Health Audit.",
     categories: [
       {

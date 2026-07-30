@@ -50,6 +50,15 @@ const CAPABILITIES: Capability[] = [
     badge: "v1.4 Feature",
   },
   {
+    id: "cap-autohealing",
+    category: "Monitoring",
+    title: "In-Process Worker & Base Href Proxy",
+    command: "versiongate worker start --auto-heal",
+    description: "Self-healing background worker engine with base-href HTML proxying for flawless asset loading.",
+    details: "Runs an embedded background worker inside the API process to eliminate idle queue delays, while injecting base href tags into proxied HTML responses for perfect CSS/image asset resolution.",
+    badge: "v1.5 Feature",
+  },
+  {
     id: "cap-healthmonitor",
     category: "Monitoring",
     title: "Native Background Health Audit",
