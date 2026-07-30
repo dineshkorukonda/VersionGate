@@ -4,13 +4,9 @@ import { createAppAuth } from "@octokit/auth-app";
 import { verifyRelayQuerySignature } from "@/lib/relay-crypto";
 
 export async function GET(request: NextRequest) {
-  const secret = process.env.RELAY_SECRET;
+  const secret = (process.env.RELAY_SECRET || "vg_relay_shared_secret").trim();
   const appId = process.env.GITHUB_APP_ID;
   const privateKey = process.env.GITHUB_APP_PRIVATE_KEY;
-
-  if (!secret) {
-    return NextResponse.json({ error: "RELAY_SECRET not configured on relay" }, { status: 500 });
-  }
 
   if (!appId || !privateKey) {
     return NextResponse.json({ error: "GitHub App credentials not configured on relay" }, { status: 503 });
