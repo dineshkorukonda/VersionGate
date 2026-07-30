@@ -361,22 +361,19 @@ export function Layout() {
             <UpdateAvailableBanner />
             {needsRestartBanner ? (
               <div
-                className="border-b border-amber-500/40 bg-card px-4 py-2.5 text-center font-mono text-xs uppercase tracking-wider text-amber-400"
+                className="flex items-center justify-center gap-3 border-b border-amber-500/30 bg-amber-500/5 px-4 py-2.5 text-sm"
                 role="status"
               >
-                <strong className="font-semibold">Restart required:</strong>{" "}
-                <code className="rounded bg-amber-100/80 px-1 font-mono text-xs">DATABASE_URL</code> is in{" "}
-                <code className="rounded bg-amber-100/80 px-1 font-mono text-xs">.env</code> but this API process has not
-                loaded it. Restart the API and worker.&nbsp;
-                <code className="mt-1 inline-block rounded bg-amber-100/80 px-1.5 py-0.5 font-mono text-xs">
-                  pm2 restart versiongate-api versiongate-worker
-                </code>
+                <span className="inline-block h-2 w-2 rounded-full bg-amber-500" />
+                <span className="text-amber-400">
+                  Configuration change detected — the engine will apply it automatically on the next job cycle.
+                </span>
               </div>
             ) : null}
             <div className="flex flex-1 flex-col gap-4 bg-background px-4 py-4 md:px-6 md:py-6 lg:px-8">
               {setupGate === "loading" ? (
-                <div className="flex flex-1 items-center justify-center font-mono text-xs uppercase tracking-wider text-muted-foreground">
-                  Loading…
+                <div className="flex flex-1 items-center justify-center">
+                  <span className="text-sm text-muted-foreground">Loading...</span>
                 </div>
               ) : (
                 <Outlet />
