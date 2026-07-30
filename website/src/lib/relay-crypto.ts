@@ -48,6 +48,23 @@ export function verifyRelayHopSignature(
   }
 }
 
+export function verifyRelayQuerySignature(
+  expectedPayload: string,
+  sig: string | undefined,
+  secret: string
+): boolean {
+  if (!sig || !secret) return false;
+  const expected = createHmac("sha256", secret).update(expectedPayload, "utf8").digest("hex");
+  try {
+    const a = Buffer.from(sig, "hex");
+    const b = Buffer.from(expected, "hex");
+    if (a.length !== b.length) return false;
+    return timingSafeEqual(a, b);
+  } catch {
+    return false;
+  }
+}
+
 /** Signed register body for POST /api/github/register */
 export interface RegisterPayload {
   instanceUrl: string;
