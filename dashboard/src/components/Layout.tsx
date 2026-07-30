@@ -57,7 +57,11 @@ const nav = [
 ] as const;
 
 const navBtn =
+<<<<<<< HEAD
   "peer/menu-button flex w-full items-center gap-3 overflow-hidden px-3 py-2.5 text-sm font-medium transition-all duration-200 group relative text-muted-foreground hover:text-foreground hover:bg-[#121212] rounded-lg [&>span:last-child]:truncate";
+=======
+  "peer/menu-button flex w-full items-center gap-3 overflow-hidden px-3 py-2 text-sm font-medium text-sidebar-foreground transition-colors hover:text-white border-l-4 border-transparent [&>span:last-child]:truncate";
+>>>>>>> origin/main
 
 export function Layout() {
   const navigate = useNavigate();
@@ -235,6 +239,8 @@ export function Layout() {
                               cn(
                                 navBtn,
                                 isActive && "bg-[#161616] text-white font-semibold"
+                              )
+                            }
                               )
                             }
                           >
