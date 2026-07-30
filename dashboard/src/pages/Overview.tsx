@@ -22,6 +22,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { StatCard } from "@/components/StatCard";
 import { Badge } from "@/components/ui/badge";
 import { useLaunchCreateProject } from "@/create-project-launch";
 import {
@@ -173,40 +174,12 @@ export function Overview() {
           <Skeleton className="h-9 w-48" />
           <Skeleton className="h-4 w-full max-w-md" />
         </div>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Projects</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.total}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Active Deployments</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.running}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Deploys Today</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{recentJobs.length}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Failed Deployments</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.failed}</div>
-          </CardContent>
-        </Card>
-      </div>
+        <div className="flex w-full divide-x divide-border border border-border bg-background rounded-md overflow-hidden">
+          <StatCard borderless label="Projects" value={stats.total} />
+          <StatCard borderless label="Active" value={stats.running} />
+          <StatCard borderless label="Deploys" value={stats.deploying} />
+          <StatCard borderless label="Failed" value={stats.failed} />
+        </div>
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {[1, 2, 3].map((i) => (
             <Skeleton key={i} className="h-52 " />
@@ -234,40 +207,12 @@ export function Overview() {
         }
       />
 
-<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Projects</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.total}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Active Deployments</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.running}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Deploys Today</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{recentJobs.length}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Failed Deployments</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.failed}</div>
-          </CardContent>
-        </Card>
-      </div>
+<div className="flex w-full divide-x divide-border border border-border bg-background rounded-md overflow-hidden">
+          <StatCard borderless label="Projects" value={stats.total} />
+          <StatCard borderless label="Active" value={stats.running} />
+          <StatCard borderless label="Deploys" value={stats.deploying} />
+          <StatCard borderless label="Failed" value={stats.failed} />
+        </div>
 
       <Card className="border-border bg-card">
         <CardHeader className="pb-3">
