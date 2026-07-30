@@ -83,19 +83,31 @@ export function formatPrivateKey(key: string | undefined): string {
   if (formatted.startsWith('"') && formatted.endsWith('"')) {
     formatted = formatted.slice(1, -1);
   }
-  // If base64 encoded (no PEM header), decode from base64
-  if (!formatted.includes("BEGIN") && formatted.length > 50) {
-    try {
-      const decoded = Buffer.from(formatted, "base64").toString("utf8");
-      if (decoded.includes("BEGIN")) {
-        formatted = decoded.trim();
-      }
-    } catch {}
-  }
   if (formatted.includes("\\n")) {
     formatted = formatted.replace(/\\n/g, "\n");
   }
+  if (formatted.includes("BEGIN") && formatted.includes("END")) {
+    return formatted;
+  }
+  try {
+    const decoded = Buffer.from(key.trim(), "base64").toString("utf8").trim();
+    if (decoded.includes("BEGIN") && decoded.includes("END")) {
+      return decoded;
+    }
+  } catch {}
   return formatted;
+}
+
+export function getRelayPrivateKey(): string {
+  const base64 = process.env.GITHUB_APP_PRIVATE_KEY_BASE64;
+  if (base64) {
+    const formatted = formatPrivateKey(base64);
+    if (formatted.includes("BEGIN") && formatted.includes("END")) {
+      return formatted;
+    }
+  }
+  const raw = process.env.GITHUB_APP_PRIVATE_KEY;
+  return formatPrivateKey(raw);
 }
 
 /** Signed register body for POST /api/github/register */

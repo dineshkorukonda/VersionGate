@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Octokit } from "@octokit/rest";
 import { createAppAuth } from "@octokit/auth-app";
-import { verifyRelayQuerySignature, formatPrivateKey } from "@/lib/relay-crypto";
+import { verifyRelayQuerySignature, getRelayPrivateKey } from "@/lib/relay-crypto";
 
 export async function GET(
   request: NextRequest,
@@ -9,8 +9,7 @@ export async function GET(
 ) {
   const secret = (process.env.RELAY_SECRET || "vg_relay_shared_secret").trim();
   const appId = process.env.GITHUB_APP_ID;
-  const rawPrivateKey = process.env.GITHUB_APP_PRIVATE_KEY_BASE64 || process.env.GITHUB_APP_PRIVATE_KEY;
-  const privateKey = formatPrivateKey(rawPrivateKey);
+  const privateKey = getRelayPrivateKey();
 
   if (!appId || !privateKey) {
     return NextResponse.json({ error: "GitHub App credentials not configured on relay" }, { status: 503 });
