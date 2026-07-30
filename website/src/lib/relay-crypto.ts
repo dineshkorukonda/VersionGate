@@ -83,6 +83,15 @@ export function formatPrivateKey(key: string | undefined): string {
   if (formatted.startsWith('"') && formatted.endsWith('"')) {
     formatted = formatted.slice(1, -1);
   }
+  // If base64 encoded (no PEM header), decode from base64
+  if (!formatted.includes("BEGIN") && formatted.length > 50) {
+    try {
+      const decoded = Buffer.from(formatted, "base64").toString("utf8");
+      if (decoded.includes("BEGIN")) {
+        formatted = decoded.trim();
+      }
+    } catch {}
+  }
   if (formatted.includes("\\n")) {
     formatted = formatted.replace(/\\n/g, "\n");
   }

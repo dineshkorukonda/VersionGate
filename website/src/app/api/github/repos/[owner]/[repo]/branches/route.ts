@@ -9,7 +9,7 @@ export async function GET(
 ) {
   const secret = (process.env.RELAY_SECRET || "vg_relay_shared_secret").trim();
   const appId = process.env.GITHUB_APP_ID;
-  const rawPrivateKey = process.env.GITHUB_APP_PRIVATE_KEY;
+  const rawPrivateKey = process.env.GITHUB_APP_PRIVATE_KEY_BASE64 || process.env.GITHUB_APP_PRIVATE_KEY;
   const privateKey = formatPrivateKey(rawPrivateKey);
 
   if (!appId || !privateKey) {
