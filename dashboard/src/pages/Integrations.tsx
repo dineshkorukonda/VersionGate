@@ -11,10 +11,12 @@ import {
   ApiError,
   getGithubInstallation,
   getGithubIntegrationStatus,
+  linkGithubInstallation,
   type GithubInstallationSummary,
 } from "@/lib/api";
 import { Separator } from "@/components/ui/separator";
-import { buttonVariants } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
@@ -33,6 +35,24 @@ export function Integrations() {
   const [gateError, setGateError] = useState<string | null>(null);
 
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [manualId, setManualId] = useState("");
+  const [linking, setLinking] = useState(false);
+
+  const fetchStatus = async () => {
+    setGateReady(false);
+    setGateError(null);
+    try {
+      const r = await getGithubInstallation();
+      setPrimaryInstallation(r.installation);
+      setInstallationsList(r.installations);
+    } catch (e) {
+      setGateError(e instanceof ApiError ? e.message : "Failed to load GitHub installation.");
+      setPrimaryInstallation(null);
+      setInstallationsList([]);
+    } finally {
+      setGateReady(true);
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -109,6 +129,26 @@ export function Integrations() {
     }
     setSearchParams({}, { replace: true });
   }, [githubQuery, setSearchParams]);
+
+  const handleManualLink = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanId = manualId.trim();
+    if (!cleanId || !/^\d+$/.test(cleanId)) {
+      toast.error("Enter a valid numeric GitHub Installation ID (e.g. 67554316)");
+      return;
+    }
+    setLinking(true);
+    try {
+      const res = await linkGithubInstallation(cleanId);
+      toast.success(`GitHub Installation #${res.installationId} linked successfully!`);
+      setManualId("");
+      await fetchStatus();
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Failed to link installation ID.");
+    } finally {
+      setLinking(false);
+    }
+  };
 
   const connected = primaryInstallation !== null;
 
@@ -245,15 +285,41 @@ export function Integrations() {
               ) : null}
             </>
           ) : (
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-sm text-muted-foreground">
-                Connect your GitHub account or organization so VersionGate can read repositories you grant access to.
-              </p>
-              <a href={INSTALL_HREF} className={cn(buttonVariants())}>
-                Connect GitHub
-              </a>
+            <div className="space-y-6">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-sm text-muted-foreground">
+                  Connect your GitHub account or organization so VersionGate can read repositories you grant access to.
+                </p>
+                <a href={INSTALL_HREF} className={cn(buttonVariants())}>
+                  Connect GitHub
+                </a>
+              </div>
             </div>
           )}
+
+          <Separator />
+          <div className="space-y-3 pt-1">
+            <div>
+              <p className="font-mono text-xs font-semibold uppercase tracking-wider text-foreground">
+                Already installed on GitHub? / Manual Sync
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                If GitHub stays on the settings page (<code className="font-mono text-[11px] text-foreground">github.com/settings/installations/123456</code>) after granting permissions, copy the numeric Installation ID from the address bar and sync it below:
+              </p>
+            </div>
+            <form onSubmit={handleManualLink} className="flex flex-wrap items-center gap-2">
+              <Input
+                type="text"
+                placeholder="e.g. 67554316"
+                value={manualId}
+                onChange={(e) => setManualId(e.target.value)}
+                className="max-w-xs font-mono text-xs"
+              />
+              <Button type="submit" size="sm" variant="secondary" disabled={linking || !manualId.trim()}>
+                {linking ? "Syncing..." : "Sync Installation ID"}
+              </Button>
+            </form>
+          </div>
         </CardContent>
       </Card>
 

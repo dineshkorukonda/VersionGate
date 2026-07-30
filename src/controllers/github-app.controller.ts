@@ -269,6 +269,102 @@ export async function githubInstallationRecordHandler(req: FastifyRequest, reply
   });
 }
 
+export async function githubLinkInstallationHandler(
+  req: FastifyRequest<{ Body: { installationId?: string } }>,
+  reply: FastifyReply
+): Promise<void> {
+  const raw = getSessionTokenFromRequest(req.headers.cookie);
+  const user = await getUserFromSessionToken(raw);
+  if (!user) {
+    reply.code(401).send({ error: "Unauthorized", message: "Sign in required", code: "AUTH_REQUIRED" });
+    return;
+  }
+
+  const body = req.body as { installationId?: string } | undefined;
+  const installationIdStr = (body?.installationId ?? "").trim();
+  if (!installationIdStr || !/^\d+$/.test(installationIdStr)) {
+    reply.code(400).send({
+      error: "BadRequest",
+      message: "Please enter a valid numeric GitHub Installation ID (e.g. 67554316).",
+    });
+    return;
+  }
+
+  let login = "";
+  let accountType = "unknown";
+  if (githubAppReady()) {
+    try {
+      const auth = createAppAuth({
+        appId: Number(config.githubAppId),
+        privateKey: config.githubAppPrivateKey,
+      });
+      const { token } = await auth({ type: "app" });
+      const octokit = new Octokit({ auth: token });
+      const { data: installation } = await octokit.rest.apps.getInstallation({
+        installation_id: Number(installationIdStr),
+      });
+
+      const account = installation.account;
+      if (account && typeof account === "object") {
+        login = "login" in account ? String(account.login) : "";
+        accountType = "type" in account ? String(account.type) : "unknown";
+      }
+    } catch (err) {
+      logger.warn({ err }, "githubLinkInstallationHandler: direct app installation fetch failed");
+    }
+  }
+
+  const installationId = BigInt(installationIdStr);
+  const db = getDb();
+  const [existing] = await db
+    .select()
+    .from(githubInstallations)
+    .where(eq(githubInstallations.installationId, installationId))
+    .limit(1);
+
+  if (existing) {
+    await db
+      .update(githubInstallations)
+      .set({
+        userId: user.id,
+        githubAccountLogin: login || existing.githubAccountLogin || user.email.split("@")[0],
+        githubAccountType: accountType !== "unknown" ? accountType : existing.githubAccountType,
+      })
+      .where(eq(githubInstallations.installationId, installationId));
+  } else {
+    await db.insert(githubInstallations).values({
+      userId: user.id,
+      installationId,
+      githubAccountLogin: login || user.email.split("@")[0],
+      githubAccountType: accountType,
+    });
+  }
+
+  const effectivePublicUrl = (process.env.PUBLIC_URL || config.publicUrl || "").trim();
+  const effectiveStateSecret = (process.env.GITHUB_STATE_SECRET || config.githubStateSecret || "").trim();
+  if (effectivePublicUrl && effectiveStateSecret) {
+    try {
+      await registerInstallationWithRelay({
+        installationId: installationIdStr,
+        userId: user.id,
+        instanceUrl: effectivePublicUrl,
+        relaySecret: effectiveStateSecret,
+      });
+    } catch (err) {
+      logger.warn(
+        { err: err instanceof Error ? err.message : String(err), installationId: installationIdStr },
+        "githubLinkInstallationHandler: failed to register installation with relay"
+      );
+    }
+  }
+
+  reply.code(200).send({
+    success: true,
+    installationId: installationIdStr,
+    githubAccountLogin: login || user.email.split("@")[0],
+  });
+}
+
 export async function githubIntegrationStatusHandler(req: FastifyRequest, reply: FastifyReply): Promise<void> {
   const raw = getSessionTokenFromRequest(req.headers.cookie);
   const user = await getUserFromSessionToken(raw);

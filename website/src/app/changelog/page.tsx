@@ -54,8 +54,8 @@ const FALLBACK_RELEASES: ProcessedRelease[] = [
         badge: "NEW",
         items: [
           {
-            title: "GitHub App Relay & Custom Manifest Proxy",
-            description: "Automatic relay proxy fallback for self-hosted instances running without local GitHub App private keys. Supports zero-config central cloud relay or 1-click custom manifest setup.",
+            title: "GitHub App Relay & Manual Installation Sync",
+            description: "Automatic relay proxy fallback for self-hosted instances running without local GitHub App private keys, plus 1-click manual Installation ID sync when GitHub remains on settings page.",
             command: "versiongate github mode --type relay",
             prNumber: 130,
             prLink: "https://github.com/dineshkorukonda/VersionGate/pull/130",
