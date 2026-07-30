@@ -77,6 +77,18 @@ export function verifyRelayQuerySignature(
   return false;
 }
 
+export function formatPrivateKey(key: string | undefined): string {
+  if (!key) return "";
+  let formatted = key.trim();
+  if (formatted.startsWith('"') && formatted.endsWith('"')) {
+    formatted = formatted.slice(1, -1);
+  }
+  if (formatted.includes("\\n")) {
+    formatted = formatted.replace(/\\n/g, "\n");
+  }
+  return formatted;
+}
+
 /** Signed register body for POST /api/github/register */
 export interface RegisterPayload {
   instanceUrl: string;
