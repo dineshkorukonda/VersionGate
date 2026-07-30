@@ -33,7 +33,7 @@ export async function GET(
       appId: Number(appId),
       privateKey,
     });
-    const { token } = await auth({ type: "app" });
+    const { token } = await auth({ type: "installation", installationId: Number(installationId) });
     const octokit = new Octokit({ auth: token });
 
     const branches: { name: string; sha: string | undefined }[] = [];
