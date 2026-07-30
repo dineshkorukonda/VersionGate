@@ -478,13 +478,14 @@ export async function githubRepoBranchesHandler(
     return;
   }
 
-  if (config.githubStateSecret) {
+  const effectiveStateSecret = (process.env.GITHUB_STATE_SECRET || config.githubStateSecret || "vg_relay_shared_secret").trim();
+  if (effectiveStateSecret) {
     try {
       const branches = await fetchBranchesFromRelay({
         installationId: row.installationId.toString(),
         owner,
         repo,
-        relaySecret: config.githubStateSecret,
+        relaySecret: effectiveStateSecret,
       });
       reply.code(200).send({
         installationId: row.installationId.toString(),
@@ -498,7 +499,7 @@ export async function githubRepoBranchesHandler(
 
   reply.code(503).send({
     error: "ServiceUnavailable",
-    message: "GitHub App is not configured. Set GITHUB_APP_ID and GITHUB_APP_PRIVATE_KEY or use the relay.",
+    message: "Could not fetch repository branches. Set GITHUB_APP_ID/GITHUB_APP_PRIVATE_KEY or ensure GITHUB_STATE_SECRET is configured.",
   });
 }
 
@@ -563,11 +564,12 @@ export async function githubReposHandler(
     return;
   }
 
-  if (config.githubStateSecret) {
+  const effectiveStateSecret = (process.env.GITHUB_STATE_SECRET || config.githubStateSecret || "vg_relay_shared_secret").trim();
+  if (effectiveStateSecret) {
     try {
       const repositories = await fetchReposFromRelay({
         installationId: row.installationId.toString(),
-        relaySecret: config.githubStateSecret,
+        relaySecret: effectiveStateSecret,
       });
       reply.code(200).send({
         installationId: row.installationId.toString(),
@@ -582,7 +584,7 @@ export async function githubReposHandler(
 
   reply.code(503).send({
     error: "ServiceUnavailable",
-    message: "GitHub App is not configured. Set GITHUB_APP_ID and GITHUB_APP_PRIVATE_KEY or use the relay.",
+    message: "Could not fetch repositories. Set GITHUB_APP_ID/GITHUB_APP_PRIVATE_KEY or ensure GITHUB_STATE_SECRET is configured.",
   });
 }
 
