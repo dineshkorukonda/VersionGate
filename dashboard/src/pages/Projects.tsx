@@ -3,8 +3,6 @@ import { Link } from "react-router-dom";
 import { getAllDeployments, getInstanceSettings, getProjects, getServerStats, listAllJobs, type Deployment, type JobRecord, type Project, type ServerStats } from "@/lib/api";
 import { projectDeploymentStatus } from "@/lib/project-deployment-status";
 import { getActiveDeployment, getDisplayDeployment, guessEnvironmentLabel, publicEnvironmentUrl, setConfiguredPublicHost } from "@/lib/deployment-display";
-import { PageHeader } from "@/components/PageHeader";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { StatusBadge } from "@/components/badges/StatusBadge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -34,7 +32,7 @@ export function Projects() {
   const launchCreate = useLaunchCreateProject();
   const [projects, setProjects] = useState<Project[]>([]);
   const [deployments, setDeployments] = useState<Deployment[]>([]);
-  const [latestJobByProject, setLatestJobByProject] = useState<Map<string, string>>(new Map());
+  
   const [hostStats, setHostStats] = useState<ServerStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [deleteTarget, setDeleteTarget] = useState<Project | null>(null);
@@ -56,7 +54,7 @@ export function Projects() {
       for (const j of jobs.jobs) {
         if (!m.has(j.projectId)) m.set(j.projectId, j.id);
       }
-      setLatestJobByProject(m);
+      
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to load projects");
     } finally {
@@ -99,16 +97,16 @@ export function Projects() {
 
   return (
     <div className="w-full space-y-8">
-      <PageHeader
-        title="Projects Matrix"
-        description="Manage and monitor active docker deployments across all clusters."
-        mono
-        actions={
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">Projects</h1>
+        </div>
+        <div className="flex items-center gap-2">
           <Button type="button" onClick={() => launchCreate()}>
-            + New Project
+            New Project
           </Button>
-        }
-      />
+        </div>
+      </div>
 
       {loading ? (
         <Skeleton className="h-64 w-full " />
@@ -122,127 +120,47 @@ export function Projects() {
         </p>
       ) : (
         <>
-          <Card className="overflow-hidden border-border bg-card">
-            <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 border-b border-border py-4">
-              <div>
-                <CardTitle className="font-mono text-sm uppercase tracking-wider">Active Deployments</CardTitle>
-                <CardDescription className="font-mono text-[10px] uppercase">Projects on this node</CardDescription>
-              </div>
-              <Button type="button" variant="outline" size="sm" onClick={() => void load()}>
-                Refresh
-              </Button>
-            </CardHeader>
-            <CardContent className="px-0 pb-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="pl-6 font-mono text-[10px] uppercase">Project Name</TableHead>
-                    <TableHead className="font-mono text-[10px] uppercase">Status</TableHead>
-                    <TableHead className="font-mono text-[10px] uppercase">Environment</TableHead>
-                    <TableHead className="font-mono text-[10px] uppercase">Uptime</TableHead>
-                    <TableHead className="font-mono text-[10px] uppercase">Service</TableHead>
-                    <TableHead className="pr-6 text-right font-mono text-[10px] uppercase">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {slice.map((proj) => {
-                    const state = projectDeploymentStatus(proj.id, deployments);
-                    const disp = getDisplayDeployment(proj.id, deployments);
-                    const port = disp ? disp.port : proj.basePort;
-                    const envLabel = disp ? guessEnvironmentLabel(proj, disp) : "production";
-                    const url = publicEnvironmentUrl(proj, envLabel !== "—" ? envLabel : "production", port);
-                    const jobId = latestJobByProject.get(proj.id);
-                    return (
-                      <TableRow key={proj.id}>
-                        <TableCell className="pl-6">
-                          <Link to={`/projects/${proj.id}`} className="font-medium text-foreground hover:underline">
-                            {proj.name}
-                          </Link>
-                          <div className="font-mono text-[10px] text-muted-foreground">prj_{proj.id.slice(0, 6)}</div>
-                        </TableCell>
-                        <TableCell>
+          <div>
+            <div className="mb-4 flex items-center justify-between">
+               <div className="text-sm text-muted-foreground">{projects.length} total projects</div>
+               <Button type="button" variant="outline" size="sm" onClick={() => void load()}>Refresh</Button>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {slice.map((proj) => {
+                const state = projectDeploymentStatus(proj.id, deployments);
+                const disp = getDisplayDeployment(proj.id, deployments);
+                const port = disp ? disp.port : proj.basePort;
+                const envLabel = disp ? guessEnvironmentLabel(proj, disp) : "production";
+                const url = publicEnvironmentUrl(proj, envLabel !== "—" ? envLabel : "production", port);
+                return (
+                  <Link key={proj.id} to={`/projects/${proj.id}`} className="block group">
+                    <Card className="h-full transition-all hover:border-muted-foreground/30 hover:bg-accent/40 bg-card">
+                      <CardHeader className="pb-3">
+                        <div className="flex items-start justify-between">
+                          <CardTitle className="text-base font-medium">{proj.name}</CardTitle>
                           <StatusBadge status={state} />
-                        </TableCell>
-                        <TableCell className="font-mono text-xs uppercase text-muted-foreground">
-                          {envLabel}
-                          {disp ? <span className="ml-1 normal-case text-muted-foreground/70">v{disp.version}</span> : null}
-                        </TableCell>
-                        <TableCell className="text-sm tabular-nums text-muted-foreground">
-                          {formatUptime(proj.id, deployments)}
-                        </TableCell>
-                        <TableCell>
-                          {url ? (
-                            <a
-                              href={url}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="font-mono text-xs text-primary underline-offset-2 hover:underline"
-                            >
-                              {url.replace(/^https?:\/\//, "")}
-                            </a>
-                          ) : (
-                            <span className="text-muted-foreground">—</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="pr-6 text-right">
-                          <div className="flex justify-end gap-2">
-                            {url && disp ? (
-                              <a
-                                href={url}
-                                target="_blank"
-                                rel="noreferrer"
-                                className={cn(
-                                  buttonVariants({ variant: "default", size: "sm" }),
-                                  "bg-emerald-600 hover:bg-emerald-700 text-white font-medium border-emerald-500/30"
-                                )}
-                              >
-                                <span>Open App</span>
-                                <span className="font-mono text-[10px] opacity-80">(:{disp.port})</span>
-                              </a>
-                            ) : null}
-                            {jobId ? (
-                              <Link
-                                to={`/projects/${proj.id}/deploy/${jobId}`}
-                                className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-                              >
-                                {"[>_ Log]"}
-                              </Link>
-                            ) : null}
-                            <Link to={`/projects/${proj.id}`} className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
-                              Details
-                            </Link>
-                            <Button type="button" variant="ghost" size="sm" className="text-destructive" onClick={() => setDeleteTarget(proj)}>
-                              Delete
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border/60 px-4 py-3 text-xs text-muted-foreground">
-                <span>
-                  Showing {slice.length ? pageSafe * PAGE_SIZE + 1 : 0}–{pageSafe * PAGE_SIZE + slice.length} of {projects.length}{" "}
-                  projects
-                </span>
-                <div className="flex gap-2">
-                  <Button type="button" variant="outline" size="sm" disabled={pageSafe <= 0} onClick={() => setPage((p) => p - 1)}>
-                    Previous
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    disabled={pageSafe >= pageCount - 1}
-                    onClick={() => setPage((p) => p + 1)}
-                  >
-                    Next
-                  </Button>
-                </div>
+                        </div>
+                        <CardDescription className="text-xs truncate">{url ? url.replace(/^https?:\/\//, "") : "Not deployed"}</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-xs text-muted-foreground mt-4 flex items-center justify-between">
+                           <span>{formatUptime(proj.id, deployments)} uptime</span>
+                           <span className="capitalize">{envLabel}</span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </Link>
+                );
+              })}
+            </div>
+            <div className="mt-6 flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground">
+              <span>Showing {slice.length ? pageSafe * PAGE_SIZE + 1 : 0}–{pageSafe * PAGE_SIZE + slice.length} of {projects.length}</span>
+              <div className="flex gap-2">
+                <Button type="button" variant="outline" size="sm" disabled={pageSafe <= 0} onClick={() => setPage((p) => p - 1)}>Previous</Button>
+                <Button type="button" variant="outline" size="sm" disabled={pageSafe >= pageCount - 1} onClick={() => setPage((p) => p + 1)}>Next</Button>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
           <div className="grid gap-4 lg:grid-cols-2">
             <AggregateJobLogStream title="System live logs" pollMs={7000} />

@@ -107,10 +107,10 @@ export function UpdateAvailableBanner() {
   if (!show) return null;
 
   return (
-    <div className="flex items-center justify-between border-b border-[#2a2a2a] bg-[#111] px-4 py-2.5">
+    <div className="flex items-center justify-between border-b border-border bg-card px-4 py-2.5">
       <div className="flex items-center gap-3">
-        <span className="inline-block h-2 w-2 rounded-full bg-[#0070f3]" />
-        <span className="text-sm text-[#a1a1a1]">
+        <span className="inline-block h-2 w-2 rounded-full bg-blue-500" />
+        <span className="text-sm text-muted-foreground">
           Update available on{" "}
           <span className="font-medium text-white">origin/{branch}</span>
         </span>
@@ -127,7 +127,7 @@ export function UpdateAvailableBanner() {
         <button
           type="button"
           onClick={onDismiss}
-          className="rounded-md p-1 text-[#737373] transition-colors hover:bg-[#1a1a1a] hover:text-white"
+          className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-white"
           aria-label="Dismiss"
         >
           <X className="h-3.5 w-3.5" />

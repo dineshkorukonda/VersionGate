@@ -4,6 +4,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -550,12 +551,20 @@ export function Settings() {
     };
 
   return (
-    <div className="w-full max-w-4xl space-y-10">
+    <div className="w-full max-w-4xl space-y-6">
       <PageHeader
-        title="System Settings"
-        description="Instance configuration, self-update, and environment variables"
-        mono
+        title="Settings"
+        description="Manage your instance configuration, network, and security settings."
       />
+      <Tabs defaultValue="general" className="w-full">
+        <TabsList className="mb-6 h-10 w-full justify-start rounded-none border-b border-border bg-transparent p-0">
+          <TabsTrigger value="general" className="relative h-10 rounded-none border-b-2 border-transparent bg-transparent px-4 pb-3 pt-2 font-medium text-muted-foreground shadow-none transition-none data-[state=active]:border-primary data-[state=active]:text-foreground data-[state=active]:shadow-none">General</TabsTrigger>
+          <TabsTrigger value="network" className="relative h-10 rounded-none border-b-2 border-transparent bg-transparent px-4 pb-3 pt-2 font-medium text-muted-foreground shadow-none transition-none data-[state=active]:border-primary data-[state=active]:text-foreground data-[state=active]:shadow-none">Network</TabsTrigger>
+          <TabsTrigger value="security" className="relative h-10 rounded-none border-b-2 border-transparent bg-transparent px-4 pb-3 pt-2 font-medium text-muted-foreground shadow-none transition-none data-[state=active]:border-primary data-[state=active]:text-foreground data-[state=active]:shadow-none">Security</TabsTrigger>
+          <TabsTrigger value="updates" className="relative h-10 rounded-none border-b-2 border-transparent bg-transparent px-4 pb-3 pt-2 font-medium text-muted-foreground shadow-none transition-none data-[state=active]:border-primary data-[state=active]:text-foreground data-[state=active]:shadow-none">Updates</TabsTrigger>
+          <TabsTrigger value="advanced" className="relative h-10 rounded-none border-b-2 border-transparent bg-transparent px-4 pb-3 pt-2 font-medium text-muted-foreground shadow-none transition-none data-[state=active]:border-primary data-[state=active]:text-foreground data-[state=active]:shadow-none">Advanced</TabsTrigger>
+        </TabsList>
+        <TabsContent value="general" className="space-y-6">
 
       <div className="grid gap-4 lg:grid-cols-3">
         <Card className="border-border bg-card lg:col-span-2">
@@ -703,6 +712,8 @@ export function Settings() {
         </CardContent>
       </Card>
 
+        </TabsContent>
+        <TabsContent value="updates" className="space-y-6">
       <Card id="application-updates" className="border-border/50 bg-card/60 ring-1 ring-border/30 scroll-mt-24">
         <CardHeader>
           <CardTitle>Application updates</CardTitle>
@@ -1116,6 +1127,11 @@ export function Settings() {
           </Button>
         </CardContent>
       </Card>
+        </TabsContent>
+        <TabsContent value="security" className="space-y-6">
+          <ApiTokensCard />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

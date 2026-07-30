@@ -29,7 +29,7 @@ import { Separator } from "@/components/ui/separator";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
 import { useEffect, useState } from "react";
-import { authLogout, getAuthStatus, getInstanceSettings, getProjects, getServerStats, getSetupStatus, type Project } from "@/lib/api";
+import { authLogout, getAuthStatus, getInstanceSettings, getProjects, getSetupStatus, type Project } from "@/lib/api";
 import { setConfiguredPublicHost } from "@/lib/deployment-display";
 import { cn } from "@/lib/utils";
 import { GlobalSearchDialog } from "@/components/modals/GlobalSearchDialog";
@@ -62,11 +62,11 @@ const nav = [
 ] as const;
 
 const navBtn =
-  "peer/menu-button flex w-full items-center gap-3 overflow-hidden rounded-none px-3 py-2.5 text-left font-mono text-[11px] uppercase tracking-wider text-sidebar-foreground outline-hidden transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground [&>span:last-child]:truncate";
+  "peer/menu-button flex w-full items-center gap-3 overflow-hidden rounded-md px-3 py-2 text-sm font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground [&>span:last-child]:truncate";
 
 export function Layout() {
   const navigate = useNavigate();
-  const [serverOk, setServerOk] = useState(true);
+  
   const [setupGate, setSetupGate] = useState<"loading" | "ready">("loading");
   const [needsRestartBanner, setNeedsRestartBanner] = useState(false);
   const [createProjectOpen, setCreateProjectOpen] = useState(false);
@@ -134,23 +134,6 @@ export function Layout() {
     };
   }, [setupGate, navigate]);
 
-  useEffect(() => {
-    let cancelled = false;
-    const tick = async () => {
-      try {
-        const s = await getServerStats();
-        if (!cancelled) setServerOk(s.status === "ok" || s.status === "unavailable");
-      } catch {
-        if (!cancelled) setServerOk(false);
-      }
-    };
-    void tick();
-    const id = window.setInterval(tick, 10000);
-    return () => {
-      cancelled = true;
-      window.clearInterval(id);
-    };
-  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -195,18 +178,11 @@ export function Layout() {
         <SidebarProvider>
           <Sidebar collapsible="icon" className="border-r border-sidebar-border bg-sidebar">
             <SidebarHeader className="gap-3 border-b border-sidebar-border px-3 py-4">
-              <div className="flex flex-col gap-0.5 group-data-[collapsible=icon]:items-center">
-                <span className="font-mono text-sm font-bold uppercase tracking-widest text-sidebar-foreground">VersionGate</span>
-                <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground group-data-[collapsible=icon]:hidden">
-                  v1.0-stable
-                </span>
-              </div>
+              <div className="flex items-center"><span className="text-base font-semibold text-white">VersionGate</span></div>
             </SidebarHeader>
             <SidebarContent className="gap-0 px-2 py-3">
               <SidebarGroup className="p-0">
-                <SidebarGroupLabel className="mb-1 px-2 text-[11px] uppercase tracking-wider text-muted-foreground/80">
-                  Navigate
-                </SidebarGroupLabel>
+                
                 <SidebarGroupContent>
                   <SidebarMenu className="gap-0.5">
                     {nav.map((item) => {
@@ -220,7 +196,7 @@ export function Layout() {
                               cn(
                                 navBtn,
                                 isActive &&
-                                  "border-l-2 border-foreground bg-sidebar-accent font-medium text-foreground"
+                                  "bg-sidebar-accent text-white"
                               )
                             }
                           >
@@ -236,9 +212,7 @@ export function Layout() {
 
               {projects.length > 0 && (
                 <SidebarGroup className="mt-4 p-0">
-                  <SidebarGroupLabel className="mb-1 px-2 text-[11px] uppercase tracking-wider text-muted-foreground/80">
-                    Projects
-                  </SidebarGroupLabel>
+                  <SidebarGroupLabel className="mb-1 px-2 text-xs font-semibold text-sidebar-foreground">Projects</SidebarGroupLabel>
                   <SidebarGroupContent>
                     <SidebarMenu className="gap-0.5">
                       {projects.map((p) => (
@@ -248,7 +222,7 @@ export function Layout() {
                             className={({ isActive }) =>
                               cn(
                                 navBtn,
-                                isActive && "border-l-2 border-primary bg-sidebar-accent font-medium text-primary"
+                                isActive && "bg-sidebar-accent text-white"
                               )
                             }
                           >
@@ -263,28 +237,11 @@ export function Layout() {
               )}
             </SidebarContent>
 
-            <SidebarFooter className="gap-2 border-t border-sidebar-border p-2">
-              <div className="flex flex-col gap-1 px-1 group-data-[collapsible=icon]:hidden">
-                <a
-                  href={DOCS_HREF}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-xs text-muted-foreground transition-colors hover:text-foreground"
-                >
-                  Documentation
-                </a>
-                <a
-                  href={SUPPORT_HREF}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-xs text-muted-foreground transition-colors hover:text-foreground"
-                >
-                  Support
-                </a>
-              </div>
+            <SidebarFooter className="p-4">
+              
               <Button
                 type="button"
-                className="w-full gap-2  group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:p-0"
+                className="w-full gap-2 bg-white text-black hover:bg-zinc-200"
                 onClick={() => setCreateProjectOpen(true)}
               >
                 <Plus className="size-4" />
@@ -294,19 +251,10 @@ export function Layout() {
           </Sidebar>
 
           <SidebarInset className="flex min-h-svh flex-col bg-background">
-            <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-3 border-b border-border bg-surface px-3 sm:px-4">
+            <header className="sticky top-0 z-30 flex h-12 shrink-0 items-center gap-3 border-b border-border bg-background px-4">
               <SidebarTrigger className="md:hidden" />
               <div className="hidden min-w-0 flex-col gap-0.5 sm:flex md:max-w-[min(40%,20rem)]">
-                <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                  <span>System Status</span>
-                  <span
-                    className={cn(
-                      "inline-block size-1.5 rounded-full",
-                      serverOk ? "bg-emerald-500" : "bg-red-500"
-                    )}
-                    title={serverOk ? "API reachable" : "API issue"}
-                  />
-                </div>
+                
                 <SidebarBreadcrumbs />
               </div>
 
@@ -319,7 +267,7 @@ export function Layout() {
                     title="Open search (⌘K or Ctrl+K)"
                     placeholder="Search projects…"
                     onClick={() => setSearchOpen(true)}
-                    className="h-9 cursor-pointer border-border bg-muted pl-9 font-mono text-xs"
+                    className="h-8 cursor-pointer rounded-md border-border bg-card pl-9 text-sm text-foreground placeholder:text-muted-foreground"
                   />
                 </div>
               </div>
@@ -434,23 +382,7 @@ export function Layout() {
                 <Outlet />
               )}
             </div>
-            <footer className="mt-auto flex flex-wrap items-center justify-between gap-3 border-t border-border bg-surface px-4 py-3 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-              <span>© {new Date().getFullYear()} VersionGate Terminal</span>
-              <div className="flex flex-wrap gap-4">
-                <a href={DOCS_HREF} target="_blank" rel="noreferrer" className="hover:text-foreground">
-                  Documentation
-                </a>
-                <a href={API_HREF} target="_blank" rel="noreferrer" className="hover:text-foreground">
-                  API Docs
-                </a>
-                <a href={SUPPORT_HREF} target="_blank" rel="noreferrer" className="hover:text-foreground">
-                  Support
-                </a>
-                <NavLink to="/activity" className="hover:text-foreground">
-                  Logs
-                </NavLink>
-              </div>
-            </footer>
+            
             <CreateProjectModal
               open={createProjectOpen}
               onOpenChange={setCreateProjectOpen}
