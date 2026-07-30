@@ -1,23 +1,20 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
-import { toast } from "sonner";
 import { applySelfUpdateFromSettings, getSelfUpdateSettings } from "@/lib/api";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { toast } from "sonner";
+import { X } from "lucide-react";
 
 const POLL_MS = 120_000;
 const DISMISS_KEY = "vg-update-banner-dismissed";
 const TOAST_PREFIX = "vg-update-toast-remote-";
 
 /**
- * Shows when self-update is enabled and origin is ahead of local (e.g. after merging to the tracked branch).
- * Polls the same endpoint Settings uses; apply matches Settings → Application updates.
+ * Slim update banner that appears when the server clone is behind origin.
+ * Applies silently via pm2 reload --update-env (graceful, zero-downtime).
+ * No window.confirm() dialog — update is applied immediately on click.
  */
 export function UpdateAvailableBanner() {
   const [show, setShow] = useState(false);
   const [branch, setBranch] = useState("");
-  const [remoteTip, setRemoteTip] = useState("");
-  const [localTip, setLocalTip] = useState("");
   const [applying, setApplying] = useState(false);
   const dismissedRef = useRef(sessionStorage.getItem(DISMISS_KEY) === "1");
 
@@ -30,10 +27,8 @@ export function UpdateAvailableBanner() {
       }
       const behind = su.git.behind;
       const remote = su.git.remoteCommit ?? "";
-      const local = su.git.currentCommit ?? "";
+
       setBranch(su.branch);
-      setRemoteTip(remote);
-      setLocalTip(local);
 
       if (!behind) {
         sessionStorage.removeItem(DISMISS_KEY);
@@ -45,9 +40,9 @@ export function UpdateAvailableBanner() {
       const toastKey = remote ? `${TOAST_PREFIX}${remote.slice(0, 40)}` : "";
       if (toastKey && !sessionStorage.getItem(toastKey)) {
         sessionStorage.setItem(toastKey, "1");
-        toast.info("Application update available", {
-          description: `New commits on ${su.branch}. You can apply from the banner or Settings.`,
-          duration: 10_000,
+        toast.info("Update available", {
+          description: `New commits detected on ${su.branch}. Apply from the banner above.`,
+          duration: 8_000,
         });
       }
 
@@ -70,27 +65,39 @@ export function UpdateAvailableBanner() {
   };
 
   const onApply = async () => {
-    if (
-      !window.confirm(
-        "Pull latest code, rebuild the dashboard, and reload PM2? The UI may disconnect briefly."
-      )
-    ) {
-      return;
-    }
     setApplying(true);
+    const tid = toast.loading("Applying update — the server will reload gracefully...");
     try {
       const r = await applySelfUpdateFromSettings();
+      toast.dismiss(tid);
       if (r.ok) {
-        toast.success("Update applied — PM2 reload scheduled. Refresh this page in a few seconds.");
-        dismissedRef.current = false;
-        sessionStorage.removeItem(DISMISS_KEY);
-        await poll();
+        toast.success("Update applied. Reconnecting...", { duration: 4_000 });
+        setShow(false);
+        // Auto-reconnect: poll API until it responds again after reload
+        let attempts = 0;
+        const reconnect = window.setInterval(async () => {
+          attempts++;
+          try {
+            const res = await fetch("/api/v1/setup/status");
+            if (res.ok) {
+              window.clearInterval(reconnect);
+              window.location.reload();
+            }
+          } catch {
+            // server still reloading
+          }
+          if (attempts > 30) {
+            window.clearInterval(reconnect);
+            window.location.reload();
+          }
+        }, 2000);
       } else {
         toast.error(r.error ?? "Update failed", {
-          description: r.steps?.length ? r.steps.slice(-3).join(" → ") : undefined,
+          description: r.steps?.length ? r.steps.slice(-3).join(" > ") : undefined,
         });
       }
     } catch (e) {
+      toast.dismiss(tid);
       toast.error(e instanceof Error ? e.message : "Update failed");
     } finally {
       setApplying(false);
@@ -100,45 +107,32 @@ export function UpdateAvailableBanner() {
   if (!show) return null;
 
   return (
-    <div className="border-b border-amber-500/25 bg-amber-500/10 px-4 py-3 md:px-6">
-      <Alert className="border-amber-500/35 bg-amber-500/5">
-        <AlertTitle className="text-amber-950">Update available</AlertTitle>
-        <AlertDescription className="flex flex-col gap-3 text-amber-950/90">
-          <p>
-            This server&apos;s clone is behind <span className="font-medium text-foreground">origin/{branch}</span>
-            {remoteTip ? (
-              <>
-                {" "}
-                (remote <span className="font-mono text-xs">{remoteTip.slice(0, 7)}</span>
-                {localTip ? (
-                  <>
-                    {" "}
-                    vs local <span className="font-mono text-xs">{localTip.slice(0, 7)}</span>
-                  </>
-                ) : null}
-                ).
-              </>
-            ) : (
-              "."
-            )}{" "}
-            Merge on GitHub is detected after the next check (or open Settings and run &quot;Check for updates&quot;).
-          </p>
-          <div className="flex flex-wrap items-center gap-2">
-            <Button type="button" size="sm" disabled={applying} onClick={() => void onApply()}>
-              {applying ? "Applying…" : "Apply update now"}
-            </Button>
-            <Link
-              to="/settings#application-updates"
-              className={buttonVariants({ variant: "outline", size: "sm" })}
-            >
-              Open Settings
-            </Link>
-            <Button type="button" size="sm" variant="ghost" className="text-muted-foreground" onClick={onDismiss}>
-              Dismiss
-            </Button>
-          </div>
-        </AlertDescription>
-      </Alert>
+    <div className="flex items-center justify-between border-b border-[#2a2a2a] bg-[#111] px-4 py-2.5">
+      <div className="flex items-center gap-3">
+        <span className="inline-block h-2 w-2 rounded-full bg-[#0070f3]" />
+        <span className="text-sm text-[#a1a1a1]">
+          Update available on{" "}
+          <span className="font-medium text-white">origin/{branch}</span>
+        </span>
+      </div>
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          disabled={applying}
+          onClick={() => void onApply()}
+          className="rounded-md bg-white px-3 py-1 text-xs font-medium text-black transition-colors hover:bg-zinc-100 disabled:opacity-50"
+        >
+          {applying ? "Applying..." : "Apply update"}
+        </button>
+        <button
+          type="button"
+          onClick={onDismiss}
+          className="rounded-md p-1 text-[#737373] transition-colors hover:bg-[#1a1a1a] hover:text-white"
+          aria-label="Dismiss"
+        >
+          <X className="h-3.5 w-3.5" />
+        </button>
+      </div>
     </div>
   );
 }

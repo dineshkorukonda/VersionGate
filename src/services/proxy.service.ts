@@ -9,6 +9,7 @@ export interface ResolvedProxyTarget {
   environmentName: string;
   port: number;
   healthPath: string;
+  proxyPrefix: string;
 }
 
 export class ProxyService {
@@ -62,12 +63,41 @@ export class ProxyService {
       return null;
     }
 
+    const proxyPrefix = `/p/${project.name}/${environment.name}`;
+
     return {
       projectName: project.name,
       environmentName: environment.name,
       port: depRows[0].port,
       healthPath: project.healthPath,
+      proxyPrefix,
     };
+  }
+
+  /**
+   * Rewrites absolute-path asset references in HTML so they route through
+   * the VersionGate reverse proxy prefix. Handles Next.js (_next/), Vite (/assets/),
+   * and generic root-relative paths (/static/).
+   */
+  private rewriteHtmlAssetPaths(html: string, proxyPrefix: string): string {
+    // Inject <base> tag so relative paths also resolve correctly
+    if (!html.includes("<base ")) {
+      html = html.replace(/<head(\s[^>]*)?>/i, (m) => `${m}<base href="${proxyPrefix}/">`);
+    }
+
+    // Next.js: rewrite assetPrefix in __NEXT_DATA__ JSON
+    html = html.replace(/"assetPrefix":""/g, `"assetPrefix":"${proxyPrefix}"`);
+
+    // Rewrite src="/_next/... and href="/_next/... (Next.js static assets)
+    html = html.replace(/(src|href)="\/_next\//gi, `$1="${proxyPrefix}/_next/`);
+
+    // Rewrite /assets/ (Vite output)
+    html = html.replace(/(src|href)="\/assets\//gi, `$1="${proxyPrefix}/assets/`);
+
+    // Rewrite /static/ (CRA and misc setups)
+    html = html.replace(/(src|href)="\/static\//gi, `$1="${proxyPrefix}/static/`);
+
+    return html;
   }
 
   async proxyRequest(
@@ -95,10 +125,14 @@ export class ProxyService {
       headers["x-forwarded-for"] = req.ip || "127.0.0.1";
       headers["x-forwarded-proto"] = req.protocol || "http";
       headers["x-versiongate-proxy"] = "true";
+      // Signal basePath to Next.js SSR
+      headers["x-forwarded-prefix"] = target.proxyPrefix;
 
       const method = req.method;
       const hasBody = method !== "GET" && method !== "HEAD";
-      const bodyPayload = hasBody && req.body ? (typeof req.body === "string" ? req.body : JSON.stringify(req.body)) : undefined;
+      const bodyPayload = hasBody && req.body
+        ? (typeof req.body === "string" ? req.body : JSON.stringify(req.body))
+        : undefined;
 
       const response = await fetch(targetUrl, {
         method,
@@ -124,14 +158,7 @@ export class ProxyService {
 
         if (contentType.includes("text/html")) {
           let html = buf.toString("utf8");
-          const baseHref = `/p/${target.projectName}/`;
-          if (!html.includes("<base ")) {
-            if (html.includes("<head>")) {
-              html = html.replace("<head>", `<head><base href="${baseHref}">`);
-            } else if (html.includes("<HEAD>")) {
-              html = html.replace("<HEAD>", `<HEAD><base href="${baseHref}">`);
-            }
-          }
+          html = this.rewriteHtmlAssetPaths(html, target.proxyPrefix);
           buf = Buffer.from(html, "utf8");
           reply.header("content-length", buf.length.toString());
         }
@@ -146,7 +173,7 @@ export class ProxyService {
         <!DOCTYPE html>
         <html>
           <head>
-            <title>VersionGate — Gateway Error</title>
+            <title>VersionGate Gateway Error</title>
             <style>
               body { font-family: system-ui, sans-serif; background: #0f172a; color: #f8fafc; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
               .card { background: #1e293b; padding: 2rem; border-radius: 12px; border: 1px solid #334155; max-width: 500px; text-align: center; }
