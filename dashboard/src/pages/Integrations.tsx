@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { Cable, ExternalLink } from "lucide-react";
+import { Cable, Code2, ExternalLink, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -37,20 +37,22 @@ export function Integrations() {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [manualId, setManualId] = useState("");
   const [linking, setLinking] = useState(false);
+  const [checking, setChecking] = useState(false);
 
   const fetchStatus = async () => {
-    setGateReady(false);
-    setGateError(null);
+    setChecking(true);
     try {
       const r = await getGithubInstallation();
       setPrimaryInstallation(r.installation);
       setInstallationsList(r.installations);
+      setGateError(null);
     } catch (e) {
       setGateError(e instanceof ApiError ? e.message : "Failed to load GitHub installation.");
       setPrimaryInstallation(null);
       setInstallationsList([]);
     } finally {
       setGateReady(true);
+      setChecking(false);
     }
   };
 
@@ -161,39 +163,39 @@ export function Integrations() {
       />
 
       <Alert className="border-border bg-muted">
-        <AlertTitle className="font-mono text-xs uppercase tracking-wider">Connect only — one official App</AlertTitle>
+        <AlertTitle className="font-mono text-xs uppercase tracking-wider">Primary Integration Mode — Central Cloud Relay</AlertTitle>
         <AlertDescription className="space-y-2 text-muted-foreground [&_p]:text-sm">
           <p>
-            Install the shared <strong className="text-foreground">VersionGate</strong> GitHub App on your account or org.
-            You do <strong className="text-foreground">not</strong> create your own App. Push webhooks go to the public relay,
-            which routes deploys to this instance.
+            VersionGate uses zero-config <strong className="text-foreground">Central Cloud Relay Mode</strong> via{" "}
+            <code className="font-mono text-xs text-foreground">versiongate.tech</code>. You do <strong className="text-foreground">not</strong> need to create a custom GitHub App.
           </p>
-          <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Webhook (fixed)</p>
+          <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Relay Webhook URL (fixed)</p>
           <code className="block max-w-full overflow-x-auto break-all border border-border bg-background px-2 py-1.5 font-mono text-xs text-foreground">
             {webhookUrlHint}
           </code>
-          <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Install callback (fixed)</p>
+          <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Relay Callback URL (fixed)</p>
           <code className="block max-w-full overflow-x-auto break-all border border-border bg-background px-2 py-1.5 font-mono text-xs text-foreground">
             {GITHUB_APP_RELAY_CALLBACK}
           </code>
-          <p>
-            This server needs <span className="font-mono text-xs">PUBLIC_URL</span>, shared App credentials, and{" "}
-            <span className="font-mono text-xs">GITHUB_STATE_SECRET</span> matching the relay. Then use{" "}
-            <strong className="text-foreground">Connect GitHub</strong> while signed in.
-          </p>
         </AlertDescription>
       </Alert>
 
+      {/* Main GitHub Integration Card (Central Relay Mode) */}
       <Card>
         <CardHeader>
           <div className="flex items-start justify-between gap-4">
             <div className="space-y-1">
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Cable className="size-5 opacity-80" aria-hidden />
-                GitHub
-              </CardTitle>
+              <div className="flex items-center gap-2">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Cable className="size-5 opacity-80" aria-hidden />
+                  GitHub Integration
+                </CardTitle>
+                <Badge variant="outline" className="font-mono text-[10px] uppercase tracking-wider">
+                  Primary // Relay
+                </Badge>
+              </div>
               <CardDescription>
-                Install the VersionGate GitHub App to list repositories and deploy on push.
+                Install the official VersionGate GitHub App to connect your repositories and enable automated git push deploys.
               </CardDescription>
             </div>
           </div>
@@ -290,9 +292,22 @@ export function Integrations() {
                 <p className="text-sm text-muted-foreground">
                   Connect your GitHub account or organization so VersionGate can read repositories you grant access to.
                 </p>
-                <a href={INSTALL_HREF} className={cn(buttonVariants())}>
-                  Connect GitHub
-                </a>
+                <div className="flex flex-wrap gap-2">
+                  <a href={INSTALL_HREF} className={cn(buttonVariants())}>
+                    Connect GitHub
+                  </a>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={checking}
+                    onClick={() => void fetchStatus()}
+                    className="inline-flex gap-1.5"
+                  >
+                    <RefreshCw className={cn("size-3.5", checking && "animate-spin")} />
+                    Re-check
+                  </Button>
+                </div>
               </div>
             </div>
           )}
@@ -301,10 +316,10 @@ export function Integrations() {
           <div className="space-y-3 pt-1">
             <div>
               <p className="font-mono text-xs font-semibold uppercase tracking-wider text-foreground">
-                Already installed on GitHub? / Manual Sync
+                Already authorized on GitHub? / Manual Sync
               </p>
               <p className="mt-1 text-xs text-muted-foreground">
-                If GitHub stays on the settings page (<code className="font-mono text-[11px] text-foreground">github.com/settings/installations/123456</code>) after granting permissions, copy the numeric Installation ID from the address bar and sync it below:
+                If GitHub stays on the settings page (<code className="font-mono text-[11px] text-foreground">github.com/settings/installations/123456</code>) after granting permissions, copy the numeric Installation ID from your address bar and sync it below:
               </p>
             </div>
             <form onSubmit={handleManualLink} className="flex flex-wrap items-center gap-2">
@@ -320,6 +335,48 @@ export function Integrations() {
               </Button>
             </form>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Developer Settings Card — Custom Self-Hosted GitHub App Manifest (Advanced Mode) */}
+      <Card className="border-border/60 bg-card/50">
+        <CardHeader>
+          <div className="flex items-start justify-between gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <CardTitle className="flex items-center gap-2 text-base font-semibold">
+                  <Code2 className="size-4 opacity-80" aria-hidden />
+                  Developer Settings // Custom GitHub App Manifest
+                </CardTitle>
+                <Badge variant="secondary" className="font-mono text-[10px] uppercase tracking-wider">
+                  Advanced Mode
+                </Badge>
+              </div>
+              <CardDescription className="text-xs">
+                For isolated or enterprise environments: Create your own self-hosted GitHub App using 1-Click Manifest registration instead of the central cloud relay.
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4 font-mono text-xs">
+          <div className="rounded-md border border-border bg-muted/40 p-4 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground uppercase tracking-wider text-[11px]">Integration Mode</span>
+              <Badge variant="outline" className="font-mono text-xs">
+                {connected ? "Central Relay Active" : "Relay Standard Mode"}
+              </Badge>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground uppercase tracking-wider text-[11px]">GITHUB_APP_ID</span>
+              <span className="text-foreground font-mono">
+                {import.meta.env.VITE_GITHUB_APP_ID ? String(import.meta.env.VITE_GITHUB_APP_ID) : "[ Using Relay ]"}
+              </span>
+            </div>
+          </div>
+
+          <p className="text-xs text-muted-foreground font-sans">
+            To switch from Central Relay Mode to your own dedicated GitHub App, set <code className="font-mono text-[11px]">GITHUB_APP_ID</code> and <code className="font-mono text-[11px]">GITHUB_APP_PRIVATE_KEY</code> in your server <code className="font-mono text-[11px]">.env</code> file.
+          </p>
         </CardContent>
       </Card>
 
