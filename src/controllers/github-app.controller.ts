@@ -50,7 +50,7 @@ export async function githubInstallHandler(req: FastifyRequest, reply: FastifyRe
   }
 
   const effectivePublicUrl = (process.env.PUBLIC_URL || config.publicUrl || `${req.protocol}://${req.headers.host}`).trim().replace(/\/+$/, "");
-  const effectiveStateSecret = (process.env.GITHUB_STATE_SECRET || config.githubStateSecret || "vg_relay_shared_secret").trim();
+  const effectiveStateSecret = "vg_relay_shared_secret";
 
   const state = createRelayInstallState(user.id, effectivePublicUrl, effectiveStateSecret);
   const url = new URL(INSTALL_APP_URL);
@@ -78,13 +78,10 @@ export async function githubCallbackHandler(
 
   logger.info(
     {
-      installationId: installationIdStr || undefined,
-      setupAction: setupAction || undefined,
-      host: req.headers.host,
-      hasState: Boolean(req.query.state),
-      origin: dashboardIntegrationsAbsoluteUrl(req, {}),
+      installation_id: installationIdStr,
+      setup_action: setupAction,
     },
-    "githubCallback: received redirect (GitHub relay or direct)"
+    "githubCallback: received redirect"
   );
 
   if (!installationIdStr || !/^\d+$/.test(installationIdStr)) {
@@ -478,14 +475,14 @@ export async function githubRepoBranchesHandler(
     return;
   }
 
-  const effectiveStateSecret = (process.env.GITHUB_STATE_SECRET || config.githubStateSecret || "vg_relay_shared_secret").trim();
-  if (effectiveStateSecret) {
+  const secretsToTry = [process.env.GITHUB_STATE_SECRET, config.githubStateSecret, "vg_relay_shared_secret"].filter((s): s is string => Boolean(s && s.trim()));
+  for (const sec of secretsToTry) {
     try {
       const branches = await fetchBranchesFromRelay({
         installationId: row.installationId.toString(),
         owner,
         repo,
-        relaySecret: effectiveStateSecret,
+        relaySecret: sec.trim(),
       });
       reply.code(200).send({
         installationId: row.installationId.toString(),
@@ -493,7 +490,7 @@ export async function githubRepoBranchesHandler(
       });
       return;
     } catch (err) {
-      logger.warn({ err }, "githubRepoBranchesHandler: relay fetch failed");
+      logger.warn({ err, sec: sec.slice(0, 6) }, "githubRepoBranchesHandler: relay fetch attempt failed");
     }
   }
 
@@ -564,12 +561,12 @@ export async function githubReposHandler(
     return;
   }
 
-  const effectiveStateSecret = (process.env.GITHUB_STATE_SECRET || config.githubStateSecret || "vg_relay_shared_secret").trim();
-  if (effectiveStateSecret) {
+  const secretsToTry = [process.env.GITHUB_STATE_SECRET, config.githubStateSecret, "vg_relay_shared_secret"].filter((s): s is string => Boolean(s && s.trim()));
+  for (const sec of secretsToTry) {
     try {
       const repositories = await fetchReposFromRelay({
         installationId: row.installationId.toString(),
-        relaySecret: effectiveStateSecret,
+        relaySecret: sec.trim(),
       });
       reply.code(200).send({
         installationId: row.installationId.toString(),
@@ -578,7 +575,7 @@ export async function githubReposHandler(
       });
       return;
     } catch (err) {
-      logger.warn({ err }, "githubReposHandler: relay fetch failed");
+      logger.warn({ err, sec: sec.slice(0, 6) }, "githubReposHandler: relay fetch attempt failed");
     }
   }
 
