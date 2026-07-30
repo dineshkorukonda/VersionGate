@@ -118,8 +118,25 @@ export class ProxyService {
       });
 
       if (response.body) {
+        const contentType = response.headers.get("content-type") || "";
         const arrayBuffer = await response.arrayBuffer();
-        return reply.send(Buffer.from(arrayBuffer));
+        let buf = Buffer.from(arrayBuffer);
+
+        if (contentType.includes("text/html")) {
+          let html = buf.toString("utf8");
+          const baseHref = `/p/${target.projectName}/`;
+          if (!html.includes("<base ")) {
+            if (html.includes("<head>")) {
+              html = html.replace("<head>", `<head><base href="${baseHref}">`);
+            } else if (html.includes("<HEAD>")) {
+              html = html.replace("<HEAD>", `<HEAD><base href="${baseHref}">`);
+            }
+          }
+          buf = Buffer.from(html, "utf8");
+          reply.header("content-length", buf.length.toString());
+        }
+
+        return reply.send(buf);
       } else {
         return reply.send();
       }

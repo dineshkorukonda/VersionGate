@@ -416,14 +416,6 @@ export async function githubRepoBranchesHandler(
   req: FastifyRequest<{ Params: { owner: string; repo: string }; Querystring: { installationId?: string } }>,
   reply: FastifyReply
 ): Promise<void> {
-  if (!githubAppReady() && !config.githubStateSecret) {
-    reply.code(503).send({
-      error: "ServiceUnavailable",
-      message: "GitHub App is not configured. Set GITHUB_APP_ID and GITHUB_APP_PRIVATE_KEY or use the relay.",
-    });
-    return;
-  }
-
   const raw = getSessionTokenFromRequest(req.headers.cookie);
   const user = await getUserFromSessionToken(raw);
   if (!user) {
@@ -743,4 +735,30 @@ export async function githubAppRelayWebhookHandler(req: ReqWithRaw, reply: Fasti
     return;
   }
   reply.code(200).send({ triggered: result.triggered, projects: result.projects, installationId });
+}
+
+export async function githubDetectRepoHandler(
+  req: FastifyRequest<{ Querystring: { owner?: string; repo?: string; installationId?: string } }>,
+  reply: FastifyReply
+): Promise<void> {
+  const { owner, repo } = req.query;
+  if (!owner || !repo) {
+    reply.code(400).send({ error: "BadRequest", message: "Missing owner or repo" });
+    return;
+  }
+
+  const suggestions = [
+    { label: "Repository root (.)", value: "." },
+    { label: "website", value: "website" },
+    { label: "dashboard", value: "dashboard" },
+    { label: "apps/web", value: "apps/web" },
+    { label: "frontend", value: "frontend" },
+  ];
+
+  reply.code(200).send({
+    detectedContext: ".",
+    detectedPort: 3000,
+    framework: "Node.js / React / Next.js",
+    suggestions,
+  });
 }

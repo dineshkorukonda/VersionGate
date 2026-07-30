@@ -10,6 +10,7 @@ import { systemMetrics } from "./controllers/system.controller";
 import { kickSelfUpdatePoll, stopSelfUpdatePoll } from "./services/self-update-poll.service";
 
 import { engineHealthMonitor } from "./services/engine-monitor.service";
+import { startInProcessWorker, stopInProcessWorker } from "./worker/in-process";
 
 function databaseUrlLive(): string {
   return process.env.DATABASE_URL?.trim() ?? "";
@@ -23,6 +24,7 @@ async function start(): Promise<void> {
     if (!databaseUrlLive()) return;
     monitor.start();
     engineHealthMonitor.start();
+    startInProcessWorker();
     void (async () => {
       try {
         const reconciliation = new ReconciliationService();
@@ -38,6 +40,7 @@ async function start(): Promise<void> {
   const shutdown = async (signal: string): Promise<void> => {
     logger.info({ signal }, "Shutting down");
     stopSelfUpdatePoll();
+    stopInProcessWorker();
     systemMetrics.stop();
     engineHealthMonitor.stop();
     monitor.stop();
@@ -61,6 +64,7 @@ async function start(): Promise<void> {
         try {
           logger.info("Applying database migrations…");
           runDrizzleSchemaSync();
+          startInProcessWorker();
 
           try {
             const reconciliation = new ReconciliationService();
