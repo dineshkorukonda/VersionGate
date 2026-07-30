@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
       appId: Number(appId),
       privateKey,
     });
-    const { token } = await auth({ type: "app" });
+    const { token } = await auth({ type: "installation", installationId: Number(installationId) });
     const octokit = new Octokit({ auth: token });
 
     const repositories: Awaited<
