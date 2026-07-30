@@ -105,7 +105,7 @@ const CAPABILITIES: Capability[] = [
   },
   {
     id: "cap-vercel-redesign",
-    category: "Design",
+    category: "Deployment",
     title: "Vercel SalesOps Aesthetics Redesign",
     command: "bun run build:dashboard",
     description: "Full Vercel-style UI dashboard overhaul adhering to strict monochromatic aesthetic.",
