@@ -17,8 +17,7 @@ import {
   SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarHeader,
+    SidebarHeader,
   SidebarInset,
   SidebarMenu,
   SidebarMenuItem,
@@ -62,7 +61,7 @@ const nav = [
 ] as const;
 
 const navBtn =
-  "peer/menu-button flex w-full items-center gap-3 overflow-hidden rounded-md px-3 py-2 text-sm font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground [&>span:last-child]:truncate";
+  "peer/menu-button flex w-full items-center gap-3 overflow-hidden px-3 py-2 text-sm font-medium text-sidebar-foreground transition-colors hover:text-white border-l-4 border-transparent [&>span:last-child]:truncate";
 
 export function Layout() {
   const navigate = useNavigate();
@@ -196,7 +195,7 @@ export function Layout() {
                               cn(
                                 navBtn,
                                 isActive &&
-                                  "bg-sidebar-accent text-white"
+                                  "border-white text-white bg-sidebar-accent/10"
                               )
                             }
                           >
@@ -212,7 +211,7 @@ export function Layout() {
 
               {projects.length > 0 && (
                 <SidebarGroup className="mt-4 p-0">
-                  <SidebarGroupLabel className="mb-1 px-2 text-xs font-semibold text-sidebar-foreground">Projects</SidebarGroupLabel>
+                  
                   <SidebarGroupContent>
                     <SidebarMenu className="gap-0.5">
                       {projects.map((p) => (
@@ -222,7 +221,7 @@ export function Layout() {
                             className={({ isActive }) =>
                               cn(
                                 navBtn,
-                                isActive && "bg-sidebar-accent text-white"
+                                isActive && "border-white text-white bg-sidebar-accent/10"
                               )
                             }
                           >

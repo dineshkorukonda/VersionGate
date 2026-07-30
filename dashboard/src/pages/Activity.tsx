@@ -145,8 +145,7 @@ export function Activity() {
       <PageHeader
         title="Activity Log"
         description="Real-time deployment jobs across all projects"
-        mono
-        actions={
+                actions={
           <div className="flex flex-wrap items-center gap-2">
             <select
               value={statusFilter}
@@ -212,15 +211,14 @@ export function Activity() {
         </div>
       ) : null}
 
-      <Card className="border-border bg-card">
-        <CardHeader className="border-b border-border/60">
-          <CardTitle>Jobs history</CardTitle>
-          <CardDescription>
-            Open a row for streamed logs. Pending work requires{" "}
-            <code className="rounded bg-muted px-1 py-0.5 text-xs">versiongate-worker</code>.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="px-0 pt-4">
+      <div>
+        <div className="pb-4 flex flex-col gap-1">
+          <h2 className="text-lg font-semibold">Jobs history</h2>
+          <p className="text-sm text-muted-foreground">
+            Open a row for streamed logs. Pending work requires <code className="rounded bg-muted px-1 py-0.5 text-xs">versiongate-worker</code>.
+          </p>
+        </div>
+        <div className="pt-0 border-t border-border">
           {loading && jobs.length === 0 ? (
             <div className="space-y-2 px-6 pb-6">
               <Skeleton className="h-10 w-full" />
@@ -248,18 +246,19 @@ export function Activity() {
                 ) : (
                   filteredJobs.map((job) => (
                     <TableRow key={job.id} className="border-border/40">
-                      <TableCell className="pl-6 text-sm text-muted-foreground">
+                      <TableCell className="pl-6 text-sm text-muted-foreground relative">
+                        <div className={`absolute left-0 top-1/2 -translate-y-1/2 w-1 h-full rounded-r-md ${job.status === "COMPLETE" ? "bg-emerald-500" : job.status === "FAILED" ? "bg-red-500" : "bg-amber-500"}`} />
                         {new Date(job.createdAt).toLocaleString()}
                       </TableCell>
                       <TableCell className="font-medium">
                         <Link to={`/projects/${job.projectId}`} className="text-primary hover:underline">
                           {job.project?.name ?? "—"}
                         </Link>
-                        <div className="font-mono text-xs text-muted-foreground">commit: {jobArtifactLabel(job)}</div>
+                        <div className="font-text-xs text-muted-foreground">commit: {jobArtifactLabel(job)}</div>
                       </TableCell>
-                      <TableCell className="font-mono text-sm">{job.type}</TableCell>
+                      <TableCell className="font-text-sm">{job.type}</TableCell>
                       <TableCell>
-                        <Badge variant={badgeFor(job.status)} className="font-mono text-xs">
+                        <Badge variant={badgeFor(job.status)} className="font-text-xs">
                           {job.status}
                         </Badge>
                         {job.error ? (
@@ -287,8 +286,8 @@ export function Activity() {
               Showing {filteredJobs.length} of {total} jobs (filter applies to loaded sample)
             </p>
           ) : null}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       <section className="space-y-2">
         <h2 className="text-sm font-medium text-muted-foreground">Live system log stream</h2>

@@ -77,15 +77,9 @@ export function Login() {
     : "Sign in to manage projects and deployments.";
 
   return (
-    <div className="relative min-h-svh overflow-hidden bg-background">
-      <div
-        className="pointer-events-none absolute inset-0 opacity-[0.35]"
-        style={{
-          backgroundImage: `radial-gradient(oklch(0.55 0.15 255 / 0.12) 1px, transparent 1px)`,
-          backgroundSize: "20px 20px",
-        }}
-      />
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,oklch(0.55_0.15_255/0.12),transparent)]" />
+    <div className="relative min-h-svh overflow-hidden bg-background flex flex-col items-center justify-center">
+      
+      
       <div className="relative mx-auto flex min-h-svh max-w-lg flex-col justify-center px-4 py-12">
         <div className="mb-8 space-y-2 text-center">
           <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">VersionGate</p>

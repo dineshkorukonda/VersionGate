@@ -90,7 +90,7 @@
   --success: #22c55e;
   --warning: #f59e0b;
   --error: #ef4444;
-  --radius: 0.5rem;
+  --radius: 0.375rem;
   --sidebar: #0a0a0a;
   --sidebar-foreground: #737373;
   --sidebar-primary: #ededed;
@@ -120,3 +120,37 @@
 .status-dot-idle { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #737373; }
 @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
 
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* Shimmer Loading */
+@keyframes shimmer {
+  0% { background-position: -1000px 0; }
+  100% { background-position: 1000px 0; }
+}
+.skeleton-shimmer {
+  animation: shimmer 2s infinite linear;
+  background: linear-gradient(to right, #111 4%, #222 25%, #111 36%);
+  background-size: 1000px 100%;
+}
+
+/* Circular SVG Progress */
+.svg-progress-circle {
+  transition: stroke-dashoffset 0.5s ease-in-out;
+  transform: rotate(-90deg);
+  transform-origin: 50% 50%;
+}
