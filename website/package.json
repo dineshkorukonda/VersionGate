@@ -9,6 +9,8 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@octokit/auth-app": "^8.2.0",
+    "@octokit/rest": "^22.0.1",
     "@upstash/redis": "^1.38.0",
     "next": "16.1.6",
     "react": "19.2.3",
