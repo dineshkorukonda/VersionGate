@@ -547,6 +547,19 @@ export function getGithubInstallation(): Promise<GithubInstallationGateResponse>
   return request("GET", "/github/installation", undefined, githubApiBase());
 }
 
+export function linkGithubInstallation(installationId: string): Promise<{
+  success: boolean;
+  installationId: string;
+  githubAccountLogin: string;
+}> {
+  return request<{ success: boolean; installationId: string; githubAccountLogin: string }>(
+    "POST",
+    "/github/installation/link",
+    { installationId },
+    githubApiBase()
+  );
+}
+
 export function getGithubIntegrationStatus(): Promise<GithubIntegrationStatus> {
   return request("GET", "/github/status", undefined, githubApiBase());
 }
