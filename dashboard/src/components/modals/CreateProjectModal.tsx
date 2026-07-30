@@ -125,6 +125,18 @@ export function CreateProjectModal({
     const defaultB = r.defaultBranch?.trim() || "main";
     setBranch(defaultB);
     setBranchNames([]);
+    const cleanName = r.name.toLowerCase().replace(/[^a-z0-9-]/g, "-");
+    setName(cleanName);
+
+    if (cleanName.includes("website")) {
+      setBuildContext("website");
+    } else if (cleanName.includes("dashboard")) {
+      setBuildContext("dashboard");
+    } else if (cleanName.includes("frontend") || cleanName.includes("web")) {
+      setBuildContext("frontend");
+    } else {
+      setBuildContext(".");
+    }
   };
 
   useEffect(() => {
