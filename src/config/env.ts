@@ -4,14 +4,26 @@ import { envFilePath } from "../utils/paths";
 
 dotenv.config({ path: envFilePath });
 
+function parseTruthyEnv(key: string, defaultValue: boolean): boolean {
+  const raw = process.env[key]?.trim().toLowerCase();
+  if (raw === undefined || raw === "") return defaultValue;
+  if (["true", "1", "yes", "on"].includes(raw)) return true;
+  if (["false", "0", "no", "off"].includes(raw)) return false;
+  return defaultValue;
+}
+
+function resolveDrizzleSchemaSyncMode(): "migrate" | "push" {
+  const raw =
+    process.env.DRIZZLE_SCHEMA_SYNC?.trim().toLowerCase() ??
+    process.env.PRISMA_SCHEMA_SYNC?.trim().toLowerCase() ??
+    "push";
+  return raw === "migrate" ? "migrate" : "push";
+}
+
 /** Default and normalize so startup, self-update, and spawned CLIs all see an explicit value. */
 (() => {
-  const t = process.env.PRISMA_SCHEMA_SYNC?.trim().toLowerCase();
-  if (!t || (t !== "push" && t !== "migrate")) {
-    process.env.PRISMA_SCHEMA_SYNC = "migrate";
-    return;
-  }
-  process.env.PRISMA_SCHEMA_SYNC = t;
+  const mode = resolveDrizzleSchemaSyncMode();
+  process.env.DRIZZLE_SCHEMA_SYNC = mode;
 })();
 
 /** Docker CLI path: explicit `DOCKER_BIN`, else first existing common path, else `docker` (relies on PATH). */
@@ -32,16 +44,22 @@ function normalizePublicUrl(raw: string): string {
   return raw.trim().replace(/\/+$/, "");
 }
 
-const prismaSchemaSyncRaw = optionalEnv("PRISMA_SCHEMA_SYNC", "migrate").trim().toLowerCase();
-const prismaSchemaSync: "migrate" | "push" =
-  prismaSchemaSyncRaw === "push" ? "push" : "migrate";
+const drizzleSchemaSync = resolveDrizzleSchemaSyncMode();
 
 export const config = {
   port: parseInt(optionalEnv("PORT", "9090"), 10) || 9090,
   logLevel: optionalEnv("LOG_LEVEL", "info"),
   databaseUrl: optionalEnv("DATABASE_URL", ""),
-  /** migrate: `prisma migrate deploy` (optional db push fallback); push: `prisma db push` only */
-  prismaSchemaSync,
+  /**
+   * Schema sync mode label for operators. Both values run `drizzle-kit push` today;
+   * `migrate` is kept for legacy `.env` files that used Prisma migrate naming.
+   */
+  drizzleSchemaSync,
+  /**
+   * When false, the API process does not poll the job queue (use PM2 `versiongate-worker` or `src/worker/index.ts`).
+   * Default true for Docker/single-process installs.
+   */
+  inProcessWorker: parseTruthyEnv("IN_PROCESS_WORKER", true),
   dockerBin: resolveDockerBin(),
   dockerNetwork: optionalEnv("DOCKER_NETWORK", "versiongate-net"),
   nginxConfigPath: optionalEnv("NGINX_CONFIG_PATH", "/etc/nginx/conf.d/upstream.conf"),
@@ -66,7 +84,7 @@ export const config = {
   selfUpdateAutoApply:
     optionalEnv("SELF_UPDATE_AUTO_APPLY", "").toLowerCase() === "true" ||
     optionalEnv("SELF_UPDATE_AUTO_APPLY", "") === "1",
-  /** When true, API startup skips `runPrismaSchemaSync` (emergency only — run migrate manually, then unset). */
+  /** When true, API startup skips Drizzle schema sync (emergency only — run push manually, then unset). */
   skipMigrateOnBoot:
     optionalEnv("SKIP_MIGRATE_ON_BOOT", "").toLowerCase() === "true" ||
     optionalEnv("SKIP_MIGRATE_ON_BOOT", "") === "1",
@@ -112,4 +130,8 @@ export function selfUpdateAutoApplyLive(): boolean {
   if (v === "true" || v === "1") return true;
   if (v === "false" || v === "0") return false;
   return config.selfUpdateAutoApply;
+}
+
+export function inProcessWorkerLive(): boolean {
+  return parseTruthyEnv("IN_PROCESS_WORKER", config.inProcessWorker);
 }

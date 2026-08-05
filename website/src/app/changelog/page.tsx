@@ -44,9 +44,42 @@ interface ProcessedRelease {
 
 const FALLBACK_RELEASES: ProcessedRelease[] = [
   {
+    version: "v1.5.1",
+    date: "August 5, 2026",
+    isLatest: true,
+    summary: "PM2 worker deduplication, Drizzle naming alignment, job queue row locking, and Compose port fixes.",
+    categories: [
+      {
+        title: "Engine Reliability",
+        badge: "FIX",
+        items: [
+          {
+            title: "Single job consumer under PM2",
+            description:
+              "The API process sets IN_PROCESS_WORKER=false when managed by PM2 so only versiongate-worker polls the queue — no duplicate pollers.",
+          },
+          {
+            title: "FOR UPDATE SKIP LOCKED job claims",
+            description:
+              "Workers claim pending jobs with PostgreSQL row locks so concurrent workers do not fight over the same row.",
+          },
+          {
+            title: "Drizzle schema sync env naming",
+            description:
+              "Settings and .env editing use DRIZZLE_SCHEMA_SYNC (PRISMA_SCHEMA_SYNC still accepted as a legacy alias).",
+          },
+          {
+            title: "Docker Compose port 9090",
+            description: "Compose defaults now match the engine listen port (9090) and single-process in-process worker mode.",
+          },
+        ],
+      },
+    ],
+  },
+  {
     version: "v1.5.0",
     date: "July 30, 2026",
-    isLatest: true,
+    isLatest: false,
     summary: "Automated Worker Self-Healing, Base-Href HTML Proxying, Auto-Detect Build Context & Relay Fixes.",
     categories: [
       {

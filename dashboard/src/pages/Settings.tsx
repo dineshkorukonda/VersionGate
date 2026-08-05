@@ -583,12 +583,16 @@ export function Settings() {
               <Row label="Public hostname" value={instance.publicDomain || "—"} />
               <Row label="Public base path" value={instance.publicBasePath || "/"} />
               <Row
-                label="Prisma schema sync"
+                label="Drizzle schema sync"
                 value={
-                  instance.prismaSchemaSync === "migrate"
-                    ? "migrate (migrate deploy with fallback)"
-                    : "push (db push only)"
+                  (instance.drizzleSchemaSync ?? instance.prismaSchemaSync) === "migrate"
+                    ? "migrate (legacy label; runs drizzle-kit push)"
+                    : "push (drizzle-kit push)"
                 }
+              />
+              <Row
+                label="In-process worker"
+                value={instance.inProcessWorker ? "enabled in API process" : "disabled (external worker)"}
               />
             </dl>
           </CardContent>
@@ -940,7 +944,7 @@ export function Settings() {
                 value={envDraft.DIRECT_DATABASE_URL ?? ""}
                 onChange={(e) => setEnvField("DIRECT_DATABASE_URL", e.target.value)}
                 className={textareaClass}
-                placeholder="postgresql://…-direct… or non-pooler host — used only for prisma migrate deploy on startup/self-update"
+                placeholder="postgresql://…-direct… or non-pooler host — optional direct Postgres URL for schema sync"
                 autoComplete="off"
               />
               <p className="text-xs text-muted-foreground">
@@ -1025,13 +1029,13 @@ export function Settings() {
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <label className="text-xs font-medium text-muted-foreground" htmlFor="env-prisma">
-                  PRISMA_SCHEMA_SYNC
+                <label className="text-xs font-medium text-muted-foreground" htmlFor="env-drizzle">
+                  DRIZZLE_SCHEMA_SYNC
                 </label>
                 <select
-                  id="env-prisma"
-                  value={envDraft.PRISMA_SCHEMA_SYNC ?? ""}
-                  onChange={(e) => setEnvField("PRISMA_SCHEMA_SYNC", e.target.value)}
+                  id="env-drizzle"
+                  value={envDraft.DRIZZLE_SCHEMA_SYNC ?? envDraft.PRISMA_SCHEMA_SYNC ?? ""}
+                  onChange={(e) => setEnvField("DRIZZLE_SCHEMA_SYNC", e.target.value)}
                   className="h-8 w-full rounded-lg border border-input bg-muted/40 px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
                 >
                   <option value="">Leave unchanged</option>

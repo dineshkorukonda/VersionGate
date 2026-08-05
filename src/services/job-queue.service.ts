@@ -12,13 +12,13 @@ export async function claimNextJob(): Promise<JobWithDetails | null> {
   const db = getDb();
 
   return db.transaction(async (tx) => {
-    // Atomic SELECT FOR UPDATE SKIP LOCKED
     const [next] = await tx
       .select()
       .from(jobs)
       .where(eq(jobs.status, "PENDING"))
       .orderBy(asc(jobs.createdAt))
-      .limit(1);
+      .limit(1)
+      .for("update", { skipLocked: true });
 
     if (!next) return null;
 
