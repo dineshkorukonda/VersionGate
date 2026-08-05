@@ -16,7 +16,7 @@
     "drizzle:generate": "drizzle-kit generate",
     "drizzle:push": "drizzle-kit push",
     "drizzle:studio": "drizzle-kit studio",
-    "lint": "eslint src --ext .ts",
+    "lint": "eslint src scripts tests",
     "typecheck": "tsc --noEmit",
     "check-deps": "bash scripts/check-host-deps.sh",
     "bootstrap-host": "bash scripts/bootstrap-host.sh",
@@ -40,9 +40,13 @@
     "postgres": "^3.4.9"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.4",
     "@types/bun": "latest",
     "@types/node": "^20.11.20",
     "drizzle-kit": "^0.31.10",
-    "typescript": "^5.3.3"
+    "eslint": "^9.39.4",
+    "globals": "^17.4.0",
+    "typescript": "^5.3.3",
+    "typescript-eslint": "^8.58.0"
   }
 }

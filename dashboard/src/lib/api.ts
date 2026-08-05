@@ -366,7 +366,10 @@ export interface InstanceSettings {
   dockerNetwork: string;
   projectsRootPath: string;
   nginxConfigPath: string;
-  prismaSchemaSync: "migrate" | "push";
+  /** @deprecated Use drizzleSchemaSync — kept for older API responses */
+  prismaSchemaSync?: "migrate" | "push";
+  drizzleSchemaSync: "migrate" | "push";
+  inProcessWorker: boolean;
   databaseUrlInEnvFile: boolean;
   databaseUrlLoaded: boolean;
   databaseReachable: boolean;

@@ -89,7 +89,7 @@ export async function getSelfUpdateStatus(branch: string): Promise<SelfUpdateSta
 }
 
 /**
- * Fast-forward merge from origin, install deps, prisma generate + migrate, build dashboard, then PM2 reload (detached).
+ * Fast-forward merge from origin, install deps, Drizzle schema sync, build dashboard, then PM2 reload (detached).
  */
 export async function applySelfUpdate(branch: string): Promise<SelfUpdateApplyResult> {
   const gitDir = join(projectRoot, ".git");

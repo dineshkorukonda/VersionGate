@@ -12,7 +12,7 @@ module.exports = {
       script: "src/server.ts",
       interpreter: "bun",
       watch: false,
-      env: { NODE_ENV: "production", PATH: pathEnv },
+      env: { NODE_ENV: "production", PATH: pathEnv, IN_PROCESS_WORKER: "false" },
     },
     {
       name: "versiongate-worker",
@@ -20,7 +20,7 @@ module.exports = {
       script: "src/worker/index.ts",
       interpreter: "bun",
       watch: false,
-      /** Fork avoids cluster-mode quirks with Prisma + Bun; single worker is enough. */
+      /** Fork mode: single Bun worker process polls the job queue (API sets IN_PROCESS_WORKER=false). */
       instances: 1,
       exec_mode: "fork",
       env: { NODE_ENV: "production", PATH: pathEnv },

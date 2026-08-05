@@ -54,8 +54,8 @@ const CAPABILITIES: Capability[] = [
     category: "Monitoring",
     title: "In-Process Worker & Base Href Proxy",
     command: "versiongate worker start --auto-heal",
-    description: "Self-healing background worker engine with base-href HTML proxying for flawless asset loading.",
-    details: "Runs an embedded background worker inside the API process to eliminate idle queue delays, while injecting base href tags into proxied HTML responses for perfect CSS/image asset resolution.",
+    description: "Embedded worker for Docker/single-process installs; PM2 splits API and worker with explicit queue ownership.",
+    details: "Runs a background worker inside the API when IN_PROCESS_WORKER=true (Docker default). PM2 production sets IN_PROCESS_WORKER=false on the API and uses a dedicated worker process. Job claims use PostgreSQL SKIP LOCKED row locks.",
     badge: "v1.5 Feature",
   },
   {

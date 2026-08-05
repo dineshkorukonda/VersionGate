@@ -6,13 +6,15 @@ services:
     container_name: versiongate-engine
     restart: unless-stopped
     ports:
-      - "${PORT:-3000}:3000"
+      - "${PORT:-9090}:9090"
     environment:
+      - PORT=9090
       - DATABASE_URL=${DATABASE_URL}
       - DOCKER_NETWORK=${DOCKER_NETWORK}
       - BASE_APP_PORT=${BASE_APP_PORT}
       - NGINX_CONFIG_PATH=${NGINX_CONFIG_PATH}
       - NODE_ENV=production
+      - IN_PROCESS_WORKER=true
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     depends_on:

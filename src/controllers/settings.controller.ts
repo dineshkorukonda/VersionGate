@@ -10,6 +10,7 @@ import {
   selfUpdateBranchLive,
   selfUpdatePollMsLive,
   selfUpdateSecretLive,
+  inProcessWorkerLive,
 } from "../config/env";
 import { envFilePath, projectRoot } from "../utils/paths";
 import { mergeIntoDotenv, writeEnvWithBackup } from "../utils/env-file";
@@ -103,7 +104,9 @@ export async function getInstanceSettingsHandler(
     dockerNetwork: config.dockerNetwork,
     projectsRootPath: config.projectsRootPath,
     nginxConfigPath: config.nginxConfigPath,
-    prismaSchemaSync: config.prismaSchemaSync,
+    prismaSchemaSync: config.drizzleSchemaSync,
+    drizzleSchemaSync: config.drizzleSchemaSync,
+    inProcessWorker: inProcessWorkerLive(),
     databaseUrlInEnvFile,
     databaseUrlLoaded,
     databaseReachable,
@@ -130,7 +133,9 @@ const PATCHABLE_ENV_KEYS = new Set([
   "DOCKER_NETWORK",
   "NGINX_CONFIG_PATH",
   "PROJECTS_ROOT_PATH",
+  "DRIZZLE_SCHEMA_SYNC",
   "PRISMA_SCHEMA_SYNC",
+  "IN_PROCESS_WORKER",
   "LOG_LEVEL",
   "PORT",
   "MONIX_PATH",
@@ -184,15 +189,38 @@ export async function patchInstanceEnvHandler(
     });
   }
 
+  if (updates.DRIZZLE_SCHEMA_SYNC !== undefined) {
+    const v = updates.DRIZZLE_SCHEMA_SYNC.toLowerCase();
+    if (v !== "migrate" && v !== "push") {
+      return reply.code(400).send({
+        error: "ValidationError",
+        message: "DRIZZLE_SCHEMA_SYNC must be migrate or push",
+      });
+    }
+    updates.DRIZZLE_SCHEMA_SYNC = v;
+  }
+
   if (updates.PRISMA_SCHEMA_SYNC !== undefined) {
     const v = updates.PRISMA_SCHEMA_SYNC.toLowerCase();
     if (v !== "migrate" && v !== "push") {
       return reply.code(400).send({
         error: "ValidationError",
-        message: "PRISMA_SCHEMA_SYNC must be migrate or push",
+        message: "PRISMA_SCHEMA_SYNC must be migrate or push (legacy — prefer DRIZZLE_SCHEMA_SYNC)",
       });
     }
-    updates.PRISMA_SCHEMA_SYNC = v;
+    updates.DRIZZLE_SCHEMA_SYNC = v;
+    delete updates.PRISMA_SCHEMA_SYNC;
+  }
+
+  if (updates.IN_PROCESS_WORKER !== undefined) {
+    const v = updates.IN_PROCESS_WORKER.toLowerCase();
+    if (!["true", "false", "1", "0", "yes", "no", "on", "off"].includes(v)) {
+      return reply.code(400).send({
+        error: "ValidationError",
+        message: "IN_PROCESS_WORKER must be true or false",
+      });
+    }
+    updates.IN_PROCESS_WORKER = ["true", "1", "yes", "on"].includes(v) ? "true" : "false";
   }
 
   if (updates.PORT !== undefined && !/^\d+$/.test(updates.PORT.trim())) {

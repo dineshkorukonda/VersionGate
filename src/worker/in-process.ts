@@ -1,4 +1,5 @@
 import { logger } from "../utils/logger";
+import { inProcessWorkerLive } from "../config/env";
 import { claimNextJob, appendLog, failJob } from "../services/job-queue.service";
 import { runDeployJob } from "./handlers/deploy.handler";
 import { runRollbackJob } from "./handlers/rollback.handler";
@@ -44,6 +45,12 @@ async function tickWorker(): Promise<void> {
 
 export function startInProcessWorker(): void {
   if (inProcessWorkerActive) return;
+  if (!inProcessWorkerLive()) {
+    logger.info(
+      "In-process worker not started (IN_PROCESS_WORKER=false). Run the external worker process for job execution."
+    );
+    return;
+  }
   inProcessWorkerActive = true;
   logger.info("In-process background worker engine started (auto-healing active)");
 

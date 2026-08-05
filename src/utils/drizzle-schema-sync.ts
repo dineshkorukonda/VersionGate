@@ -32,5 +32,6 @@ export function runDrizzleSchemaSync(options: { cwd?: string; env?: NodeJS.Proce
   }
 }
 
+/** @deprecated Use runDrizzleSchemaSync */
 export const runPrismaSchemaSync = runDrizzleSchemaSync;
 

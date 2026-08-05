@@ -1,7 +1,7 @@
 import { decrypt } from "./crypto";
 
 /**
- * Safely converts a Prisma JsonValue (project.env) into a plain
+ * Safely converts a JSON object (project.env jsonb) into a plain
  * Record<string, string> suitable for docker -e injection.
  * Non-object, null, or array values are treated as empty.
  * Non-string property values are skipped.
