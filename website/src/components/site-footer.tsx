@@ -13,13 +13,13 @@ const LINKS = [
 
 export function SiteFooter() {
   return (
-    <footer className="border-t border-border bg-background py-14 transition-colors">
+    <footer className="border-t border-white/10 bg-black py-14 transition-colors [.light_&]:border-border [.light_&]:bg-background">
       <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 sm:px-6 md:flex-row md:items-center md:justify-between">
         <div className="space-y-1">
-          <p className="font-display text-sm font-semibold tracking-tight text-foreground">
+          <p className="font-display text-sm font-semibold uppercase tracking-[0.14em] text-white [.light_&]:text-foreground">
             VersionGate
           </p>
-          <p className="font-mono text-[11px] text-muted-foreground">
+          <p className="font-mono text-[11px] text-white/40 [.light_&]:text-muted-foreground">
             Zero-downtime Docker deploys · © {new Date().getFullYear()} Dinesh Korukonda · MIT
           </p>
         </div>
@@ -29,7 +29,7 @@ export function SiteFooter() {
             <Link
               key={l.label}
               href={l.href}
-              className="font-sans text-xs text-muted-foreground transition hover:text-foreground"
+              className="font-mono text-[11px] uppercase tracking-[0.12em] text-white/45 transition hover:text-white [.light_&]:text-muted-foreground [.light_&]:hover:text-foreground"
             >
               {l.label}
             </Link>
