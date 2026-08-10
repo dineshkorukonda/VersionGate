@@ -49,22 +49,23 @@ export default function Home() {
         <div className="absolute inset-0">
           <HeroDeployVisual />
         </div>
-        <div className="absolute inset-0 bg-gradient-to-r from-background via-background/85 to-background/20 lg:via-background/70 lg:to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#06080f] via-[#06080f]/88 to-transparent lg:via-[#06080f]/72" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#06080f] via-transparent to-[#06080f]/40 lg:hidden" />
         <div className="relative mx-auto flex min-h-[88vh] max-w-7xl items-center px-4 py-20 sm:px-6 lg:min-h-[92vh]">
           <div className="max-w-xl landing-fade-up">
-            <p className="font-display landing-hero-brand text-5xl font-bold tracking-tight text-foreground sm:text-6xl lg:text-7xl">
+            <p className="font-display landing-hero-brand text-5xl font-bold tracking-tight text-white sm:text-6xl lg:text-7xl">
               VersionGate
             </p>
-            <h1 className="mt-5 max-w-xl font-display text-2xl font-medium leading-snug tracking-tight text-foreground/90 sm:text-3xl lg:text-[2rem]">
+            <h1 className="mt-5 max-w-xl font-display text-2xl font-medium leading-snug tracking-tight text-white/90 sm:text-3xl lg:text-[2rem]">
               Zero-downtime Docker deploys on metal you control.
             </h1>
-            <p className="mt-4 max-w-md text-[15px] leading-relaxed text-muted-foreground">
+            <p className="mt-4 max-w-md text-[15px] leading-relaxed text-white/65">
               Self-hosted blue-green engine. Push to GitHub — we build, health-check, and swap traffic with zero downtime.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <Link
                 href="/docs"
-                className="rounded-md bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition hover:opacity-90"
+                className="rounded-md bg-[#2257e7] px-5 py-2.5 text-sm font-semibold text-white transition hover:opacity-90"
               >
                 Read documentation
               </Link>
@@ -72,7 +73,7 @@ export default function Home() {
                 href={GITHUB_REPO}
                 target="_blank"
                 rel="noreferrer"
-                className="rounded-md border border-border bg-background/50 px-5 py-2.5 text-sm font-semibold text-foreground backdrop-blur-sm transition hover:bg-muted"
+                className="rounded-md border border-white/20 bg-black/30 px-5 py-2.5 text-sm font-semibold text-white backdrop-blur-sm transition hover:bg-black/50"
               >
                 GitHub repository
               </Link>
