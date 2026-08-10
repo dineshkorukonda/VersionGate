@@ -7,134 +7,275 @@ import { CapabilityGrid } from "@/components/capability-grid";
 import { ExecutionSandbox } from "@/components/execution-sandbox";
 import { TopologyVisualizer } from "@/components/topology-visualizer";
 import { CommunityQnA } from "@/components/community-qna";
+import { HeroDeployVisual } from "@/components/hero-deploy-visual";
 
 const GITHUB_REPO = "https://github.com/dineshkorukonda/VersionGate";
+const INSTALL_CMD = "curl -fsSL https://versiongate.tech/install.sh | sudo bash";
 
-const QUICK_STATS = [
-  { label: "WARM ROLLBACK", value: "< 2 SEC", desc: "Local image warm swap" },
-  { label: "ZERO DOWNTIME", value: "0 MS", desc: "Atomic Nginx rewrite" },
-  { label: "SLOT ARCHITECTURE", value: "BLUE / GREEN", desc: "Isolated port allocation" },
-  { label: "INFRASTRUCTURE", value: "100% SELF-HOSTED", desc: "On-premise Postgres & Redis" },
+const LOOP = [
+  {
+    step: "01",
+    label: "Build",
+    title: "Idle slot compilation",
+    body: "Pull the commit, build on the idle blue or green slot, and keep live traffic on the active upstream.",
+  },
+  {
+    step: "02",
+    label: "Prove",
+    title: "Health-gated promotion",
+    body: "Hit the container health endpoint on the isolated host port. No rewrite until the new revision answers clean.",
+  },
+  {
+    step: "03",
+    label: "Swap",
+    title: "Atomic Nginx rewrite",
+    body: "Reload upstream mapping in place. Request loss stays at zero while the previous slot stays warm.",
+  },
+  {
+    step: "04",
+    label: "Recover",
+    title: "Warm-swap rollback",
+    body: "Reuse the cached image on the sibling slot. Rollbacks land in under two seconds without a rebuild.",
+  },
 ] as const;
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-background text-foreground bg-grid-pattern transition-colors">
+    <div className="min-h-screen landing-atmosphere text-foreground transition-colors">
       <SiteHeader />
 
-      {/* Hero Section */}
-      <section className="relative border-b border-border py-20 lg:py-28">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 space-y-12">
-          <div className="max-w-4xl space-y-6">
-            <div className="inline-flex items-center gap-3 rounded-full border border-border bg-muted/60 px-3 py-1 font-mono text-xs text-muted-foreground">
-              <span className="font-semibold text-foreground">Engine Release</span>
-              <span>VersionGate v1.4 Stable</span>
-            </div>
-
-            <h1 className="text-4xl font-extrabold tracking-tight sm:text-6xl lg:text-7xl leading-[1.05] text-foreground">
-              Command the Cluster.
-            </h1>
-
-            <p className="max-w-2xl text-base leading-relaxed text-muted-foreground font-sans">
-              Self-hosted zero-downtime deployment engine for your VPS. Blue-green slot swaps, instant warm-swap rollbacks, path-based stage routing, and Bearer token CI/CD pipelines.
+      {/* Hero — brand first, one composition, full-bleed visual */}
+      <section className="relative overflow-hidden border-b border-border">
+        <div className="absolute inset-0">
+          <HeroDeployVisual />
+        </div>
+        <div className="absolute inset-0 bg-gradient-to-r from-background via-background/85 to-background/20 lg:via-background/70 lg:to-transparent" />
+        <div className="relative mx-auto flex min-h-[88vh] max-w-7xl items-center px-4 py-20 sm:px-6 lg:min-h-[92vh]">
+          <div className="max-w-xl landing-fade-up">
+            <p className="font-display landing-hero-brand text-5xl font-bold tracking-tight text-foreground sm:text-6xl lg:text-7xl">
+              VersionGate
             </p>
-
-            <div className="flex flex-wrap items-center gap-3 pt-2">
+            <h1 className="mt-5 max-w-xl font-display text-2xl font-medium leading-snug tracking-tight text-foreground/90 sm:text-3xl lg:text-[2rem]">
+              Zero-downtime Docker deploys on metal you control.
+            </h1>
+            <p className="mt-4 max-w-md text-[15px] leading-relaxed text-muted-foreground">
+              Self-hosted blue-green engine. Push to GitHub — we build, health-check, and swap traffic with zero downtime.
+            </p>
+            <div className="mt-8 flex flex-wrap items-center gap-3">
               <Link
                 href="/docs"
-                className="rounded-md bg-primary px-6 py-3 font-sans text-xs font-semibold text-primary-foreground transition hover:opacity-90 shadow-sm"
+                className="rounded-md bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition hover:opacity-90"
               >
-                Read Documentation
+                Read documentation
               </Link>
               <Link
                 href={GITHUB_REPO}
                 target="_blank"
                 rel="noreferrer"
-                className="rounded-md border border-border bg-card px-6 py-3 font-sans text-xs font-semibold text-foreground transition hover:bg-muted"
+                className="rounded-md border border-border bg-background/50 px-5 py-2.5 text-sm font-semibold text-foreground backdrop-blur-sm transition hover:bg-muted"
               >
-                GitHub Repository
+                GitHub repository
               </Link>
             </div>
           </div>
+        </div>
+      </section>
 
-          {/* Quick Stats Grid */}
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 pt-6 border-t border-border">
-            {QUICK_STATS.map((s) => (
-              <div key={s.label} className="space-y-1">
-                <p className="font-mono text-[10px] uppercase text-muted-foreground">{s.label}</p>
-                <p className="text-2xl font-black tracking-tight text-foreground font-sans">{s.value}</p>
-                <p className="text-xs text-muted-foreground font-mono">[ {s.desc} ]</p>
-              </div>
+      {/* Problem narrative */}
+      <section className="border-b border-border py-20 sm:py-24">
+        <div className="mx-auto max-w-3xl px-4 sm:px-6">
+          <p className="landing-eyebrow">The gap</p>
+          <h2 className="mt-4 font-display text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+            Shipping got fast. Recovery stayed manual.
+          </h2>
+          <div className="mt-8 space-y-5 text-[15px] leading-relaxed text-muted-foreground">
+            <p>
+              CI/CD solved the push problem. Images land constantly, manifests churn, and every VPS becomes a miniature
+              fleet. What did not improve is the moment after a bad deploy — when traffic is already wrong and the
+              previous revision is a rebuild away.
+            </p>
+            <p>
+              Flat restart scripts treat a CSS tweak like a schema migration. Dashboards fire the same alarm for both,
+              or miss the outage entirely while someone digs for the last known-good tag.
+            </p>
+            <p className="text-foreground/90">
+              VersionGate is different. It keeps two slots warm, proves the next revision before the rewrite, and
+              makes rollback a local image swap — not a prayer and a rebuild.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Architecture loop */}
+      <section id="architecture-loop" className="border-b border-border py-20 sm:py-24">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6">
+          <div className="max-w-2xl">
+            <p className="landing-eyebrow">Architecture</p>
+            <h2 className="mt-4 font-display text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+              Four steps. One blue-green loop.
+            </h2>
+            <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground">
+              From idle-slot build to warm-swap recovery, VersionGate executes with slot isolation and atomic upstream
+              rewrites.
+            </p>
+          </div>
+
+          <div className="mt-12 grid gap-px overflow-hidden rounded-xl border border-border bg-border sm:grid-cols-2 lg:grid-cols-4">
+            {LOOP.map((item) => (
+              <article key={item.step} className="bg-card p-6 sm:p-7">
+                <div className="flex items-baseline justify-between gap-3">
+                  <span className="font-mono text-xs text-primary">{item.step} //</span>
+                  <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+                    {item.label}
+                  </span>
+                </div>
+                <h3 className="mt-4 font-display text-lg font-semibold tracking-tight text-foreground">
+                  {item.title}
+                </h3>
+                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{item.body}</p>
+              </article>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Interactive Execution Sandbox */}
-      <section id="sandbox" className="border-b border-border py-20 bg-background">
+      {/* Live sandbox */}
+      <section id="sandbox" className="border-b border-border py-20 sm:py-24">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 space-y-8">
-          <div>
-            <div className="mb-2 inline-flex items-center gap-2 rounded border border-border bg-muted px-2.5 py-0.5 font-mono text-[10px] font-semibold text-muted-foreground">
-              <span>Interactive CLI & API Sandbox</span>
-            </div>
-            <h2 className="text-2xl font-bold tracking-tight sm:text-3xl text-foreground">Live Execution Matrix</h2>
-            <p className="mt-1 font-sans text-xs text-muted-foreground">
-              Test execution scenarios and inspect real-time log outputs and JSON payloads.
+          <div className="max-w-2xl">
+            <p className="landing-eyebrow">Simulator</p>
+            <h2 className="mt-4 font-display text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+              Watch a deploy, rollback, and token flow.
+            </h2>
+            <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground">
+              Switch scenarios and inspect the same log grammar and JSON payloads the engine emits in production.
             </p>
           </div>
-
           <ExecutionSandbox />
         </div>
       </section>
 
-      {/* Capability Cards Directory */}
-      <section id="capabilities" className="border-b border-border py-20 bg-muted/30">
+      {/* Capabilities */}
+      <section id="capabilities" className="border-b border-border bg-muted/20 py-20 sm:py-24">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 space-y-8">
-          <div>
-            <div className="mb-2 inline-flex items-center gap-2 rounded border border-border bg-muted px-2.5 py-0.5 font-mono text-[10px] font-semibold text-muted-foreground">
-              <span>Capability Directory</span>
-            </div>
-            <h2 className="text-2xl font-bold tracking-tight sm:text-3xl text-foreground">Engine Capabilities & CLI Commands</h2>
-            <p className="mt-1 font-sans text-xs text-muted-foreground">
-              Filter by capability category and inspect specification details.
+          <div className="max-w-2xl">
+            <p className="landing-eyebrow">Capabilities</p>
+            <h2 className="mt-4 font-display text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+              Engine surface area, command-ready.
+            </h2>
+            <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground">
+              Filter by category and copy the CLI that drives each capability.
             </p>
           </div>
-
           <CapabilityGrid />
         </div>
       </section>
 
-      {/* Infrastructure Node Topology Visualizer */}
-      <section id="architecture" className="border-b border-border py-20 bg-background">
+      {/* Topology */}
+      <section id="architecture" className="border-b border-border py-20 sm:py-24">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 space-y-8">
-          <div>
-            <div className="mb-2 inline-flex items-center gap-2 rounded border border-border bg-muted px-2.5 py-0.5 font-mono text-[10px] font-semibold text-muted-foreground">
-              <span>Architecture Pipeline</span>
-            </div>
-            <h2 className="text-2xl font-bold tracking-tight sm:text-3xl text-foreground">Infrastructure Topology Map</h2>
-            <p className="mt-1 font-sans text-xs text-muted-foreground">
-              Trace request ingestion from git webhooks to atomic Nginx upstream reloads.
+          <div className="max-w-2xl">
+            <p className="landing-eyebrow">Pipeline</p>
+            <h2 className="mt-4 font-display text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+              From signed webhook to Nginx reload.
+            </h2>
+            <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground">
+              Trace ingestion through Redis locks, idle-slot builds, health gates, and atomic upstream swaps.
             </p>
           </div>
-
           <TopologyVisualizer />
         </div>
       </section>
 
-      {/* Community Q&A Knowledge Base */}
-      <section id="qna" className="border-b border-border py-20 bg-muted/30">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 space-y-8">
-          <div>
-            <div className="mb-2 inline-flex items-center gap-2 rounded border border-border bg-muted px-2.5 py-0.5 font-mono text-[10px] font-semibold text-muted-foreground">
-              <span>Community Q&A & Troubleshooting</span>
-            </div>
-            <h2 className="text-2xl font-bold tracking-tight sm:text-3xl text-foreground">Knowledge Base & Verified Solutions</h2>
-            <p className="mt-1 font-sans text-xs text-muted-foreground">
-              StackOverflow-style technical Q&A threads with code snippets and upvoted solutions.
+      {/* Install — two commands */}
+      <section id="install" className="border-b border-border py-20 sm:py-24">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6">
+          <div className="max-w-2xl">
+            <p className="landing-eyebrow">Install</p>
+            <h2 className="mt-4 font-display text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+              One host. One command. Your metal.
+            </h2>
+            <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground">
+              Bootstrap Docker, Bun, firewall rules, and Setup Mode on a fresh VPS — then wire GitHub and ship.
             </p>
           </div>
 
+          <div className="mt-10 grid gap-4 lg:grid-cols-2">
+            <div className="rounded-xl border border-border bg-card p-5 sm:p-6">
+              <div className="flex items-center justify-between gap-3 border-b border-border pb-3">
+                <span className="font-mono text-xs text-muted-foreground">install.sh</span>
+                <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-primary">Step 1 of 2</span>
+              </div>
+              <pre className="mt-4 overflow-x-auto font-mono text-[13px] leading-relaxed text-foreground">
+                <code>{INSTALL_CMD}</code>
+              </pre>
+              <p className="mt-4 text-sm text-muted-foreground">
+                Installs host packages, configures ports 80/443/9090/5173, and launches Setup Mode.
+              </p>
+            </div>
+
+            <div className="rounded-xl border border-border bg-card p-5 sm:p-6">
+              <div className="flex items-center justify-between gap-3 border-b border-border pb-3">
+                <span className="font-mono text-xs text-muted-foreground">deploy.yml</span>
+                <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-primary">Step 2 of 2</span>
+              </div>
+              <pre className="mt-4 overflow-x-auto font-mono text-[13px] leading-relaxed text-foreground">
+                <code>{`# GitHub Actions
+- name: Deploy via VersionGate
+  run: |
+    curl -X POST "$VG_URL/api/v1/deploy" \\
+      -H "Authorization: Bearer $VG_TOKEN" \\
+      -H "Content-Type: application/json" \\
+      -d '{"project":"web-app","env":"production"}'`}</code>
+              </pre>
+              <p className="mt-4 text-sm text-muted-foreground">
+                Trigger deploys with Bearer tokens — no session cookies, no dashboard click required.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Community */}
+      <section id="qna" className="border-b border-border bg-muted/20 py-20 sm:py-24">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 space-y-8">
+          <div className="max-w-2xl">
+            <p className="landing-eyebrow">Knowledge base</p>
+            <h2 className="mt-4 font-display text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+              Verified answers from the field.
+            </h2>
+            <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground">
+              Troubleshooting threads with concrete snippets for proxy paths, rollbacks, and token scopes.
+            </p>
+          </div>
           <CommunityQnA />
+        </div>
+      </section>
+
+      {/* Final CTA */}
+      <section className="border-b border-border py-20 sm:py-28">
+        <div className="mx-auto max-w-3xl px-4 text-center sm:px-6">
+          <p className="landing-eyebrow">Start small</p>
+          <h2 className="mt-4 font-display text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+            Start with one service. One deploy window. See what zero downtime feels like on your own host.
+          </h2>
+          <p className="mx-auto mt-4 max-w-xl text-[15px] leading-relaxed text-muted-foreground">
+            Open documentation · Self-hosted installer · Live decision traces in the dashboard
+          </p>
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+            <Link
+              href="/docs/quick-start"
+              className="rounded-md bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition hover:opacity-90"
+            >
+              Quick start
+            </Link>
+            <Link
+              href="/changelog"
+              className="rounded-md border border-border bg-card/40 px-5 py-2.5 text-sm font-semibold text-foreground transition hover:bg-muted"
+            >
+              Changelog
+            </Link>
+          </div>
         </div>
       </section>
 

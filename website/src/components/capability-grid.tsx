@@ -115,17 +115,16 @@ export function CapabilityGrid() {
 
   return (
     <div className="space-y-6">
-      {/* Filter Tabs */}
       <div className="flex flex-wrap items-center gap-2 border-b border-border pb-4">
-        <span className="font-mono text-xs text-muted-foreground mr-2">Filter:</span>
+        <span className="mr-2 font-mono text-xs text-muted-foreground">Filter:</span>
         {categories.map((cat) => (
           <button
             key={cat}
             onClick={() => setSelectedCategory(cat)}
-            className={`px-3 py-1 font-mono text-xs rounded-md transition ${
+            className={`rounded-md px-3 py-1 font-mono text-xs transition ${
               selectedCategory === cat
-                ? "bg-primary text-primary-foreground font-semibold"
-                : "bg-muted text-muted-foreground border border-border hover:text-foreground"
+                ? "bg-primary font-semibold text-primary-foreground"
+                : "border border-border bg-muted/50 text-muted-foreground hover:text-foreground"
             }`}
           >
             {cat}
@@ -133,47 +132,45 @@ export function CapabilityGrid() {
         ))}
       </div>
 
-      {/* Capabilities Grid */}
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {filtered.map((cap) => (
           <div
             key={cap.id}
-            className="group relative rounded-lg border border-border bg-card p-6 transition-all duration-200 hover:border-foreground/40 flex flex-col justify-between"
+            className="group relative flex flex-col justify-between rounded-xl border border-border bg-card p-6 transition-all duration-200 hover:border-primary/40"
           >
             <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="rounded bg-muted px-2 py-0.5 font-mono text-[10px] text-muted-foreground border border-border">
+              <div className="flex items-center justify-between gap-2">
+                <span className="rounded border border-border bg-muted/60 px-2 py-0.5 font-mono text-[10px] text-muted-foreground">
                   {cap.category}
                 </span>
-                <span className="rounded bg-muted px-2 py-0.5 font-mono text-[10px] text-foreground border border-border font-semibold">
+                <span className="rounded border border-primary/30 bg-primary/10 px-2 py-0.5 font-mono text-[10px] font-semibold text-primary">
                   {cap.badge}
                 </span>
               </div>
 
-              <h3 className="font-sans text-sm font-bold text-foreground">
+              <h3 className="font-display text-sm font-semibold tracking-tight text-foreground">
                 {cap.title}
               </h3>
 
-              <p className="font-sans text-xs text-muted-foreground leading-relaxed">
+              <p className="text-xs leading-relaxed text-muted-foreground">
                 {cap.description}
               </p>
 
-              {/* Command Code Box */}
-              <div className="relative mt-3 rounded-md bg-muted border border-border p-3 font-mono text-xs text-foreground overflow-x-auto">
+              <div className="relative mt-3 overflow-x-auto rounded-md border border-border bg-muted/50 p-3 font-mono text-xs text-foreground">
                 <code>{cap.command}</code>
               </div>
             </div>
 
-            <div className="mt-6 border-t border-border pt-3 flex items-center justify-between font-mono text-[11px]">
+            <div className="mt-6 flex items-center justify-between border-t border-border pt-3 font-mono text-[11px]">
               <button
                 onClick={() => handleCopy(cap.id, cap.command)}
-                className="text-muted-foreground hover:text-foreground transition"
+                className="text-muted-foreground transition hover:text-foreground"
               >
-                {copiedId === cap.id ? "[ Copied! ]" : "[ Copy Command ]"}
+                {copiedId === cap.id ? "[ Copied ]" : "[ Copy Command ]"}
               </button>
               <button
                 onClick={() => setActiveModalCap(cap)}
-                className="text-foreground font-semibold hover:underline"
+                className="font-semibold text-foreground hover:underline"
               >
                 [ Inspect Spec ]
               </button>

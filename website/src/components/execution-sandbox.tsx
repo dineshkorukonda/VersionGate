@@ -74,16 +74,15 @@ export function ExecutionSandbox() {
 
   return (
     <div className="space-y-4">
-      {/* Scenario Selector Tabs */}
       <div className="flex flex-wrap items-center gap-2 border-b border-border pb-3">
         {(Object.keys(scenarios) as Scenario[]).map((key) => (
           <button
             key={key}
             onClick={() => setActiveScenario(key)}
-            className={`px-3 py-1.5 font-mono text-xs rounded-md transition ${
+            className={`rounded-md px-3 py-1.5 font-mono text-xs transition ${
               activeScenario === key
-                ? "bg-primary text-primary-foreground font-semibold"
-                : "bg-muted text-muted-foreground border border-border hover:text-foreground"
+                ? "bg-primary font-semibold text-primary-foreground"
+                : "border border-border bg-muted/50 text-muted-foreground hover:text-foreground"
             }`}
           >
             {key.toUpperCase()}
@@ -91,32 +90,29 @@ export function ExecutionSandbox() {
         ))}
       </div>
 
-      {/* Terminal Sandbox Display */}
       <div className="grid gap-4 lg:grid-cols-2">
-        {/* Terminal Log Stream */}
-        <div className="rounded-lg border border-border bg-card p-4 space-y-3 shadow-sm">
+        <div className="space-y-3 rounded-xl border border-border bg-card p-4">
           <div className="flex items-center justify-between border-b border-border pb-2">
             <span className="font-mono text-xs font-semibold text-foreground">{current.title}</span>
             <span className="font-mono text-[10px] text-muted-foreground">[ Real-time Stream ]</span>
           </div>
 
-          <div className="font-mono text-xs space-y-2 p-3 bg-muted rounded-md border border-border overflow-x-auto min-h-[220px]">
+          <div className="min-h-[220px] space-y-2 overflow-x-auto rounded-md border border-border bg-muted/50 p-3 font-mono text-xs">
             {current.logs.map((line, idx) => (
-              <div key={idx} className="text-foreground leading-relaxed">
+              <div key={idx} className="leading-relaxed text-foreground">
                 {line}
               </div>
             ))}
           </div>
         </div>
 
-        {/* JSON Telemetry Response */}
-        <div className="rounded-lg border border-border bg-card p-4 space-y-3 shadow-sm">
+        <div className="space-y-3 rounded-xl border border-border bg-card p-4">
           <div className="flex items-center justify-between border-b border-border pb-2">
             <span className="font-mono text-xs font-semibold text-foreground">API Telemetry Payload</span>
             <span className="font-mono text-[10px] text-muted-foreground">[ 200 OK ]</span>
           </div>
 
-          <pre className="p-3 bg-muted border border-border font-mono text-xs text-foreground rounded-md overflow-x-auto min-h-[220px]">
+          <pre className="min-h-[220px] overflow-x-auto rounded-md border border-border bg-muted/50 p-3 font-mono text-xs text-foreground">
             {JSON.stringify(current.jsonResponse, null, 2)}
           </pre>
         </div>
