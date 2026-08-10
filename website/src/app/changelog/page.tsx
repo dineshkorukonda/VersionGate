@@ -44,9 +44,33 @@ interface ProcessedRelease {
 
 const FALLBACK_RELEASES: ProcessedRelease[] = [
   {
+    version: "v1.6.0",
+    date: "August 10, 2026",
+    isLatest: true,
+    summary: "Editorial marketing landing redesign with brand-first hero, animated control-plane visual, and architecture narrative.",
+    categories: [
+      {
+        title: "Website & Marketing",
+        badge: "NEW",
+        items: [
+          {
+            title: "Landing page redesign",
+            description:
+              "CARF-caliber editorial landing: VersionGate brand as the hero signal, full-bleed animated blue/green control-plane visual, problem narrative, four-step architecture loop, install path, and refined capability directory.",
+          },
+          {
+            title: "Typography & atmosphere",
+            description:
+              "Space Grotesk display + DM Sans body + JetBrains Mono, VersionGate blue accent system, radial atmosphere, and intentional hero/log motion — no decorative iconography.",
+          },
+        ],
+      },
+    ],
+  },
+  {
     version: "v1.5.1",
     date: "August 5, 2026",
-    isLatest: true,
+    isLatest: false,
     summary: "PM2 worker deduplication, Drizzle naming alignment, job queue row locking, and Compose port fixes.",
     categories: [
       {

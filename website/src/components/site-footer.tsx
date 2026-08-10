@@ -13,14 +13,14 @@ const LINKS = [
 
 export function SiteFooter() {
   return (
-    <footer className="border-t border-border bg-background py-12 transition-colors">
+    <footer className="border-t border-border bg-background py-14 transition-colors">
       <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 sm:px-6 md:flex-row md:items-center md:justify-between">
         <div className="space-y-1">
-          <p className="font-sans text-xs text-foreground font-bold">
-            VersionGate Engine // Zero-Downtime Docker Deploys
+          <p className="font-display text-sm font-semibold tracking-tight text-foreground">
+            VersionGate
           </p>
           <p className="font-mono text-[11px] text-muted-foreground">
-            © {new Date().getFullYear()} Dinesh Korukonda · MIT Licensed
+            Zero-downtime Docker deploys · © {new Date().getFullYear()} Dinesh Korukonda · MIT
           </p>
         </div>
 
