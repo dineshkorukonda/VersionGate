@@ -34,7 +34,7 @@ export function HeroDeployVisual() {
 
   return (
     <div className="relative h-full min-h-[100vh] w-full overflow-hidden bg-black">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_68%_48%,rgba(62,255,168,0.16),transparent_42%),radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.04),transparent_35%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_68%_48%,rgba(62,255,168,0.22),transparent_44%),radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.05),transparent_35%)]" />
 
       <div className="absolute inset-y-0 right-[-8%] hidden w-[70%] items-center justify-center lg:flex xl:right-[-2%] xl:w-[62%]">
         <div className="relative aspect-square w-full max-w-[720px]">
@@ -46,19 +46,19 @@ export function HeroDeployVisual() {
                 style={{
                   width: 1,
                   height: `${ray.length}%`,
-                  opacity: ray.opacity,
+                  opacity: ray.opacity + 0.12,
                   transform: `translate(-50%, 0) rotate(${ray.rotate}deg)`,
                   background:
-                    "linear-gradient(to bottom, rgba(62,255,168,0.75), rgba(255,255,255,0.05) 55%, transparent)",
+                    "linear-gradient(to bottom, rgba(62,255,168,0.95), rgba(255,255,255,0.18) 50%, transparent)",
                 }}
               />
             ))}
           </div>
 
-          <div className="absolute left-1/2 top-1/2 size-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#3effa8] shadow-[0_0_40px_rgba(62,255,168,0.95)] landing-pulse-core" />
-          <div className="absolute left-1/2 top-1/2 size-24 -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#3effa8]/25" />
-          <div className="absolute left-1/2 top-1/2 size-48 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/10" />
-          <div className="absolute left-1/2 top-1/2 size-72 -translate-x-1/2 -translate-y-1/2 rounded-full border border-dashed border-white/10" />
+          <div className="absolute left-1/2 top-1/2 size-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#3effa8] shadow-[0_0_48px_rgba(62,255,168,1)] landing-pulse-core" />
+          <div className="absolute left-1/2 top-1/2 size-28 -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#3effa8]/35" />
+          <div className="absolute left-1/2 top-1/2 size-52 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/15" />
+          <div className="absolute left-1/2 top-1/2 size-[22rem] -translate-x-1/2 -translate-y-1/2 rounded-full border border-dashed border-white/15" />
 
           {NODES.map((node, idx) => {
             const rad = (node.angle * Math.PI) / 180;

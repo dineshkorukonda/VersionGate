@@ -68,10 +68,8 @@ export default function Home() {
 
         <div className="relative mx-auto flex min-h-[100vh] max-w-7xl items-center px-4 pb-28 pt-28 sm:px-6 lg:pb-24 lg:pt-32">
           <div className="max-w-xl landing-fade-up lg:max-w-[34rem]">
-            <p className="font-display text-[clamp(3.4rem,9vw,6.5rem)] font-bold uppercase leading-[0.9] tracking-[-0.05em] text-white">
-              Version
-              <br />
-              Gate
+            <p className="font-display text-[clamp(3.2rem,8.5vw,6.25rem)] font-bold uppercase leading-[0.88] tracking-[-0.06em] text-white">
+              VersionGate
             </p>
             <h1 className="mt-8 max-w-lg font-display text-[clamp(1.35rem,2.6vw,1.85rem)] font-medium uppercase leading-[1.15] tracking-[-0.02em] text-white">
               Zero-downtime deploys that keep a warm slot ready.
