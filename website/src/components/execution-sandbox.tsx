@@ -74,45 +74,45 @@ export function ExecutionSandbox() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-2 border-b border-border pb-3">
+      <div className="flex flex-wrap items-center gap-2 border-b border-white/10 pb-3">
         {(Object.keys(scenarios) as Scenario[]).map((key) => (
           <button
             key={key}
             onClick={() => setActiveScenario(key)}
-            className={`rounded-md px-3 py-1.5 font-mono text-xs transition ${
+            className={`px-3 py-1.5 font-mono text-xs uppercase tracking-[0.12em] transition ${
               activeScenario === key
-                ? "bg-primary font-semibold text-primary-foreground"
-                : "border border-border bg-muted/50 text-muted-foreground hover:text-foreground"
+                ? "bg-[#3effa8] font-semibold text-black"
+                : "border border-white/15 text-white/55 hover:border-white/30 hover:text-white"
             }`}
           >
-            {key.toUpperCase()}
+            {key}
           </button>
         ))}
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <div className="space-y-3 rounded-xl border border-border bg-card p-4">
-          <div className="flex items-center justify-between border-b border-border pb-2">
-            <span className="font-mono text-xs font-semibold text-foreground">{current.title}</span>
-            <span className="font-mono text-[10px] text-muted-foreground">[ Real-time Stream ]</span>
+        <div className="space-y-3 border border-white/10 bg-black p-4">
+          <div className="flex items-center justify-between border-b border-white/10 pb-2">
+            <span className="font-mono text-xs font-semibold text-white">{current.title}</span>
+            <span className="font-mono text-[10px] text-white/40">[ Real-time Stream ]</span>
           </div>
 
-          <div className="min-h-[220px] space-y-2 overflow-x-auto rounded-md border border-border bg-muted/50 p-3 font-mono text-xs">
+          <div className="min-h-[220px] space-y-2 overflow-x-auto border border-white/10 bg-white/[0.03] p-3 font-mono text-xs">
             {current.logs.map((line, idx) => (
-              <div key={idx} className="leading-relaxed text-foreground">
+              <div key={idx} className="leading-relaxed text-white/70">
                 {line}
               </div>
             ))}
           </div>
         </div>
 
-        <div className="space-y-3 rounded-xl border border-border bg-card p-4">
-          <div className="flex items-center justify-between border-b border-border pb-2">
-            <span className="font-mono text-xs font-semibold text-foreground">API Telemetry Payload</span>
-            <span className="font-mono text-[10px] text-muted-foreground">[ 200 OK ]</span>
+        <div className="space-y-3 border border-white/10 bg-black p-4">
+          <div className="flex items-center justify-between border-b border-white/10 pb-2">
+            <span className="font-mono text-xs font-semibold text-white">API Telemetry Payload</span>
+            <span className="font-mono text-[10px] text-[#3effa8]">[ 200 OK ]</span>
           </div>
 
-          <pre className="min-h-[220px] overflow-x-auto rounded-md border border-border bg-muted/50 p-3 font-mono text-xs text-foreground">
+          <pre className="min-h-[220px] overflow-x-auto border border-white/10 bg-white/[0.03] p-3 font-mono text-xs text-white/70">
             {JSON.stringify(current.jsonResponse, null, 2)}
           </pre>
         </div>

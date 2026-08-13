@@ -35,16 +35,15 @@ export function TopologyVisualizer() {
 
   return (
     <div className="space-y-6">
-      {/* Interactive Step Buttons */}
       <div className="grid gap-2 sm:grid-cols-5">
         {steps.map((step, idx) => (
           <button
             key={idx}
             onClick={() => setActiveStep(idx)}
-            className={`p-3 text-left rounded-md font-mono text-xs border transition ${
+            className={`border p-3 text-left font-mono text-xs transition ${
               activeStep === idx
-                ? "bg-primary text-primary-foreground border-primary font-semibold shadow-sm"
-                : "bg-card text-muted-foreground border-border hover:text-foreground hover:border-foreground/30"
+                ? "border-[#3effa8] bg-[#3effa8] font-semibold text-black"
+                : "border-white/15 bg-black text-white/50 hover:border-white/30 hover:text-white"
             }`}
           >
             <div>{step.title}</div>
@@ -52,24 +51,25 @@ export function TopologyVisualizer() {
         ))}
       </div>
 
-      {/* Detail Inspector Card */}
-      <div className="rounded-lg border border-border bg-card p-6 space-y-4 shadow-sm">
-        <div className="flex items-center justify-between border-b border-border pb-3">
-          <span className="font-mono text-sm font-bold text-foreground">
+      <div className="space-y-4 border border-white/10 bg-black p-6">
+        <div className="flex items-center justify-between border-b border-white/10 pb-3">
+          <span className="font-mono text-sm font-bold text-white">
             {steps[activeStep].title}
           </span>
-          <span className="font-mono text-[10px] text-muted-foreground">
+          <span className="font-mono text-[10px] text-white/40">
             Step {activeStep + 1} of {steps.length}
           </span>
         </div>
 
-        <p className="font-sans text-xs text-muted-foreground leading-relaxed">
+        <p className="text-xs leading-relaxed text-white/55">
           {steps[activeStep].desc}
         </p>
 
         <div className="space-y-1">
-          <span className="font-mono text-[10px] text-muted-foreground uppercase">System Operation Payload</span>
-          <pre className="p-3 bg-muted border border-border font-mono text-xs text-foreground rounded-md overflow-x-auto">
+          <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/40">
+            System Operation Payload
+          </span>
+          <pre className="overflow-x-auto border border-white/10 bg-white/[0.03] p-3 font-mono text-xs text-white/80">
             {steps[activeStep].payload}
           </pre>
         </div>

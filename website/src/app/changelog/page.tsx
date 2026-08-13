@@ -47,7 +47,7 @@ const FALLBACK_RELEASES: ProcessedRelease[] = [
     version: "v1.6.0",
     date: "August 10, 2026",
     isLatest: true,
-    summary: "Editorial marketing landing redesign with brand-first hero, animated control-plane visual, and architecture narrative.",
+    summary: "Signal-black marketing landing with acid-mint accent, mono manifesto typography, and kinetic slot-orbit hero.",
     categories: [
       {
         title: "Website & Marketing",
@@ -56,12 +56,12 @@ const FALLBACK_RELEASES: ProcessedRelease[] = [
           {
             title: "Landing page redesign",
             description:
-              "CARF-caliber editorial landing: VersionGate brand as the hero signal, full-bleed animated blue/green control-plane visual, problem narrative, four-step architecture loop, install path, and refined capability directory.",
+              "Pure-black editorial landing: stacked VersionGate wordmark, kinetic radial control-plane graphic, long-form problem narrative, four-step architecture loop, and install path — acid mint accent system.",
           },
           {
             title: "Typography & atmosphere",
             description:
-              "Space Grotesk display + DM Sans body + JetBrains Mono, VersionGate blue accent system, radial atmosphere, and intentional hero/log motion — no decorative iconography.",
+              "JetBrains Mono display headlines + IBM Plex Sans body, mint (#3EFFA8) accents on pure black, top signal banner, and intentional orbit/pulse motion.",
           },
         ],
       },
