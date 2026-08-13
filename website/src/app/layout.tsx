@@ -16,13 +16,6 @@ const mono = JetBrains_Mono({
   display: "swap",
 });
 
-const display = JetBrains_Mono({
-  subsets: ["latin"],
-  weight: ["500", "600", "700"],
-  variable: "--font-display",
-  display: "swap",
-});
-
 export const metadata: Metadata = {
   title: "VersionGate — Self-hosted zero-downtime Docker deploys",
   description:
@@ -48,7 +41,8 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en" className="dark" data-theme="dark">
       <body
-        className={`${display.variable} ${sans.variable} ${mono.variable} font-sans antialiased bg-background text-foreground`}
+        className={`${sans.variable} ${mono.variable} font-sans antialiased bg-background text-foreground`}
+        style={{ "--font-display": "var(--font-mono)" } as React.CSSProperties}
       >
         {children}
       </body>
