@@ -37,7 +37,7 @@ export async function runContainer(
     "--name", name,
     "--network", network,
     "--add-host=host.docker.internal:host-gateway",
-    "-p", `${hostPort}:${containerPort}`,
+    "-p", `127.0.0.1:${hostPort}:${containerPort}`,
     "--restart", "unless-stopped",
     "--log-opt", "max-size=10m",
     "--log-opt", "max-file=3",
