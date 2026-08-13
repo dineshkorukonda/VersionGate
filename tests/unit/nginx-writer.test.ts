@@ -30,7 +30,7 @@ describe("writeNginxConfigFile & App Nginx Generator", () => {
       domainOrSubdomain: "app.userdomain.com",
       internalPort: 3100,
     });
-    expect(conf).toContain("server_name app.userdomain.com;");
+    expect(conf).toContain("server_name app.userdomain.com _;");
     expect(conf).toContain("proxy_pass http://127.0.0.1:3100;");
     expect(conf).toContain("proxy_http_version 1.1;");
   });

@@ -8,6 +8,7 @@ import {
   postSelfUpdateApplyHandler,
   postNginxApplySiteHandler,
   postCertbotSslHandler,
+  postRestartServicesHandler,
 } from "../controllers/settings.controller";
 
 export async function settingsRoutes(app: FastifyInstance): Promise<void> {
@@ -18,6 +19,7 @@ export async function settingsRoutes(app: FastifyInstance): Promise<void> {
   app.post("/settings/self-update/apply", { handler: postSelfUpdateApplyHandler });
   app.post("/settings/nginx/apply", { handler: postNginxApplySiteHandler });
   app.post("/settings/ssl/certbot", { handler: postCertbotSslHandler });
+  app.post("/settings/restart", { handler: postRestartServicesHandler });
   app.patch("/settings/env", {
     schema: {
       body: {
