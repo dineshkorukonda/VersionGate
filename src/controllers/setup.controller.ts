@@ -20,6 +20,7 @@ import {
 import { buildSetSessionCookie } from "../utils/cookie";
 import { isValidHostname, isValidIpv4Address } from "../utils/domain-validation";
 import { generateVersionGateNginxConf } from "../utils/nginx-versiongate-site";
+import { normalizeDatabaseUrl } from "../utils/db-url";
 
 interface SetupApplyBody {
   domain: string;
@@ -82,15 +83,21 @@ function resolveProjectsRootPath(): string {
   }
 }
 
-async function canConnectToDatabase(databaseUrl: string): Promise<boolean> {
+interface DbCheckResult {
+  ok: boolean;
+  error?: string;
+}
+
+async function canConnectToDatabase(databaseUrl: string): Promise<DbCheckResult> {
   try {
     const postgres = (await import("postgres")).default;
     const sql = postgres(databaseUrl, { connect_timeout: 5, max: 1 });
     await sql`SELECT 1`;
     await sql.end();
-    return true;
-  } catch {
-    return false;
+    return { ok: true };
+  } catch (err: unknown) {
+    const errorMsg = err instanceof Error ? err.message : String(err);
+    return { ok: false, error: errorMsg };
   }
 }
 
@@ -104,7 +111,9 @@ export async function getSetupStatusHandler(
   if (configured) {
     const dbUrl = readDatabaseUrl();
     if (dbUrl) {
-      dbConnected = await canConnectToDatabase(dbUrl);
+      const normalized = normalizeDatabaseUrl(dbUrl);
+      const res = await canConnectToDatabase(normalized);
+      dbConnected = res.ok;
     }
   }
 
@@ -159,13 +168,18 @@ export async function applySetupHandler(
     });
   }
 
-  // 1. Validate database connection
-  logger.info("Setup: validating database connection…");
-  const dbOk = await canConnectToDatabase(databaseUrl);
-  if (!dbOk) {
+  // 1. Normalize & validate database connection
+  const normalizedDbUrl = normalizeDatabaseUrl(databaseUrl);
+  logger.info({ rawUrl: databaseUrl, normalizedUrl: normalizedDbUrl }, "Setup: validating database connection…");
+  const dbCheck = await canConnectToDatabase(normalizedDbUrl);
+  if (!dbCheck.ok) {
+    req.log.error({ err: dbCheck.error, url: normalizedDbUrl }, "Setup: Database connection validation failed");
     return reply.code(422).send({
-      error: "SetupError",
-      message: "Cannot connect to the database. Please check your DATABASE_URL.",
+      statusCode: 422,
+      error: "Unprocessable Entity",
+      message: "Database connection validation failed.",
+      details: dbCheck.error || "Unable to connect to the provided PostgreSQL instance.",
+      hint: "Ensure special characters in your password are URL-encoded and SSL is enabled (sslmode=require).",
     });
   }
 
@@ -183,7 +197,7 @@ export async function applySetupHandler(
       ? `http://${normalizedDomain}:9090`
       : `https://${normalizedDomain}`;
 
-  let envContent = `DATABASE_URL="${escapeEnvValue(databaseUrl)}"
+  let envContent = `DATABASE_URL="${escapeEnvValue(normalizedDbUrl)}"
 PORT=9090
 NODE_ENV=production
 DOCKER_NETWORK="versiongate-net"
@@ -204,7 +218,7 @@ JWT_SECRET="${jwtSecret}"
   writeFileSync(envPath, envContent, "utf-8");
   logger.info("Setup: .env written successfully");
 
-  process.env.DATABASE_URL = databaseUrl;
+  process.env.DATABASE_URL = normalizedDbUrl;
   process.env.ENCRYPTION_KEY = encryptionKey;
   process.env.PUBLIC_URL = publicUrl;
   process.env.GITHUB_STATE_SECRET = githubStateSecret;

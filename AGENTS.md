@@ -67,6 +67,7 @@ Whenever an AI Agent or LLM CLI (`agy`, Antigravity, Cursor, Copilot, etc.) work
 5. **Domain-Driven Feature PR Workflow & Single PR per Milestone:**
    - Work on ONE dedicated feature branch per milestone or discussion session (`feat/*`, `fix/*`, `refactor/*`).
    - Group related full-stack changes (backend engine, dashboard UI, website docs, landing page, and changelog) into atomic commits on the same feature branch.
+   - Always check if an active PR has already been merged on GitHub (`gh pr view <number>`) before pushing further commits. If a PR is already merged, pull latest `main` (`git checkout main && git pull origin main`) and branch off `main` into a new dedicated feature branch.
    - Do NOT open micro-PRs for every individual prompt or minor edit. Open a SINGLE PR when the entire milestone or task scope is complete.
    - ALWAYS assign PRs to `@dineshkorukonda` (`dineshkorukonda`) and attach relevant tags (`enhancement`, `backend`, `frontend`, `infrastructure`, `database`, `bug`).
 
