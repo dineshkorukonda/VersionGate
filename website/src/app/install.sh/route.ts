@@ -224,7 +224,7 @@ chmod -R 775 /etc/nginx/conf.d /etc/nginx/sites-available /etc/nginx/sites-enabl
 
 if [[ -d "/etc/sudoers.d" ]]; then
   cat <<EOF > /etc/sudoers.d/versiongate
-${REAL_USER} ALL=(ALL) NOPASSWD: /usr/sbin/nginx, /bin/cp /tmp/versiongate-nginx* /etc/nginx/*
+\${REAL_USER} ALL=(ALL) NOPASSWD: /usr/sbin/nginx, /bin/cp /tmp/versiongate-nginx* /etc/nginx/*
 EOF
   chmod 440 /etc/sudoers.d/versiongate
 fi
