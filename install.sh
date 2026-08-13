@@ -245,6 +245,18 @@ if [[ -d "/etc/nginx/sites-available" ]]; then
   NGINX_CONF="/etc/nginx/sites-available/versiongate"
 fi
 
+# Set directory write permissions for Nginx conf directory & configure sudoers helper
+mkdir -p /etc/nginx/conf.d /etc/nginx/sites-available /etc/nginx/sites-enabled
+chown -R "$REAL_USER:$REAL_USER" /etc/nginx/conf.d /etc/nginx/sites-available /etc/nginx/sites-enabled 2>/dev/null || true
+chmod -R 775 /etc/nginx/conf.d /etc/nginx/sites-available /etc/nginx/sites-enabled 2>/dev/null || true
+
+if [[ -d "/etc/sudoers.d" ]]; then
+  cat <<EOF > /etc/sudoers.d/versiongate
+${REAL_USER} ALL=(ALL) NOPASSWD: /usr/sbin/nginx, /bin/cp /tmp/versiongate-nginx* /etc/nginx/*
+EOF
+  chmod 440 /etc/sudoers.d/versiongate
+fi
+
 cat <<EOF > "$NGINX_CONF"
 server {
     listen 80;
