@@ -17,6 +17,43 @@ export interface VersionGateNginxOptions {
   basePath: string;
 }
 
+export interface AppNginxOptions {
+  appId: string;
+  domainOrSubdomain: string;
+  internalPort: number;
+}
+
+/**
+ * Builds a magic IP domain using sslip.io for preview testing (e.g. app1.1.2.3.4.sslip.io).
+ */
+export function buildMagicIpDomain(appId: string, publicIp: string): string {
+  const cleanIp = publicIp.trim().replace(/[^0-9.]/g, "");
+  return `${appId}.${cleanIp}.sslip.io`;
+}
+
+/**
+ * Generates an Nginx virtual host configuration block for individual applications, custom domains, or magic IP domains.
+ */
+export function generateAppNginxConf(opts: AppNginxOptions): string {
+  return `server {
+    listen 80;
+    server_name ${opts.domainOrSubdomain};
+
+    location / {
+        proxy_pass http://127.0.0.1:${opts.internalPort};
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+    }
+}
+`;
+}
+
 /**
  * Single HTTP server block proxying to the VersionGate API (Fastify).
  * Run Certbot afterward to add TLS (`certbot --nginx`).
