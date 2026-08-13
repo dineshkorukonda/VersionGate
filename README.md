@@ -4,21 +4,34 @@
 
 ---
 
-## Quick 1-Command Bootstrap (Ubuntu / Debian VPS)
+## Quick 1-Command Host Installer (Ubuntu / Debian / RHEL)
+
+Install VersionGate end-to-end on a fresh or existing VM (installs Docker, Nginx, Node 20, Bun, PM2, configures Nginx reverse proxy, PM2 systemd boot persistence, and starts VersionGate):
 
 ```bash
-git clone https://github.com/dineshkorukonda/VersionGate.git
-cd VersionGate
-sudo bash scripts/bootstrap-host.sh && bun install && bun run build:dashboard && pm2 start ecosystem.config.cjs
+curl -fsSL https://versiongate.tech/install.sh | sudo bash
 ```
 
-Open `http://your-server-ip:9090/setup` in your browser to run the 1-minute initialization wizard.
+### With Custom Domain & Automatic TLS (Certbot)
+If you have a domain pointing to your VM's public IP:
+
+```bash
+DOMAIN=versiongate.tech curl -fsSL https://versiongate.tech/install.sh | sudo bash
+```
+
+Once installed, open your browser directly to complete the 1-minute setup wizard:
+- **HTTP**: `http://your-server-ip/`
+- **HTTPS (if DOMAIN set)**: `https://your-domain.com/`
+
+> **Azure VM Users**: Azure enforces Cloud Network Security Groups (NSGs) outside the OS firewall. Ensure inbound ports `80`, `443`, and `9090` (TCP) are allowed in `Azure Portal -> VM -> Networking -> Inbound port rules`, or run `az network nsg rule create --resource-group <RG> --nsg-name <NSG> --name Allow-VersionGate-Inbound --priority 1010 --direction Inbound --access Allow --protocol Tcp --destination-port-ranges 80 443 9090`.
 
 ---
 
 ## Core Engine Capabilities
 
 - **Zero-Downtime Blue/Green Swaps**: Every deploy targets an isolated idle slot (`:3100` / `:3101`). Live traffic switches atomically via Nginx upstream reload only after health check passes (`200 OK`).
+- **Nginx Reverse Proxy Automation**: Nginx runs in front of the engine, proxying port 80/443 traffic directly to `127.0.0.1:9090` with full WebSocket header support.
+- **PM2 Systemd Boot Persistence**: Auto-generates and enables `pm2-$USER` systemd services to ensure VersionGate automatically restarts across server reboots.
 - **Instant Warm-Swap Rollbacks (< 2s)**: Sub-second rollbacks reusing locally cached Docker image tags without git re-pulling or context rebuilds.
 - **Stage Path Reverse Proxy**: Exposes dev, staging, and production environments over clean path URLs (`/p/:projectName/:stage`) routed dynamically through Nginx without raw ports.
 - **Bearer API Access Tokens**: Generates persistent `vg_live_...` SHA-256 hashed API Bearer tokens for GitHub Actions, GitLab CI, and external automation scripts.
