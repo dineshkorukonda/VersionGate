@@ -90,9 +90,9 @@ const CAPABILITIES: Capability[] = [
     category: "Deployment",
     title: "Universal One-Line Host Installer",
     command: "curl -fsSL https://versiongate.tech/install.sh | sudo bash",
-    description: "Automated VM bootstrap installing base packages, Bun, Docker, UFW firewall rules, and launching Setup Mode.",
-    details: "Downloads install.sh from versiongate.tech to configure Docker daemon networking, host firewall rules for ports 9090, 5173, 80, and 443, and initialize VersionGate in setup mode.",
-    badge: "v1.4 Feature",
+    description: "Automated VM bootstrap installing Node 20, Bun, Docker, PM2 systemd persistence, Nginx reverse proxy, and optional Certbot TLS.",
+    details: "Downloads install.sh from versiongate.tech to configure Docker daemon networking, PM2 systemd auto-boot persistence, Nginx reverse proxying (80/443 -> 9090), automatic Certbot TLS, and end-to-end health checks.",
+    badge: "v1.7 Feature",
   },
 ];
 

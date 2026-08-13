@@ -1,133 +1,305 @@
 #!/usr/bin/env bash
 # Universal One-Line Installer for VersionGate (Ubuntu/Debian/RHEL).
-# Installs base tools, Bun, Docker, configures firewall ports, builds dashboard,
-# and starts the VersionGate engine in Setup Mode on port 9090.
+# Installs Docker, Nginx, Node (via NodeSource, not distro apt), Bun, PM2,
+# configures Nginx reverse proxy & firewall, builds dashboard, starts the engine,
+# and persists PM2 systemd service across host reboots.
 #
-# Usage on a fresh VM:
-#   curl -fsSL https://versiongate.tech/install.sh | bash
-#   or locally: bash install.sh
+# Usage on a fresh VM (root or sudo user):
+#   curl -fsSL https://versiongate.tech/install.sh | sudo bash
+# With custom domain & automatic TLS:
+#   DOMAIN=versiongate.tech curl -fsSL https://versiongate.tech/install.sh | sudo bash
+# Local execution:
+#   sudo bash install.sh
 #
-set -euo pipefail
+set -Eeuo pipefail
 
 log()  { printf '\n==> %s\n' "$*"; }
 ok()   { printf '  [ok] %s\n' "$*"; }
 warn() { printf '  [!]  %s\n' "$*"; }
-die()  { printf '  [NO] %s\n' "$*" >&2; exit 1; }
+die()  { printf '  [FAIL] %s\n' "$*" >&2; exit 1; }
 
-REAL_USER="${SUDO_USER:-${USER:-}}"
-if [[ -z "$REAL_USER" || "$REAL_USER" == "root" ]]; then
-  REAL_USER="$(logname 2>/dev/null || echo root)"
-fi
-REAL_HOME="$(getent passwd "$REAL_USER" 2>/dev/null | cut -d: -f6 || echo /root)"
+trap 'die "Install aborted at line $LINENO. Last command: $BASH_COMMAND"' ERR
 
+# ---------------------------------------------------------------------------
+# 0. Root check / self-elevate
+# ---------------------------------------------------------------------------
 if [[ "$(id -u)" -ne 0 ]]; then
-  if [[ -f "$0" && "$0" != *"bash"* && "$0" != *"sh"* ]]; then
-    if command -v sudo >/dev/null 2>&1; then
-      exec sudo -E bash "$0" "$@"
-    fi
+  if command -v sudo >/dev/null 2>&1; then
+    exec sudo -E bash "$0" "$@"
   fi
-  die "Please run with sudo: curl -fsSL https://versiongate.tech/install.sh | sudo bash"
+  die "Run as root: curl -fsSL https://versiongate.tech/install.sh | sudo bash"
 fi
 
-log "1. System Base Packages (curl, git, unzip, ca-certificates, tar, nodejs, npm)"
+REAL_USER="${SUDO_USER:-root}"
+REAL_HOME="$(getent passwd "$REAL_USER" 2>/dev/null | cut -d: -f6 || echo /root)"
+[[ -d "$REAL_HOME" ]] || REAL_HOME=/root
+
+run_as_user() { sudo -u "$REAL_USER" -H bash -lc "$1"; }
+
+# ---------------------------------------------------------------------------
+# 1. OS detection
+# ---------------------------------------------------------------------------
 if command -v apt-get >/dev/null 2>&1; then
+  PKG_FAMILY=deb
+elif command -v dnf >/dev/null 2>&1; then
+  PKG_FAMILY=rpm; PKG_MGR=dnf
+elif command -v yum >/dev/null 2>&1; then
+  PKG_FAMILY=rpm; PKG_MGR=yum
+else
+  die "Unsupported OS: need apt-get, dnf, or yum."
+fi
+ok "Detected package family: $PKG_FAMILY"
+
+# ---------------------------------------------------------------------------
+# 2. Base packages
+# ---------------------------------------------------------------------------
+log "1. Base packages (curl, git, unzip, ca-certificates, tar, nginx)"
+if [[ "$PKG_FAMILY" == deb ]]; then
   export DEBIAN_FRONTEND=noninteractive
   apt-get update -y
   apt-get install -y --no-install-recommends \
-    ca-certificates curl git gnupg lsb-release apt-transport-https unzip tar nodejs npm
-elif command -v dnf >/dev/null 2>&1; then
-  dnf install -y curl git unzip ca-certificates tar nodejs npm
-elif command -v yum >/dev/null 2>&1; then
-  yum install -y curl git unzip ca-certificates tar nodejs npm
-fi
-ok "Base dependencies verified"
-
-log "2. Bun Runtime"
-if command -v bun >/dev/null 2>&1; then
-  ok "Bun already installed: $(bun --version)"
-elif [[ -x "$REAL_HOME/.bun/bin/bun" ]]; then
-  ok "Bun found at $REAL_HOME/.bun/bin/bun"
+    ca-certificates curl git gnupg lsb-release apt-transport-https unzip tar nginx
 else
-  log "Installing Bun for $REAL_USER"
-  sudo -u "$REAL_USER" -H bash -lc 'curl -fsSL https://bun.sh/install | bash' || true
-  export PATH="$REAL_HOME/.bun/bin:$PATH"
-  ok "Bun runtime installed"
+  "$PKG_MGR" install -y curl git unzip ca-certificates tar nginx
+fi
+ok "Base dependencies installed"
+
+# ---------------------------------------------------------------------------
+# 3. Node.js via NodeSource (fixes version-roulette from distro apt)
+# ---------------------------------------------------------------------------
+log "2. Node.js 20 LTS (NodeSource)"
+NEED_NODE=1
+if command -v node >/dev/null 2>&1; then
+  NODE_MAJOR="$(node -v | sed 's/^v//' | cut -d. -f1)"
+  if [[ "$NODE_MAJOR" -ge 20 ]]; then
+    NEED_NODE=0
+    ok "Node $(node -v) already satisfies >=20"
+  else
+    warn "Node $(node -v) too old, upgrading"
+  fi
+fi
+if [[ "$NEED_NODE" -eq 1 ]]; then
+  if [[ "$PKG_FAMILY" == deb ]]; then
+    curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+    apt-get install -y nodejs
+  else
+    curl -fsSL https://rpm.nodesource.com/setup_20.x | bash -
+    "$PKG_MGR" install -y nodejs
+  fi
+  ok "Node $(node -v) installed"
 fi
 
-log "3. Docker Engine"
+# ---------------------------------------------------------------------------
+# 4. Bun
+# ---------------------------------------------------------------------------
+log "3. Bun runtime"
+if [[ -x "$REAL_HOME/.bun/bin/bun" ]]; then
+  ok "Bun already installed: $("$REAL_HOME/.bun/bin/bun" --version)"
+else
+  run_as_user 'curl -fsSL https://bun.sh/install | bash'
+  [[ -x "$REAL_HOME/.bun/bin/bun" ]] || die "Bun install failed — check network access to bun.sh"
+  ok "Bun installed: $("$REAL_HOME/.bun/bin/bun" --version)"
+fi
+export PATH="$REAL_HOME/.bun/bin:$PATH"
+
+# ---------------------------------------------------------------------------
+# 5. Docker
+# ---------------------------------------------------------------------------
+log "4. Docker Engine"
 if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
   ok "Docker already running"
 else
-  log "Installing Docker Engine"
-  curl -fsSL https://get.docker.com | sh || true
-  systemctl enable --now docker || true
-  ok "Docker Engine installed"
+  curl -fsSL https://get.docker.com | sh
+  systemctl enable --now docker
+  docker info >/dev/null 2>&1 || die "Docker installed but daemon not responding"
+  ok "Docker Engine installed and running"
 fi
-
-groupadd -f docker || true
-if id "$REAL_USER" >/dev/null 2>&1; then
-  usermod -aG docker "$REAL_USER" || true
-fi
+groupadd -f docker
+[[ "$REAL_USER" == root ]] || usermod -aG docker "$REAL_USER"
 
 DOCKER_NET="versiongate-net"
-if docker network inspect "$DOCKER_NET" >/dev/null 2>&1; then
-  ok "Docker network $DOCKER_NET exists"
-else
-  docker network create "$DOCKER_NET" || true
-  ok "Created docker network $DOCKER_NET"
-fi
+docker network inspect "$DOCKER_NET" >/dev/null 2>&1 || docker network create "$DOCKER_NET" >/dev/null
+ok "Docker network $DOCKER_NET ready"
 
 PROJECTS_DIR="/var/versiongate/projects"
 mkdir -p "$PROJECTS_DIR"
-chown -R "$REAL_USER:$REAL_USER" "$PROJECTS_DIR" 2>/dev/null || true
+chown -R "$REAL_USER:$REAL_USER" "$PROJECTS_DIR"
 chmod 755 "$PROJECTS_DIR"
 ok "Projects directory ready: $PROJECTS_DIR"
 
-log "4. Host Firewall Configuration (UFW / Firewalld)"
+# ---------------------------------------------------------------------------
+# 6. Firewall — public: 80/443 (nginx) + 9090 (setup wizard).
+#    3100/3101 (blue/green slots) stay internal-only, reached via nginx only.
+# ---------------------------------------------------------------------------
+log "5. Firewall"
 if command -v ufw >/dev/null 2>&1; then
-  ufw allow 9090/tcp comment 'VersionGate API' 2>/dev/null || true
-  ufw allow 5173/tcp comment 'VersionGate Dashboard' 2>/dev/null || true
-  ufw allow 80/tcp comment 'HTTP Web' 2>/dev/null || true
-  ufw allow 443/tcp comment 'HTTPS Web' 2>/dev/null || true
-  ok "Configured UFW rules for ports 9090, 5173, 80, 443"
+  ufw allow 9090/tcp comment 'VersionGate API/setup' || true
+  ufw allow 80/tcp comment 'HTTP' || true
+  ufw allow 443/tcp comment 'HTTPS' || true
+  ok "UFW rules set (9090, 80, 443). 3100/3101 intentionally NOT exposed."
 elif command -v firewall-cmd >/dev/null 2>&1; then
-  firewall-cmd --permanent --add-port=9090/tcp --add-port=5173/tcp --add-port=80/tcp --add-port=443/tcp 2>/dev/null || true
-  firewall-cmd --reload 2>/dev/null || true
-  ok "Configured Firewalld rules for ports 9090, 5173, 80, 443"
-fi
-
-log "5. Repository Setup & Dependencies"
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" 2>/dev/null && pwd || echo "$PWD")"
-if [[ ! -f "$SCRIPT_DIR/package.json" ]]; then
-  TARGET_DIR="$REAL_HOME/VersionGate"
-  if [[ ! -d "$TARGET_DIR" ]]; then
-    sudo -u "$REAL_USER" git clone https://github.com/dineshkorukonda/VersionGate.git "$TARGET_DIR"
-  fi
-  cd "$TARGET_DIR"
+  firewall-cmd --permanent --add-port=9090/tcp --add-port=80/tcp --add-port=443/tcp
+  firewall-cmd --reload
+  ok "Firewalld rules set (9090, 80, 443). 3100/3101 intentionally NOT exposed."
 else
-  cd "$SCRIPT_DIR"
+  warn "No ufw/firewalld found — open 80/443/9090 manually via your cloud provider's security group."
 fi
 
-sudo -u "$REAL_USER" -H bash -lc "export PATH=\"$REAL_HOME/.bun/bin:\$PATH\"; bun install"
-sudo -u "$REAL_USER" -H bash -lc "export PATH=\"$REAL_HOME/.bun/bin:\$PATH\"; cd dashboard && bun install && bun run build"
+# ---------------------------------------------------------------------------
+# 7. Clone / locate repo, install deps, build dashboard
+# ---------------------------------------------------------------------------
+log "6. Repository & dependencies"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" 2>/dev/null && pwd || echo "$PWD")"
+if [[ -f "$SCRIPT_DIR/package.json" ]]; then
+  TARGET_DIR="$SCRIPT_DIR"
+else
+  TARGET_DIR="$REAL_HOME/VersionGate"
+  if [[ -d "$TARGET_DIR/.git" ]]; then
+    run_as_user "cd '$TARGET_DIR' && git pull --ff-only"
+  else
+    rm -rf "$TARGET_DIR"   # clear any half-cloned dir from a failed prior run
+    run_as_user "git clone https://github.com/dineshkorukonda/VersionGate.git '$TARGET_DIR'"
+  fi
+fi
+cd "$TARGET_DIR"
+ok "Using repo at $TARGET_DIR"
 
-log "6. Starting VersionGate Engine in Setup Mode"
-if ! command -v pm2 >/dev/null 2>&1; then
-  npm install -g pm2 2>/dev/null || bun install -g pm2 2>/dev/null || true
+run_as_user "cd '$TARGET_DIR' && export PATH=\"$REAL_HOME/.bun/bin:\$PATH\" && bun install"
+run_as_user "cd '$TARGET_DIR/dashboard' && export PATH=\"$REAL_HOME/.bun/bin:\$PATH\" && bun install && bun run build"
+[[ -d "$TARGET_DIR/dashboard/dist" || -d "$TARGET_DIR/dashboard/build" ]] \
+  || warn "Dashboard build finished but no dist/build output found — check dashboard/vite.config for output dir"
+ok "Dependencies installed, dashboard built"
+
+# ---------------------------------------------------------------------------
+# 8. PM2 + persistence across reboots
+# ---------------------------------------------------------------------------
+log "7. Starting VersionGate Engine & configuring boot persistence"
+command -v pm2 >/dev/null 2>&1 || npm install -g pm2
+run_as_user "cd '$TARGET_DIR' && export PATH=\"$REAL_HOME/.bun/bin:\$PATH\" && (pm2 start ecosystem.config.cjs || pm2 restart versiongate-api)"
+run_as_user "export PATH=\"$REAL_HOME/.bun/bin:\$PATH\" && pm2 save"
+
+PM2_BIN="$(command -v pm2)"
+PM2_STARTUP_CMD="$("$PM2_BIN" startup systemd -u "$REAL_USER" --hp "$REAL_HOME" | grep -E "sudo env|systemctl" || true)"
+if [[ -n "$PM2_STARTUP_CMD" ]]; then
+  eval "$PM2_STARTUP_CMD" || true
 fi
 
-sudo -u "$REAL_USER" -H bash -lc "export PATH=\"$REAL_HOME/.bun/bin:\$PATH\"; pm2 start ecosystem.config.cjs 2>/dev/null || pm2 restart versiongate-api 2>/dev/null || true"
+PM2_SERVICE="pm2-$REAL_USER"
+if systemctl is-enabled "$PM2_SERVICE" >/dev/null 2>&1; then
+  ok "PM2 systemd service ($PM2_SERVICE) is enabled and persistent across reboots"
+else
+  systemctl enable "$PM2_SERVICE" >/dev/null 2>&1 || true
+  systemctl is-enabled "$PM2_SERVICE" >/dev/null 2>&1 || warn "PM2 systemd service ($PM2_SERVICE) unconfirmed — verify with 'systemctl status $PM2_SERVICE'"
+fi
 
-SERVER_IP="$(curl -s https://api.ipify.org 2>/dev/null || echo 'YOUR_VM_IP')"
+# ---------------------------------------------------------------------------
+# 9. Nginx reverse proxy + optional TLS via Certbot
+# ---------------------------------------------------------------------------
+log "8. Nginx reverse proxy"
+DOMAIN="${DOMAIN:-}"
+SERVER_IP="$(curl -s https://api.ipify.org 2>/dev/null || hostname -I | awk '{print $1}' || echo '127.0.0.1')"
+
+if [[ -n "$DOMAIN" ]]; then
+  PUBLIC_HOST="$DOMAIN"
+  SCHEME="https"
+else
+  PUBLIC_HOST="$SERVER_IP"
+  SCHEME="http"
+fi
+
+NGINX_CONF="/etc/nginx/conf.d/versiongate.conf"
+if [[ -d "/etc/nginx/sites-available" ]]; then
+  NGINX_CONF="/etc/nginx/sites-available/versiongate"
+fi
+
+cat <<EOF > "$NGINX_CONF"
+server {
+    listen 80;
+    listen [::]:80;
+    server_name ${PUBLIC_HOST} _;
+
+    client_max_body_size 100M;
+
+    location / {
+        proxy_pass http://127.0.0.1:9090;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+    }
+}
+EOF
+
+if [[ -d "/etc/nginx/sites-enabled" ]]; then
+  ln -sf "$NGINX_CONF" /etc/nginx/sites-enabled/versiongate
+  rm -f /etc/nginx/sites-enabled/default
+fi
+
+systemctl enable --now nginx
+nginx -t || die "Nginx configuration test failed — check $NGINX_CONF"
+systemctl reload nginx || systemctl restart nginx
+ok "Nginx reverse proxy configured for http://${PUBLIC_HOST}"
+
+if [[ -n "$DOMAIN" ]]; then
+  log "Provisioning TLS certificate via Certbot for $DOMAIN"
+  if [[ "$PKG_FAMILY" == deb ]]; then
+    apt-get install -y certbot python3-certbot-nginx
+  else
+    "$PKG_MGR" install -y certbot python3-certbot-nginx
+  fi
+
+  if certbot --nginx -d "$DOMAIN" --non-interactive --agree-tos --register-unsafely-without-email --redirect; then
+    ok "TLS certificate provisioned successfully for $DOMAIN"
+    SCHEME="https"
+  else
+    warn "Certbot failed to obtain certificate for $DOMAIN — falling back to HTTP"
+    SCHEME="http"
+  fi
+else
+  ok "No DOMAIN specified; skipping TLS provisioning (serving HTTP on $PUBLIC_HOST)"
+fi
+
+# ---------------------------------------------------------------------------
+# 10. End-to-end health check (local engine + public Nginx reverse proxy)
+# ---------------------------------------------------------------------------
+log "9. End-to-end health check"
+READY=0
+for i in $(seq 1 15); do
+  if curl -fsS "http://127.0.0.1:9090/setup" >/dev/null 2>&1 || curl -fsS "http://127.0.0.1:9090/" >/dev/null 2>&1; then
+    READY=1
+    break
+  fi
+  sleep 2
+done
+[[ "$READY" -eq 1 ]] || die "Engine did not respond on 127.0.0.1:9090 after 30s — run 'pm2 logs versiongate-api' to see why"
+ok "Engine responding locally on port 9090"
+
+PROXY_READY=0
+for i in $(seq 1 15); do
+  if curl -fsS -k -H "Host: ${PUBLIC_HOST}" "http://127.0.0.1/" >/dev/null 2>&1 || \
+     curl -fsS -k "${SCHEME}://${PUBLIC_HOST}/" >/dev/null 2>&1 || \
+     curl -fsS -k "http://127.0.0.1/setup" >/dev/null 2>&1; then
+    PROXY_READY=1
+    break
+  fi
+  sleep 2
+done
+[[ "$PROXY_READY" -eq 1 ]] || die "Nginx reverse proxy did not respond on public entrypoint — check 'systemctl status nginx' or '/var/log/nginx/error.log'"
+ok "Public Nginx reverse proxy responding successfully (${SCHEME}://${PUBLIC_HOST})"
 
 echo ""
 echo "============================================================"
 echo " [ OK ] VersionGate Host Installation Complete!"
 echo "============================================================"
 echo ""
-echo " Open your browser to complete setup:"
-echo "   http://${SERVER_IP}:9090/setup"
+echo "  Open your browser to finish setup:"
+echo "  ${SCHEME}://${PUBLIC_HOST}"
 echo ""
-echo " (If using domain/HTTPS, configure DNS A record to ${SERVER_IP})"
+echo "  VersionGate is running live end-to-end behind Nginx."
+echo "  Once setup is completed in your browser, port 9090 can be closed"
+echo "  externally while traffic continues via port 80/443."
 echo "============================================================"
 echo ""

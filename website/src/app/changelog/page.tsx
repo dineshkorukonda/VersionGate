@@ -44,9 +44,45 @@ interface ProcessedRelease {
 
 const FALLBACK_RELEASES: ProcessedRelease[] = [
   {
+    version: "v1.7.0",
+    date: "August 13, 2026",
+    isLatest: true,
+    summary: "Production-ready installer upgrade with Nginx reverse proxy, PM2 systemd boot persistence, Certbot TLS, and public health checks.",
+    categories: [
+      {
+        title: "Host Installer & Infrastructure",
+        badge: "NEW",
+        items: [
+          {
+            title: "Nginx Reverse Proxy Automation",
+            description:
+              "Installer configures Nginx server block proxying port 80 to 127.0.0.1:9090 with WebSocket upgrade headers, so the engine is reachable on domain or VM public IP directly.",
+            command: "curl -fsSL https://versiongate.tech/install.sh | sudo bash",
+          },
+          {
+            title: "PM2 Systemd Reboot Persistence",
+            description:
+              "Runs pm2 startup systemd and verifies that the pm2 systemd service is active and enabled across server reboots.",
+          },
+          {
+            title: "Optional Certbot TLS Provisioning",
+            description:
+              "Automatically provisions SSL/TLS certificates via Certbot when a DOMAIN environment variable is passed during install.",
+            command: "DOMAIN=versiongate.tech bash install.sh",
+          },
+          {
+            title: "End-to-End Nginx Health Check",
+            description:
+              "Installer health check verifies both local port 9090 response and Nginx reverse-proxied public endpoint response before finishing.",
+          },
+        ],
+      },
+    ],
+  },
+  {
     version: "v1.6.0",
     date: "August 10, 2026",
-    isLatest: true,
+    isLatest: false,
     summary: "Editorial marketing landing redesign with brand-first hero, animated control-plane visual, and architecture narrative.",
     categories: [
       {
