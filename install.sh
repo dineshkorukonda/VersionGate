@@ -2,7 +2,7 @@
 # Universal One-Line Installer for VersionGate (Ubuntu/Debian/RHEL).
 # Installs Docker, Nginx, Node (via NodeSource, not distro apt), Bun, PM2,
 # configures Nginx reverse proxy & firewall, builds dashboard, starts the engine,
-# and persists PM2 systemd service across host reboots.
+# persists PM2 systemd service across host reboots, and detects Azure NSG rules.
 #
 # Usage on a fresh VM (root or sudo user):
 #   curl -fsSL https://versiongate.tech/install.sh | sudo bash
@@ -128,10 +128,9 @@ chmod 755 "$PROJECTS_DIR"
 ok "Projects directory ready: $PROJECTS_DIR"
 
 # ---------------------------------------------------------------------------
-# 6. Firewall — public: 80/443 (nginx) + 9090 (setup wizard).
-#    3100/3101 (blue/green slots) stay internal-only, reached via nginx only.
+# 6. Firewall & Cloud Security Groups (UFW / Firewalld / Azure NSG)
 # ---------------------------------------------------------------------------
-log "5. Firewall"
+log "5. Firewall & Cloud Network Security"
 if command -v ufw >/dev/null 2>&1; then
   ufw allow 9090/tcp comment 'VersionGate API/setup' || true
   ufw allow 80/tcp comment 'HTTP' || true
@@ -143,6 +142,40 @@ elif command -v firewall-cmd >/dev/null 2>&1; then
   ok "Firewalld rules set (9090, 80, 443). 3100/3101 intentionally NOT exposed."
 else
   warn "No ufw/firewalld found — open 80/443/9090 manually via your cloud provider's security group."
+fi
+
+# Azure IMDS Detection
+AZURE_DETECTED=0
+AZURE_META=""
+if AZURE_META="$(curl -s -H "Metadata:true" --connect-timeout 2 --max-time 2 "http://169.254.169.254/metadata/instance?api-version=2021-02-01" 2>/dev/null)" && [[ -n "$AZURE_META" ]]; then
+  if echo "$AZURE_META" | grep -qi "azEnvironment\|resourceGroupName\|compute"; then
+    AZURE_DETECTED=1
+    ok "Azure VM environment detected via IMDS"
+  fi
+fi
+
+AZ_AUTOFIX_SUCCESS=0
+if [[ "$AZURE_DETECTED" -eq 1 ]]; then
+  if command -v az >/dev/null 2>&1 && az account show >/dev/null 2>&1; then
+    RESOURCE_GROUP="$(echo "$AZURE_META" | grep -o '"resourceGroupName":"[^"]*"' | head -n 1 | cut -d'"' -f4 || echo "")"
+    VM_NAME="$(echo "$AZURE_META" | grep -o '"name":"[^"]*"' | head -n 1 | cut -d'"' -f4 || echo "")"
+    if [[ -n "$RESOURCE_GROUP" && -n "$VM_NAME" ]]; then
+      NSG_NAME="$(az vm show --resource-group "$RESOURCE_GROUP" --name "$VM_NAME" --query "networkProfile.networkInterfaces[0].id" -o tsv 2>/dev/null | xargs -I {} az network nic show --ids {} --query "networkSecurityGroup.id" -o tsv 2>/dev/null | xargs -I {} basename {} 2>/dev/null || echo "")"
+      if [[ -n "$NSG_NAME" ]]; then
+        az network nsg rule create \
+          --resource-group "$RESOURCE_GROUP" \
+          --nsg-name "$NSG_NAME" \
+          --name "Allow-VersionGate-Inbound" \
+          --priority 1010 \
+          --direction Inbound \
+          --access Allow \
+          --protocol Tcp \
+          --destination-port-ranges 80 443 9090 >/dev/null 2>&1 || true
+        AZ_AUTOFIX_SUCCESS=1
+        ok "Azure NSG inbound rule 'Allow-VersionGate-Inbound' configured via Azure CLI (ports 80, 443, 9090)"
+      fi
+    fi
+  fi
 fi
 
 # ---------------------------------------------------------------------------
@@ -287,7 +320,14 @@ for i in $(seq 1 15); do
   fi
   sleep 2
 done
-[[ "$PROXY_READY" -eq 1 ]] || die "Nginx reverse proxy did not respond on public entrypoint — check 'systemctl status nginx' or '/var/log/nginx/error.log'"
+
+if [[ "$PROXY_READY" -ne 1 ]]; then
+  if [[ "$AZURE_DETECTED" -eq 1 ]]; then
+    die "Nginx reverse proxy did not respond on public entrypoint — Azure VM detected: traffic may be blocked by Azure Network Security Group (NSG) rules. Ensure inbound ports 80, 443, and 9090 are allowed in Azure Portal."
+  else
+    die "Nginx reverse proxy did not respond on public entrypoint — check 'systemctl status nginx' or '/var/log/nginx/error.log'"
+  fi
+fi
 ok "Public Nginx reverse proxy responding successfully (${SCHEME}://${PUBLIC_HOST})"
 
 echo ""
@@ -303,3 +343,30 @@ echo "  Once setup is completed in your browser, port 9090 can be closed"
 echo "  externally while traffic continues via port 80/443."
 echo "============================================================"
 echo ""
+
+if [[ "$AZURE_DETECTED" -eq 1 && "$AZ_AUTOFIX_SUCCESS" -eq 0 ]]; then
+  echo "============================================================"
+  echo " [ NOTE: AZURE NETWORK SECURITY GROUP (NSG) ACTION REQUIRED ]"
+  echo "============================================================"
+  echo "  Azure host detected! OS firewalls (ufw/firewalld) are configured,"
+  echo "  but Azure NSG cloud firewall blocks external ports by default."
+  echo ""
+  echo "  Required Inbound Ports: 80, 443, 9090 (TCP)"
+  echo ""
+  echo "  Azure Portal Path:"
+  echo "    Azure Portal -> Virtual Machines -> [Your VM] -> Networking"
+  echo "    -> Network Security Group -> Add inbound port rule"
+  echo ""
+  echo "  Or run this Azure CLI command:"
+  echo "    az network nsg rule create \\"
+  echo "      --resource-group <YOUR_RESOURCE_GROUP> \\"
+  echo "      --nsg-name <YOUR_NSG_NAME> \\"
+  echo "      --name Allow-VersionGate-Inbound \\"
+  echo "      --priority 1010 \\"
+  echo "      --direction Inbound \\"
+  echo "      --access Allow \\"
+  echo "      --protocol Tcp \\"
+  echo "      --destination-port-ranges 80 443 9090"
+  echo "============================================================"
+  echo ""
+fi
