@@ -1,173 +1,106 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
-const LOG_LINES = [
-  "[ INFO ] Job #4912 enqueued · web-app / production",
-  "[ INFO ] Idle slot GREEN :3101 selected",
-  "[ OK ] Health check 200 · 14ms",
-  "[ OK ] Nginx upstream rewrite · 0 ms downtime",
-  "[ LIVE ] Traffic on GREEN · BLUE warm for rollback",
+const NODES = [
+  { label: "BUILD", angle: -18 },
+  { label: "HEALTH", angle: 42 },
+  { label: "SWAP", angle: 118 },
+  { label: "ROLLBACK", angle: 198 },
+  { label: "BLUE", angle: 258 },
+  { label: "GREEN", angle: 318 },
 ] as const;
 
 export function HeroDeployVisual() {
-  const [phase, setPhase] = useState(0);
-  const [visibleLogs, setVisibleLogs] = useState(1);
-  const [activeSlot, setActiveSlot] = useState<"BLUE" | "GREEN">("BLUE");
+  const [active, setActive] = useState(0);
+
+  const rays = useMemo(
+    () =>
+      Array.from({ length: 42 }, (_, i) => ({
+        id: i,
+        rotate: (360 / 42) * i,
+        length: i % 3 === 0 ? 46 : i % 2 === 0 ? 38 : 30,
+        opacity: i % 4 === 0 ? 0.28 : 0.12,
+      })),
+    [],
+  );
 
   useEffect(() => {
-    const timers: ReturnType<typeof setTimeout>[] = [];
-    const run = () => {
-      setPhase(0);
-      setVisibleLogs(1);
-      setActiveSlot("BLUE");
-
-      timers.push(
-        setTimeout(() => {
-          setPhase(1);
-          setVisibleLogs(2);
-        }, 900),
-        setTimeout(() => {
-          setPhase(2);
-          setVisibleLogs(3);
-        }, 1800),
-        setTimeout(() => {
-          setPhase(3);
-          setVisibleLogs(4);
-          setActiveSlot("GREEN");
-        }, 2700),
-        setTimeout(() => {
-          setPhase(4);
-          setVisibleLogs(5);
-        }, 3600),
-        setTimeout(run, 6200),
-      );
-    };
-
-    run();
-    return () => timers.forEach(clearTimeout);
+    const id = setInterval(() => {
+      setActive((n) => (n + 1) % NODES.length);
+    }, 1400);
+    return () => clearInterval(id);
   }, []);
 
   return (
-    <div className="relative h-full min-h-[88vh] w-full overflow-hidden lg:min-h-[92vh]">
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_72%_42%,rgba(34,87,231,0.34),transparent_52%),radial-gradient(ellipse_at_15%_85%,rgba(34,87,231,0.12),transparent_40%),linear-gradient(180deg,#06080f_0%,#0a1020_55%,#06080f_100%)]" />
-      <div className="absolute inset-0 opacity-[0.3] [background-image:linear-gradient(rgba(255,255,255,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.05)_1px,transparent_1px)] [background-size:56px_56px] [mask-image:radial-gradient(ellipse_at_75%_45%,black_10%,transparent_70%)]" />
+    <div className="relative h-full min-h-[100vh] w-full overflow-hidden bg-black">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_68%_48%,rgba(62,255,168,0.22),transparent_44%),radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.05),transparent_35%)]" />
 
-      <div className="pointer-events-none absolute inset-y-0 right-0 hidden w-[58%] lg:block">
-        <div className="absolute left-[8%] top-[22%] right-[10%] landing-fade-up">
-          <div className="mb-6 flex items-end justify-between gap-4">
-            <div>
-              <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-[#7aa2ff]">
-                Control plane
-              </p>
-              <p className="mt-1 font-display text-2xl font-semibold tracking-tight text-white">
-                Blue / Green slots
-              </p>
-            </div>
-            <p className="font-mono text-[11px] text-white/40">web-app · production</p>
-          </div>
-
-          <div className="grid grid-cols-2 gap-5">
-            <SlotPlane
-              name="BLUE"
-              port=":3100"
-              active={activeSlot === "BLUE"}
-              role={activeSlot === "BLUE" ? "ACTIVE" : "WARM"}
-            />
-            <SlotPlane
-              name="GREEN"
-              port=":3101"
-              active={activeSlot === "GREEN"}
-              role={activeSlot === "GREEN" ? "ACTIVE" : phase >= 1 ? "BUILDING" : "IDLE"}
-              building={phase >= 1 && phase < 3 && activeSlot !== "GREEN"}
-            />
-          </div>
-
-          <div className="relative mt-6 h-12 overflow-hidden border border-white/10 bg-black/30">
-            <div
-              className={`absolute inset-y-0 w-1/2 bg-[#2257e7]/25 transition-all duration-700 ease-out ${
-                activeSlot === "GREEN" ? "left-1/2" : "left-0"
-              }`}
-            />
-            <div
-              className={`absolute top-1/2 h-2 w-2 -translate-y-1/2 rounded-full bg-[#9db7ff] shadow-[0_0_24px_rgba(125,162,255,0.9)] transition-all duration-700 ease-out ${
-                activeSlot === "GREEN" ? "left-[72%]" : "left-[22%]"
-              }`}
-            />
-            <div className="absolute inset-0 flex items-center justify-center font-mono text-[11px] font-medium tracking-[0.14em] text-white/80">
-              UPSTREAM → {activeSlot} · 0 MS DOWNTIME
-            </div>
-          </div>
-
-          <div className="mt-6 space-y-1.5 border-t border-white/10 pt-5 font-mono text-[12px] leading-relaxed text-white/65">
-            {LOG_LINES.slice(0, visibleLogs).map((line) => (
-              <p key={line} className="landing-log-line">
-                {line}
-              </p>
+      <div className="absolute inset-y-0 right-[-8%] hidden w-[70%] items-center justify-center lg:flex xl:right-[-2%] xl:w-[62%]">
+        <div className="relative aspect-square w-full max-w-[720px]">
+          <div className="landing-spin-slow absolute inset-[8%]">
+            {rays.map((ray) => (
+              <span
+                key={ray.id}
+                className="absolute left-1/2 top-1/2 origin-top"
+                style={{
+                  width: 1,
+                  height: `${ray.length}%`,
+                  opacity: ray.opacity + 0.12,
+                  transform: `translate(-50%, 0) rotate(${ray.rotate}deg)`,
+                  background:
+                    "linear-gradient(to bottom, rgba(62,255,168,0.95), rgba(255,255,255,0.18) 50%, transparent)",
+                }}
+              />
             ))}
           </div>
+
+          <div className="absolute left-1/2 top-1/2 size-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#3effa8] shadow-[0_0_48px_rgba(62,255,168,1)] landing-pulse-core" />
+          <div className="absolute left-1/2 top-1/2 size-28 -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#3effa8]/35" />
+          <div className="absolute left-1/2 top-1/2 size-52 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/15" />
+          <div className="absolute left-1/2 top-1/2 size-[22rem] -translate-x-1/2 -translate-y-1/2 rounded-full border border-dashed border-white/15" />
+
+          {NODES.map((node, idx) => {
+            const rad = (node.angle * Math.PI) / 180;
+            const x = 50 + Math.cos(rad) * 38;
+            const y = 50 + Math.sin(rad) * 38;
+            const isActive = idx === active;
+            return (
+              <div
+                key={node.label}
+                className={`absolute -translate-x-1/2 -translate-y-1/2 px-3 py-1.5 font-mono text-[11px] font-semibold tracking-[0.16em] transition-all duration-500 ${
+                  isActive
+                    ? "bg-[#3effa8] text-black shadow-[0_0_28px_rgba(62,255,168,0.55)]"
+                    : "border border-white/15 bg-black/70 text-white/70"
+                }`}
+                style={{ left: `${x}%`, top: `${y}%` }}
+              >
+                {node.label}
+              </div>
+            );
+          })}
+
+          <div className="absolute bottom-[12%] left-1/2 w-[70%] -translate-x-1/2 border border-white/10 bg-black/60 px-4 py-3 font-mono text-[11px] text-white/55 backdrop-blur-sm">
+            <span className="text-[#3effa8]">[ LIVE ]</span>
+            <span className="ml-3">upstream → GREEN · slot BLUE warm · downtime 0 ms</span>
+          </div>
         </div>
       </div>
 
-      {/* Mobile / tablet compact strip */}
-      <div className="absolute inset-x-0 bottom-0 p-4 lg:hidden">
-        <div className="border border-white/10 bg-black/50 p-4 backdrop-blur-sm">
-          <div className="flex items-center justify-between font-mono text-[10px] uppercase tracking-[0.16em] text-[#7aa2ff]">
-            <span>Upstream</span>
-            <span>{activeSlot}</span>
-          </div>
-          <div className="mt-3 grid grid-cols-2 gap-2">
-            <div className={`border px-3 py-2 ${activeSlot === "BLUE" ? "border-[#2257e7] bg-[#2257e7]/20" : "border-white/10"}`}>
-              <p className="font-mono text-[11px] text-white">BLUE</p>
-            </div>
-            <div className={`border px-3 py-2 ${activeSlot === "GREEN" ? "border-[#2257e7] bg-[#2257e7]/20" : "border-white/10"}`}>
-              <p className="font-mono text-[11px] text-white">GREEN</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function SlotPlane({
-  name,
-  port,
-  active,
-  role,
-  building = false,
-}: {
-  name: string;
-  port: string;
-  active: boolean;
-  role: string;
-  building?: boolean;
-}) {
-  return (
-    <div
-      className={`border p-5 transition-all duration-500 ${
-        active
-          ? "border-[#2257e7]/80 bg-[#2257e7]/15"
-          : "border-white/10 bg-white/[0.03]"
-      }`}
-    >
-      <div className="flex items-center justify-between">
-        <span className="font-display text-xl font-semibold tracking-tight text-white">{name}</span>
-        <span
-          className={`font-mono text-[10px] tracking-[0.12em] ${
-            active ? "text-[#9db7ff]" : building ? "text-amber-200/80" : "text-white/35"
-          }`}
-        >
-          {role}
-        </span>
-      </div>
-      <p className="mt-3 font-mono text-sm text-white/45">{port}</p>
-      <div className="mt-5 h-px w-full bg-white/10">
-        <div
-          className={`h-px transition-all duration-700 ${
-            active ? "w-full bg-[#7aa2ff]" : building ? "w-2/3 animate-pulse bg-[#2257e7]/80" : "w-1/5 bg-white/25"
-          }`}
-        />
+      {/* mobile kinetic strip */}
+      <div className="absolute inset-x-0 bottom-8 flex justify-center gap-2 px-4 lg:hidden">
+        {NODES.slice(0, 4).map((node, idx) => (
+          <span
+            key={node.label}
+            className={`px-2.5 py-1 font-mono text-[10px] tracking-[0.14em] ${
+              idx === active % 4
+                ? "bg-[#3effa8] text-black"
+                : "border border-white/15 text-white/60"
+            }`}
+          >
+            {node.label}
+          </span>
+        ))}
       </div>
     </div>
   );

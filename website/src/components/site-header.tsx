@@ -28,12 +28,12 @@ export function SiteHeader({ active }: { active?: "features" | "docs" }) {
 
   return (
     <>
-      <header className="sticky top-0 z-40 border-b border-border/80 bg-background/80 backdrop-blur-md transition-colors">
+      <header className="sticky top-0 z-40 border-b border-white/10 bg-black/80 backdrop-blur-md transition-colors [.light_&]:border-border [.light_&]:bg-background/85">
         <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6">
           <div className="flex items-center gap-8">
             <Link
               href="/"
-              className="font-display text-[15px] font-bold tracking-tight text-foreground"
+              className="font-display text-[13px] font-bold uppercase tracking-[0.14em] text-white [.light_&]:text-foreground"
             >
               VersionGate
             </Link>
@@ -41,33 +41,33 @@ export function SiteHeader({ active }: { active?: "features" | "docs" }) {
             <nav className="hidden items-center gap-6 md:flex">
               <Link
                 href="/#capabilities"
-                className={`text-xs transition ${
+                className={`font-mono text-[11px] uppercase tracking-[0.14em] transition ${
                   active === "features"
-                    ? "font-semibold text-foreground"
-                    : "text-muted-foreground hover:text-foreground"
+                    ? "text-[#3effa8]"
+                    : "text-white/50 hover:text-white [.light_&]:text-muted-foreground [.light_&]:hover:text-foreground"
                 }`}
               >
                 Features
               </Link>
               <Link
                 href="/#architecture-loop"
-                className="text-xs text-muted-foreground transition hover:text-foreground"
+                className="font-mono text-[11px] uppercase tracking-[0.14em] text-white/50 transition hover:text-white [.light_&]:text-muted-foreground [.light_&]:hover:text-foreground"
               >
                 Architecture
               </Link>
               <Link
                 href="/docs"
-                className={`text-xs transition ${
+                className={`font-mono text-[11px] uppercase tracking-[0.14em] transition ${
                   active === "docs"
-                    ? "font-semibold text-foreground"
-                    : "text-muted-foreground hover:text-foreground"
+                    ? "text-[#3effa8]"
+                    : "text-white/50 hover:text-white [.light_&]:text-muted-foreground [.light_&]:hover:text-foreground"
                 }`}
               >
                 Docs
               </Link>
               <Link
                 href="/changelog"
-                className="text-xs text-muted-foreground transition hover:text-foreground"
+                className="font-mono text-[11px] uppercase tracking-[0.14em] text-white/50 transition hover:text-white [.light_&]:text-muted-foreground [.light_&]:hover:text-foreground"
               >
                 Changelog
               </Link>
@@ -77,17 +77,17 @@ export function SiteHeader({ active }: { active?: "features" | "docs" }) {
           <div className="flex items-center gap-2 sm:gap-3">
             <button
               onClick={() => setSearchOpen(true)}
-              className="flex items-center gap-2 rounded-md border border-border bg-muted/40 px-3 py-1.5 text-xs text-muted-foreground transition hover:bg-muted hover:text-foreground"
+              className="flex items-center gap-2 border border-white/15 px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.12em] text-white/60 transition hover:border-white/30 hover:text-white [.light_&]:border-border [.light_&]:text-muted-foreground"
             >
               <span>Search</span>
-              <kbd className="hidden rounded border border-border bg-background px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground sm:inline">
+              <kbd className="hidden border border-white/15 px-1.5 py-0.5 text-[10px] text-white/40 sm:inline [.light_&]:border-border">
                 Ctrl K
               </kbd>
             </button>
 
             <button
               onClick={toggleTheme}
-              className="rounded-md border border-border bg-muted/40 px-3 py-1.5 font-mono text-xs text-foreground transition hover:bg-muted"
+              className="border border-white/15 px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.12em] text-white/70 transition hover:border-white/30 [.light_&]:border-border [.light_&]:text-foreground"
               title="Toggle Light/Dark Theme"
             >
               [ {theme === "dark" ? "Dark" : "Light"} ]
@@ -97,7 +97,7 @@ export function SiteHeader({ active }: { active?: "features" | "docs" }) {
               href={GITHUB_REPO}
               target="_blank"
               rel="noreferrer"
-              className="hidden rounded-md bg-primary px-3.5 py-1.5 text-xs font-semibold text-primary-foreground transition hover:opacity-90 sm:inline-flex"
+              className="hidden bg-[#3effa8] px-3.5 py-1.5 font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-black transition hover:brightness-110 sm:inline-flex"
             >
               GitHub
             </Link>
