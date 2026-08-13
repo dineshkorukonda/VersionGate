@@ -1,5 +1,5 @@
 import { randomBytes } from "crypto";
-import { readFileSync, existsSync, writeFileSync } from "fs";
+import { readFileSync, existsSync } from "fs";
 import { execFileSync, spawn } from "child_process";
 import { promises as dns } from "dns";
 import { join } from "path";
@@ -20,6 +20,7 @@ import { kickSelfUpdatePoll } from "../services/self-update-poll.service";
 import { isValidHostname, isValidIpv4Address } from "../utils/domain-validation";
 import { generateVersionGateNginxConf, normalizePublicBasePath } from "../utils/nginx-versiongate-site";
 import { CERTBOT_PATH_CANDIDATES, findCertbotExecutablePath } from "../utils/certbot-path";
+import { writeNginxConfigFile } from "../utils/nginx-writer";
 
 const DB_URL_REGEX = /^DATABASE_URL\s*=\s*"?([^"\n\r]+)"?\s*$/m;
 
@@ -309,7 +310,7 @@ export async function patchInstanceEnvHandler(
         upstreamPort: config.port,
         basePath: updates.PUBLIC_BASE_PATH ?? "/",
       });
-      writeFileSync(config.nginxConfigPath, conf, "utf-8");
+      await writeNginxConfigFile(config.nginxConfigPath, conf);
       reloadNginxBestEffort();
       logger.info({ domain: updates.PUBLIC_DOMAIN }, "patchInstanceEnv: updated Nginx vhost for new PUBLIC_DOMAIN");
     } catch (err) {
@@ -592,7 +593,7 @@ export async function postNginxApplySiteHandler(
 
   const outPath = config.nginxConfigPath;
   try {
-    writeFileSync(outPath, conf, "utf-8");
+    await writeNginxConfigFile(outPath, conf);
     logger.info({ outPath, bytes: Buffer.byteLength(conf, "utf-8") }, "postNginxApplySite: wrote nginx config file");
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);

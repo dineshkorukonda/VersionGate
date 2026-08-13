@@ -20,6 +20,7 @@ import {
 import { buildSetSessionCookie } from "../utils/cookie";
 import { isValidHostname, isValidIpv4Address } from "../utils/domain-validation";
 import { generateVersionGateNginxConf } from "../utils/nginx-versiongate-site";
+import { writeNginxConfigFile } from "../utils/nginx-writer";
 import { normalizeDatabaseUrl } from "../utils/db-url";
 
 interface SetupApplyBody {
@@ -274,12 +275,11 @@ JWT_SECRET="${jwtSecret}"
       upstreamPort: 9090,
       basePath: "/",
     });
-    writeFileSync(NGINX_SITE_CONF_PATH, nginxConf, "utf-8");
+    await writeNginxConfigFile(NGINX_SITE_CONF_PATH, nginxConf);
     if (!existsSync(NGINX_UPSTREAM_CONF_PATH)) {
-      writeFileSync(
+      await writeNginxConfigFile(
         NGINX_UPSTREAM_CONF_PATH,
-        "# Written by VersionGate on production deploy/promote\n",
-        "utf-8"
+        "# Written by VersionGate on production deploy/promote\n"
       );
     }
 
