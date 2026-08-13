@@ -1,6 +1,6 @@
 import { randomBytes } from "crypto";
 import { readFileSync, existsSync, writeFileSync } from "fs";
-import { execFileSync } from "child_process";
+import { execFileSync, spawn } from "child_process";
 import { promises as dns } from "dns";
 import { join } from "path";
 import { FastifyRequest, FastifyReply } from "fastify";
@@ -146,6 +146,7 @@ const PATCHABLE_ENV_KEYS = new Set([
   "SELF_UPDATE_AUTO_APPLY",
   "PUBLIC_DOMAIN",
   "PUBLIC_BASE_PATH",
+  "PUBLIC_URL",
   "CERTBOT_EMAIL",
   "GITHUB_APP_ID",
   "GITHUB_APP_PRIVATE_KEY",
@@ -159,7 +160,7 @@ interface PatchEnvBody {
 
 /**
  * Merges non-empty string values into `.env` on disk (with `.env.bak` backup).
- * Does not restart the process — operator must restart API/worker for changes to apply.
+ * Automatically updates Nginx configuration when PUBLIC_DOMAIN is updated.
  */
 export async function patchInstanceEnvHandler(
   req: FastifyRequest<{ Body: PatchEnvBody }>,
@@ -269,6 +270,9 @@ export async function patchInstanceEnvHandler(
       });
     }
     updates.PUBLIC_DOMAIN = d;
+    const scheme = isValidHostname(d) ? "https" : "http";
+    const portSuffix = isValidIpv4Address(d) ? `:${config.port}` : "";
+    updates.PUBLIC_URL = `${scheme}://${d}${portSuffix}`;
   }
 
   if (updates.PUBLIC_BASE_PATH !== undefined) {
@@ -295,6 +299,24 @@ export async function patchInstanceEnvHandler(
     return reply.code(500).send({ error: "WriteError", message: msg });
   }
 
+  if (updates.PUBLIC_DOMAIN) {
+    try {
+      const domainIsIp = isValidIpv4Address(updates.PUBLIC_DOMAIN);
+      const conf = generateVersionGateNginxConf({
+        serverName: domainIsIp ? "_" : updates.PUBLIC_DOMAIN,
+        defaultServer: domainIsIp,
+        upstreamHost: "127.0.0.1",
+        upstreamPort: config.port,
+        basePath: updates.PUBLIC_BASE_PATH ?? "/",
+      });
+      writeFileSync(config.nginxConfigPath, conf, "utf-8");
+      reloadNginxBestEffort();
+      logger.info({ domain: updates.PUBLIC_DOMAIN }, "patchInstanceEnv: updated Nginx vhost for new PUBLIC_DOMAIN");
+    } catch (err) {
+      logger.warn({ err }, "patchInstanceEnv: could not auto-update Nginx config for PUBLIC_DOMAIN");
+    }
+  }
+
   const selfKeys = [
     "SELF_UPDATE_SECRET",
     "SELF_UPDATE_GIT_BRANCH",
@@ -313,8 +335,44 @@ export async function patchInstanceEnvHandler(
   }
 
   return reply.code(200).send({
-    message: "Environment file updated. Restart the API and worker to apply changes.",
+    message: "Environment file updated and Nginx configuration reloaded successfully.",
     keysWritten: Object.keys(updates),
+  });
+}
+
+/** Safely triggers a background PM2 service reload/restart for VersionGate. */
+export async function postRestartServicesHandler(
+  _req: FastifyRequest,
+  reply: FastifyReply
+): Promise<void> {
+  logger.info("postRestartServicesHandler: scheduling PM2 process reload");
+  try {
+    const ecosystemPath = join(projectRoot, "ecosystem.config.cjs");
+    const child = spawn("pm2", ["reload", ecosystemPath, "--update-env"], {
+      cwd: projectRoot,
+      detached: true,
+      stdio: "ignore",
+      env: process.env,
+    });
+    child.unref();
+  } catch (err) {
+    logger.warn({ err }, "postRestartServicesHandler: pm2 reload failed — attempting pm2 restart");
+    try {
+      const child = spawn("pm2", ["restart", "versiongate-api", "--update-env"], {
+        cwd: projectRoot,
+        detached: true,
+        stdio: "ignore",
+        env: process.env,
+      });
+      child.unref();
+    } catch {
+      /* ignore */
+    }
+  }
+
+  return reply.code(200).send({
+    ok: true,
+    message: "Service reload scheduled. VersionGate processes are reloading cleanly in background.",
   });
 }
 

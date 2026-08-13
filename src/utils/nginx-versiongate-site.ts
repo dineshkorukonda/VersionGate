@@ -35,9 +35,13 @@ export function buildMagicIpDomain(appId: string, publicIp: string): string {
  * Generates an Nginx virtual host configuration block for individual applications, custom domains, or magic IP domains.
  */
 export function generateAppNginxConf(opts: AppNginxOptions): string {
+  const serverNameDirective = opts.domainOrSubdomain === "_" || opts.domainOrSubdomain.includes("_")
+    ? opts.domainOrSubdomain
+    : `${opts.domainOrSubdomain} _`;
+
   return `server {
     listen 80;
-    server_name ${opts.domainOrSubdomain};
+    server_name ${serverNameDirective};
 
     location / {
         proxy_pass http://127.0.0.1:${opts.internalPort};
@@ -48,6 +52,7 @@ export function generateAppNginxConf(opts: AppNginxOptions): string {
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header CF-Connecting-IP $http_cf_connecting_ip;
         proxy_cache_bypass $http_upgrade;
     }
 }
@@ -56,12 +61,15 @@ export function generateAppNginxConf(opts: AppNginxOptions): string {
 
 /**
  * Single HTTP server block proxying to the VersionGate API (Fastify).
- * Run Certbot afterward to add TLS (`certbot --nginx`).
+ * Configured for both direct IP access and custom domains (including Cloudflare proxying).
  */
 export function generateVersionGateNginxConf(opts: VersionGateNginxOptions): string {
   const base = normalizePublicBasePath(opts.basePath);
   const listen = opts.defaultServer ? "listen 80 default_server;" : "listen 80;";
   const upstream = `http://${opts.upstreamHost}:${opts.upstreamPort}`;
+  const serverNameDirective = opts.serverName === "_" || opts.serverName.includes("_")
+    ? opts.serverName
+    : `${opts.serverName} _`;
 
   const proxyHeaders = `        proxy_http_version 1.1;
         proxy_set_header   Upgrade $http_upgrade;
@@ -70,6 +78,7 @@ export function generateVersionGateNginxConf(opts: VersionGateNginxOptions): str
         proxy_set_header   X-Real-IP $remote_addr;
         proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header   X-Forwarded-Proto $scheme;
+        proxy_set_header   CF-Connecting-IP $http_cf_connecting_ip;
         proxy_cache_bypass $http_upgrade;`;
 
   let locationBlock: string;
@@ -98,9 +107,9 @@ ${proxyHeaders}
 
   return `server {
     ${listen}
-    server_name ${opts.serverName};
+    server_name ${serverNameDirective};
 
-    client_max_body_size 50M;
+    client_max_body_size 100M;
 
 ${locationBlock}
 }
