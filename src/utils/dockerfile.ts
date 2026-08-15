@@ -137,7 +137,7 @@ async function buildNodeDockerfile(
   }
 
   // Fall back to lock file detection
-  const hasBunLock  = await fileExists(repoDir, "bun.lockb");
+  const hasBunLock  = (await fileExists(repoDir, "bun.lockb")) || (await fileExists(repoDir, "bun.lock"));
   const hasYarnLock = await fileExists(repoDir, "yarn.lock");
   const hasPnpmLock = await fileExists(repoDir, "pnpm-lock.yaml");
 
@@ -225,7 +225,7 @@ function buildBunDockerfile(appPort: number, hasBuild: boolean): string {
     "",
     "WORKDIR /app",
     "",
-    "COPY package.json bun.lockb* ./",
+    "COPY package.json bun.lock* bun.lockb* ./",
     "RUN bun install",
     "",
     "COPY . .",
@@ -293,7 +293,7 @@ function buildGoDockerfile(appPort: number): string {
     AUTO_GENERATED_MARKER,
     "FROM golang:1.22-alpine AS builder",
     "WORKDIR /app",
-    "COPY go.mod go.sum ./",
+    "COPY go.mod go.sum* ./",
     "RUN go mod download",
     "COPY . .",
     "RUN go build -o server .",
