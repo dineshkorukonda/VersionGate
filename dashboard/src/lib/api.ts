@@ -209,7 +209,13 @@ export function patchEnvironmentEnv(
 
 export const getProjectEnvironments = listEnvironments;
 
-export function rollback(projectId: string): Promise<{ jobId: string; status: string; environmentId?: string }> {
+export function rollback(
+  projectId: string,
+  environmentId?: string
+): Promise<{ jobId: string; status: string; environmentId?: string }> {
+  if (environmentId) {
+    return request("POST", `/projects/${projectId}/environments/${environmentId}/rollback`);
+  }
   return request("POST", `/projects/${projectId}/rollback`);
 }
 

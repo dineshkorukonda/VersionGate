@@ -9,7 +9,11 @@ import {
   updateProjectEnvHandler,
   generatePipelineHandler,
 } from "../controllers/project.controller";
-import { listEnvironmentsHandler, updateEnvironmentEnvHandler } from "../controllers/environment.controller";
+import {
+  listEnvironmentsHandler,
+  updateEnvironmentEnvHandler,
+  rollbackEnvironmentHandler,
+} from "../controllers/environment.controller";
 import { promoteEnvironmentHandler } from "../controllers/promote.controller";
 
 const envSchema = {
@@ -216,5 +220,21 @@ export async function projectRoutes(app: FastifyInstance): Promise<void> {
       },
     },
     handler: rollbackProjectHandler,
+  });
+
+  app.post("/projects/:id/environments/:envId/rollback", {
+    schema: {
+      response: {
+        202: {
+          type: "object",
+          properties: {
+            jobId: { type: "string" },
+            status: { type: "string" },
+            environmentId: { type: "string" },
+          },
+        },
+      },
+    },
+    handler: rollbackEnvironmentHandler,
   });
 }
