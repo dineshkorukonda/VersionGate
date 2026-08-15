@@ -52,6 +52,21 @@ export async function selfUpdateApplyHandler(req: FastifyRequest, reply: Fastify
   reply.code(200).send(result);
 }
 
+export async function selfUpdateProgressHandler(req: FastifyRequest, reply: FastifyReply): Promise<void> {
+  const secret = selfUpdateSecretLive();
+  if (!secret) {
+    featureDisabled(reply);
+    return;
+  }
+  const token = bearerToken(req);
+  if (!token || !selfUpdateTokensMatch(token, secret)) {
+    unauthorized(reply);
+    return;
+  }
+  const { getSelfUpdateProgress } = await import("../services/self-update.service");
+  reply.code(200).send(getSelfUpdateProgress());
+}
+
 /** Fire-and-forget hook for CI or cron: `POST ?token=...` (same value as SELF_UPDATE_SECRET). */
 export async function selfUpdateWebhookHandler(req: FastifyRequest, reply: FastifyReply): Promise<void> {
   const secret = selfUpdateSecretLive();

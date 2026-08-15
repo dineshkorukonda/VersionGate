@@ -15,7 +15,7 @@ import {
 import { envFilePath, projectRoot } from "../utils/paths";
 import { mergeIntoDotenv, writeEnvWithBackup } from "../utils/env-file";
 import { logger } from "../utils/logger";
-import { applySelfUpdate, getSelfUpdateStatus } from "../services/self-update.service";
+import { applySelfUpdate, getSelfUpdateStatus, getSelfUpdateProgress } from "../services/self-update.service";
 import { kickSelfUpdatePoll } from "../services/self-update-poll.service";
 import { isValidHostname, isValidIpv4Address } from "../utils/domain-validation";
 import { generateVersionGateNginxConf, normalizePublicBasePath } from "../utils/nginx-versiongate-site";
@@ -443,6 +443,11 @@ export async function postSelfUpdateApplyHandler(_req: FastifyRequest, reply: Fa
   const result = await applySelfUpdate(selfUpdateBranchLive());
   /** Always 200: outcome is in `result.ok` / `result.error` (avoids generic client treating merge/build failure as an HTTP exception). */
   reply.code(200).send(result);
+}
+
+export async function getSelfUpdateProgressHandler(_req: FastifyRequest, reply: FastifyReply): Promise<void> {
+  const progress = getSelfUpdateProgress();
+  reply.code(200).send(progress);
 }
 
 function reloadNginxBestEffort(): void {

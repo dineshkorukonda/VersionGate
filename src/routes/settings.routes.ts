@@ -3,6 +3,7 @@ import {
   getInstanceSettingsHandler,
   patchInstanceEnvHandler,
   getSelfUpdateSettingsHandler,
+  getSelfUpdateProgressHandler,
   postSelfUpdateEnableHandler,
   postSelfUpdateCheckHandler,
   postSelfUpdateApplyHandler,
@@ -14,6 +15,7 @@ import {
 export async function settingsRoutes(app: FastifyInstance): Promise<void> {
   app.get("/settings/instance", { handler: getInstanceSettingsHandler });
   app.get("/settings/self-update", { handler: getSelfUpdateSettingsHandler });
+  app.get("/settings/self-update/progress", { handler: getSelfUpdateProgressHandler });
   app.post("/settings/self-update/enable", { handler: postSelfUpdateEnableHandler });
   app.post("/settings/self-update/check", { handler: postSelfUpdateCheckHandler });
   app.post("/settings/self-update/apply", { handler: postSelfUpdateApplyHandler });
