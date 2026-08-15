@@ -42,7 +42,8 @@ export function DeployLog() {
   const [wsConnected, setWsConnected] = useState(false);
   const [cancelBusy, setCancelBusy] = useState(false);
   const [hostStats, setHostStats] = useState<ServerStats | null>(null);
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const [isScrolledUp, setIsScrolledUp] = useState(false);
+  const preRef = useRef<HTMLPreElement>(null);
 
   useEffect(() => {
     if (jobStatus !== "PENDING" || pendingSince == null) return;
@@ -50,9 +51,25 @@ export function DeployLog() {
     return () => window.clearInterval(id);
   }, [jobStatus, pendingSince]);
 
+  const handleScroll = () => {
+    const el = preRef.current;
+    if (!el) return;
+    const nearBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 60;
+    setIsScrolledUp(!nearBottom);
+  };
+
+  const scrollToBottom = () => {
+    const el = preRef.current;
+    if (!el) return;
+    el.scrollTop = el.scrollHeight;
+    setIsScrolledUp(false);
+  };
+
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [lines]);
+    if (!isScrolledUp && preRef.current) {
+      preRef.current.scrollTop = preRef.current.scrollHeight;
+    }
+  }, [lines, isScrolledUp]);
 
   useEffect(() => {
     let cancelled = false;
@@ -334,8 +351,10 @@ export function DeployLog() {
                 </Button>
               </div>
             </div>
-            <CardContent className="p-0">
+            <CardContent className="relative p-0">
               <pre
+                ref={preRef}
+                onScroll={handleScroll}
                 className="min-h-[48vh] max-h-[min(72vh,680px)] w-full overflow-auto bg-[#0a0a0f] p-4 font-mono text-xs leading-relaxed md:p-6 md:text-sm"
                 style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}
               >
@@ -370,8 +389,17 @@ export function DeployLog() {
                     </div>
                   );
                 })}
-                <div ref={bottomRef} />
               </pre>
+
+              {isScrolledUp && (
+                <button
+                  type="button"
+                  onClick={scrollToBottom}
+                  className="absolute bottom-4 right-4 rounded-md border border-primary/40 bg-card/95 px-3 py-1.5 font-mono text-xs font-semibold text-primary shadow-lg backdrop-blur transition-all hover:bg-primary hover:text-primary-foreground"
+                >
+                  [ Jump to Latest Log ]
+                </button>
+              )}
             </CardContent>
           </Card>
 
