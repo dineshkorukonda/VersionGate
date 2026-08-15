@@ -133,6 +133,11 @@ export async function authLogoutHandler(req: FastifyRequest, reply: FastifyReply
 }
 
 export async function authMeHandler(req: FastifyRequest, reply: FastifyReply): Promise<void> {
+  const authed = req as FastifyRequest & { authUser?: { id: string; email: string } };
+  if (authed.authUser) {
+    reply.code(200).send({ authenticated: true, user: authed.authUser });
+    return;
+  }
   const raw = getSessionTokenFromRequest(req.headers.cookie);
   const user = await getUserFromSessionToken(raw);
   if (!user) {

@@ -158,8 +158,6 @@ export async function getUserFromApiToken(
   const db = getDb();
   const tokenHash = hashToken(rawToken);
 
-  const { apiTokens, users } = await import("../db/schema");
-
   const [row] = await db
     .select({
       tokenId: apiTokens.id,
