@@ -2,9 +2,12 @@ import { DeploymentRepository } from "../repositories/deployment.repository";
 import { EnvironmentRepository } from "../repositories/environment.repository";
 import { stopContainer, removeContainer, inspectContainer } from "../utils/docker";
 import { logger } from "../utils/logger";
+import { recoverStuckJobs } from "./job-queue.service";
 
 export interface ReconciliationReport {
   deployingFixed: number;
+  staleLocksCleared: number;
+  stuckJobsRecovered: number;
   activeInvalidated: number;
 }
 
@@ -22,13 +25,19 @@ export class ReconciliationService {
 
     const deployingFixed = await this.fixDeployingDeployments();
     const staleLocksCleared = await this.envRepo.clearStaleDeployLocks();
+    let stuckJobsRecovered = 0;
+    try {
+      stuckJobsRecovered = await recoverStuckJobs();
+    } catch (err) {
+      logger.warn({ err }, "Reconciliation: failed to recover stuck jobs");
+    }
     const activeInvalidated = await this.auditActiveDeployments();
 
     logger.info(
-      { deployingFixed, staleLocksCleared, activeInvalidated },
+      { deployingFixed, staleLocksCleared, stuckJobsRecovered, activeInvalidated },
       "Reconciliation complete"
     );
-    return { deployingFixed, activeInvalidated };
+    return { deployingFixed, staleLocksCleared, stuckJobsRecovered, activeInvalidated };
   }
 
   private async fixDeployingDeployments(): Promise<number> {

@@ -44,9 +44,49 @@ interface ProcessedRelease {
 
 const FALLBACK_RELEASES: ProcessedRelease[] = [
   {
+    version: "v1.8.0",
+    date: "August 15, 2026",
+    isLatest: true,
+    summary: "Engine resilience hardening with encrypted env injection, multi-stage Git auto-deploy, startup stuck job recovery, modern Bun lockfile support, and deduplicated log streams.",
+    categories: [
+      {
+        title: "Engine & Orchestration Hardening",
+        badge: "NEW",
+        items: [
+          {
+            title: "Multi-Stage Git Webhook Auto-Deploy",
+            description:
+              "Push events to staging or development Git branches now automatically trigger zero-downtime builds for matching environment stages in parallel.",
+            command: "versiongate webhook test --branch staging",
+          },
+          {
+            title: "Runtime AES-256 Secret Decryption",
+            description:
+              "Encrypted database environment variables and stage overrides are safely decrypted into container runtime variables upon deployment, promotion, and warm-swap rollback.",
+          },
+          {
+            title: "In-Process Worker Startup Stuck Job Recovery",
+            description:
+              "Server restarts automatically detect and recover crashed in-flight jobs, clearing stale database deploy locks and keeping deployment status in sync.",
+          },
+          {
+            title: "Modern Bun Lockfile & Optional go.sum Support",
+            description:
+              "Dockerfile synthesis now detects modern text-based bun.lock files and supports Go projects with standalone go.mod files.",
+          },
+          {
+            title: "WebSocket Live Log Stream Deduplication",
+            description:
+              "Synchronized log cursor positions between real-time event emitters and PostgreSQL polling prevent duplicate log stream lines in the deployment terminal.",
+          },
+        ],
+      },
+    ],
+  },
+  {
     version: "v1.7.0",
     date: "August 13, 2026",
-    isLatest: true,
+    isLatest: false,
     summary: "Production-ready installer upgrade with Nginx reverse proxy, PM2 systemd boot persistence, Certbot TLS, and public health checks.",
     categories: [
       {

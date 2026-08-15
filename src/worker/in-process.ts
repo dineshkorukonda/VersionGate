@@ -1,6 +1,6 @@
 import { logger } from "../utils/logger";
 import { inProcessWorkerLive } from "../config/env";
-import { claimNextJob, appendLog, failJob } from "../services/job-queue.service";
+import { claimNextJob, appendLog, failJob, recoverStuckJobs } from "../services/job-queue.service";
 import { runDeployJob } from "./handlers/deploy.handler";
 import { runRollbackJob } from "./handlers/rollback.handler";
 import { runPromoteJob } from "./handlers/promote.handler";
@@ -53,6 +53,14 @@ export function startInProcessWorker(): void {
   }
   inProcessWorkerActive = true;
   logger.info("In-process background worker engine started (auto-healing active)");
+
+  recoverStuckJobs().then((n) => {
+    if (n > 0) {
+      logger.info({ count: n }, "In-process worker recovered stuck jobs on startup");
+    }
+  }).catch((err) => {
+    logger.warn({ err }, "In-process worker failed to recover stuck jobs on startup");
+  });
 
   workerLoopTimer = setInterval(() => {
     void tickWorker();

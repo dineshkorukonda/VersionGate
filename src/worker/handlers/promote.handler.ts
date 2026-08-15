@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { config } from "../../config/env";
-import { parseProjectEnv } from "../../utils/env";
+import { decryptProjectEnv } from "../../utils/env";
 import { DeploymentRepository } from "../../repositories/deployment.repository";
 import { EnvironmentRepository, DEFAULT_ENVIRONMENT_NAME } from "../../repositories/environment.repository";
 import { getDb } from "../../db/client";
@@ -133,8 +133,10 @@ export async function runPromoteJob(
     await stopContainer(containerName).catch(() => null);
     await removeContainer(containerName).catch(() => null);
     await freeHostPort(hostPort);
-    const projectEnv = parseProjectEnv(project.env);
-    const envKeys = Object.keys(projectEnv);
+    const projectEnv = decryptProjectEnv(project.env);
+    const targetStageEnv = decryptProjectEnv((targetEnv as typeof targetEnv & { env?: unknown }).env);
+    const mergedEnv = { ...projectEnv, ...targetStageEnv };
+    const envKeys = Object.keys(mergedEnv);
     if (envKeys.length > 0) {
       await log(`Injecting env keys: ${envKeys.join(", ")}`);
     }
@@ -144,7 +146,7 @@ export async function runPromoteJob(
       hostPort,
       targetEnv.appPort,
       config.dockerNetwork,
-      projectEnv
+      mergedEnv
     );
     await checkCancelled(deploymentId, log);
 

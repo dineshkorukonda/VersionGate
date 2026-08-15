@@ -53,15 +53,34 @@ describe("Dockerfile Generator", () => {
     }
   });
 
-  test("generates Dockerfile for Static index.html project", async () => {
-    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "vg-test-static-"));
+  test("generates Dockerfile for Bun project with modern text bun.lock", async () => {
+    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "vg-test-bun-"));
     try {
-      await fs.writeFile(path.join(tmpDir, "index.html"), "<h1>Hello</h1>", "utf-8");
+      await fs.writeFile(
+        path.join(tmpDir, "package.json"),
+        JSON.stringify({ name: "test-bun-app", scripts: { start: "bun run index.ts" } }),
+        "utf-8"
+      );
+      await fs.writeFile(path.join(tmpDir, "bun.lock"), "# bun lockfile v1\n", "utf-8");
 
-      await ensureDockerfile(tmpDir, 80);
+      await ensureDockerfile(tmpDir, 3000);
       const content = await fs.readFile(path.join(tmpDir, "Dockerfile"), "utf-8");
-      expect(content).toContain("FROM nginx:1.25-alpine");
-      expect(content).toContain("EXPOSE 80");
+      expect(content).toContain("FROM oven/bun:alpine");
+      expect(content).toContain("COPY package.json bun.lock* bun.lockb* ./");
+      expect(content).toContain("EXPOSE 3000");
+    } finally {
+      await fs.rm(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  test("generates Dockerfile for Go project with optional go.sum", async () => {
+    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "vg-test-go-nosum-"));
+    try {
+      await fs.writeFile(path.join(tmpDir, "go.mod"), "module testgonosum\n\ngo 1.22", "utf-8");
+
+      await ensureDockerfile(tmpDir, 8080);
+      const content = await fs.readFile(path.join(tmpDir, "Dockerfile"), "utf-8");
+      expect(content).toContain("COPY go.mod go.sum* ./");
     } finally {
       await fs.rm(tmpDir, { recursive: true, force: true });
     }

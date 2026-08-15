@@ -1,4 +1,4 @@
-import { parseProjectEnv } from "../../utils/env";
+import { decryptProjectEnv } from "../../utils/env";
 import { DeploymentRepository } from "../../repositories/deployment.repository";
 import { EnvironmentRepository } from "../../repositories/environment.repository";
 import { JobSelect, ProjectSelect, EnvironmentSelect } from "../../db/schema";
@@ -67,8 +67,8 @@ export async function runRollbackJob(
       `Rolling back from ${current.containerName} (v${current.version}) to ${previous.containerName} (v${previous.version})`
     );
 
-    const projectEnv = parseProjectEnv(project.env);
-    const stageEnv = parseProjectEnv((environment as typeof environment & { env?: unknown }).env);
+    const projectEnv = decryptProjectEnv(project.env);
+    const stageEnv = decryptProjectEnv((environment as typeof environment & { env?: unknown }).env);
     const mergedEnv = { ...projectEnv, ...stageEnv };
     const envKeys = Object.keys(mergedEnv);
 
@@ -81,11 +81,11 @@ export async function runRollbackJob(
     }
 
     if (isAlreadyRunning) {
-      await log(`⚡ Warm-Swap: Previous container ${previous.containerName} is already running. Verifying health…`);
+      await log(`[WARM-SWAP] Previous container ${previous.containerName} is already running. Verifying health…`);
     } else {
       const isCached = await imageExists(previous.imageTag);
       if (isCached) {
-        await log(`⚡ Warm-Swap: Found cached Docker image ${previous.imageTag}. Spinning up instant container…`);
+        await log(`[WARM-SWAP] Found cached Docker image ${previous.imageTag}. Spinning up instant container…`);
       } else {
         await log(`Starting container for image ${previous.imageTag}…`);
       }

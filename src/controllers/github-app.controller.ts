@@ -9,7 +9,7 @@ type GitHubInstallationSelect = typeof githubInstallations.$inferSelect;
 import { EnvironmentRepository } from "../repositories/environment.repository";
 import { ProjectRepository } from "../repositories/project.repository";
 import { enqueueJob } from "../services/job-queue.service";
-import { getUserFromSessionToken } from "../services/auth.service";
+import { getUserFromSessionToken, getUserFromApiToken } from "../services/auth.service";
 import { getSessionTokenFromRequest } from "../utils/cookie";
 import { logger } from "../utils/logger";
 import { createRelayInstallState, parseRelayInstallState } from "../utils/github/github-install-state";
@@ -29,6 +29,26 @@ const envRepo = new EnvironmentRepository();
 
 const INSTALL_APP_URL = "https://github.com/apps/VersionGate-App/installations/new";
 
+async function resolveRequestUser(req: FastifyRequest): Promise<{ id: string; email: string } | null> {
+  const authed = req as FastifyRequest & { authUser?: { id: string; email: string } };
+  if (authed.authUser) return authed.authUser;
+
+  const authHeader = req.headers["authorization"];
+  let token: string | undefined;
+  if (authHeader && authHeader.toLowerCase().startsWith("bearer ")) {
+    token = authHeader.slice(7).trim();
+  }
+  if (!token) {
+    token = req.headers["x-api-token"] as string | undefined;
+  }
+  if (token && token.startsWith("vg_")) {
+    return getUserFromApiToken(token);
+  }
+
+  const raw = getSessionTokenFromRequest(req.headers.cookie);
+  return getUserFromSessionToken(raw);
+}
+
 function githubAppReady(): boolean {
   const appId = Number(config.githubAppId);
   return Number.isFinite(appId) && appId > 0 && !!config.githubAppPrivateKey?.trim();
@@ -42,8 +62,7 @@ interface GitHubPushPayload {
 type ReqWithRaw = FastifyRequest & { rawBody?: Buffer };
 
 export async function githubInstallHandler(req: FastifyRequest, reply: FastifyReply): Promise<void> {
-  const raw = getSessionTokenFromRequest(req.headers.cookie);
-  const user = await getUserFromSessionToken(raw);
+  const user = await resolveRequestUser(req);
   if (!user) {
     reply.code(401).send({ error: "Unauthorized", message: "Sign in required", code: "AUTH_REQUIRED" });
     return;
@@ -230,8 +249,7 @@ async function avatarForInstallation(row: GitHubInstallationSelect, octokit: Oct
 }
 
 export async function githubInstallationRecordHandler(req: FastifyRequest, reply: FastifyReply): Promise<void> {
-  const raw = getSessionTokenFromRequest(req.headers.cookie);
-  const user = await getUserFromSessionToken(raw);
+  const user = await resolveRequestUser(req);
   if (!user) {
     reply.code(401).send({ error: "Unauthorized", message: "Sign in required", code: "AUTH_REQUIRED" });
     return;
@@ -270,8 +288,7 @@ export async function githubLinkInstallationHandler(
   req: FastifyRequest<{ Body: { installationId?: string } }>,
   reply: FastifyReply
 ): Promise<void> {
-  const raw = getSessionTokenFromRequest(req.headers.cookie);
-  const user = await getUserFromSessionToken(raw);
+  const user = await resolveRequestUser(req);
   if (!user) {
     reply.code(401).send({ error: "Unauthorized", message: "Sign in required", code: "AUTH_REQUIRED" });
     return;
@@ -363,8 +380,7 @@ export async function githubLinkInstallationHandler(
 }
 
 export async function githubIntegrationStatusHandler(req: FastifyRequest, reply: FastifyReply): Promise<void> {
-  const raw = getSessionTokenFromRequest(req.headers.cookie);
-  const user = await getUserFromSessionToken(raw);
+  const user = await resolveRequestUser(req);
   if (!user) {
     reply.code(401).send({ error: "Unauthorized", message: "Sign in required", code: "AUTH_REQUIRED" });
     return;
@@ -416,8 +432,7 @@ export async function githubRepoBranchesHandler(
   req: FastifyRequest<{ Params: { owner: string; repo: string }; Querystring: { installationId?: string } }>,
   reply: FastifyReply
 ): Promise<void> {
-  const raw = getSessionTokenFromRequest(req.headers.cookie);
-  const user = await getUserFromSessionToken(raw);
+  const user = await resolveRequestUser(req);
   if (!user) {
     reply.code(401).send({ error: "Unauthorized", message: "Sign in required", code: "AUTH_REQUIRED" });
     return;
@@ -496,8 +511,7 @@ export async function githubReposHandler(
   req: FastifyRequest<{ Querystring: { installationId?: string } }>,
   reply: FastifyReply
 ): Promise<void> {
-  const raw = getSessionTokenFromRequest(req.headers.cookie);
-  const user = await getUserFromSessionToken(raw);
+  const user = await resolveRequestUser(req);
   if (!user) {
     reply.code(401).send({ error: "Unauthorized", message: "Sign in required", code: "AUTH_REQUIRED" });
     return;
@@ -601,26 +615,35 @@ async function handleGithubPushDeploy(
 
   const triggered: string[] = [];
   for (const project of matches) {
-    const defaultEnv = await envRepo.findDefaultForProject(project.id);
-    if (!defaultEnv) {
-      logger.error({ projectId: project.id }, `${logPrefix}: no default environment — skipping deploy`);
-      continue;
+    const environments = await envRepo.findAllForProject(project.id);
+    const matchingEnvs = pushedBranch
+      ? environments.filter((e) => e.branch === pushedBranch)
+      : environments.filter((e) => e.name === "production");
+
+    if (matchingEnvs.length === 0) {
+      const defaultEnv = await envRepo.findDefaultForProject(project.id);
+      if (defaultEnv && (!pushedBranch || defaultEnv.branch === pushedBranch)) {
+        matchingEnvs.push(defaultEnv);
+      }
     }
-    if (pushedBranch && pushedBranch !== defaultEnv.branch) {
+
+    if (matchingEnvs.length === 0) {
       logger.info(
-        { projectId: project.id, pushedBranch, configuredBranch: defaultEnv.branch },
-        `${logPrefix}: branch mismatch — skipping`
+        { projectId: project.id, pushedBranch },
+        `${logPrefix}: no matching environment branch for push — skipping`
       );
       continue;
     }
 
-    logger.info(
-      { projectId: project.id, projectName: project.name, environmentId: defaultEnv.id, ref },
-      `${logPrefix}: triggering auto-deploy`
-    );
+    for (const targetEnv of matchingEnvs) {
+      logger.info(
+        { projectId: project.id, projectName: project.name, environmentId: targetEnv.id, envName: targetEnv.name, ref },
+        `${logPrefix}: triggering auto-deploy`
+      );
 
-    await enqueueJob("DEPLOY", project.id, {}, defaultEnv.id);
-    triggered.push(project.name);
+      await enqueueJob("DEPLOY", project.id, {}, targetEnv.id);
+      triggered.push(`${project.name}:${targetEnv.name}`);
+    }
   }
 
   return { triggered: triggered.length > 0, projects: triggered };

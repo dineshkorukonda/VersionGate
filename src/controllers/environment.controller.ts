@@ -2,6 +2,9 @@ import { FastifyRequest, FastifyReply } from "fastify";
 import { ProjectRepository } from "../repositories/project.repository";
 import { EnvironmentRepository } from "../repositories/environment.repository";
 import { DeploymentRepository } from "../repositories/deployment.repository";
+import { enqueueJob } from "../services/job-queue.service";
+import { validateEnvObject } from "../utils/env";
+import { logger } from "../utils/logger";
 
 const projectRepo = new ProjectRepository();
 const envRepo = new EnvironmentRepository();
@@ -79,6 +82,31 @@ export async function updateEnvironmentEnvHandler(
   }
 
   const newEnv = req.body?.env ?? {};
+  const envError = validateEnvObject(newEnv);
+  if (envError) {
+    return reply.code(400).send({ error: "ValidationError", message: envError });
+  }
+
   const updated = await envRepo.updateEnv(envId, newEnv);
   reply.code(200).send({ environment: updated });
+}
+
+export async function rollbackEnvironmentHandler(
+  req: FastifyRequest<{ Params: { id: string; envId: string } }>,
+  reply: FastifyReply
+): Promise<void> {
+  const { id: projectId, envId } = req.params;
+  const project = await projectRepo.findById(projectId);
+  if (!project) {
+    return reply.code(404).send({ error: "NotFound", message: "Project not found" });
+  }
+
+  const envRow = await envRepo.findById(envId);
+  if (!envRow || envRow.projectId !== projectId) {
+    return reply.code(404).send({ error: "NotFound", message: "Environment not found" });
+  }
+
+  const jobId = await enqueueJob("ROLLBACK", projectId, {}, envId);
+  logger.info({ projectId, environmentId: envId, jobId }, "API: stage rollback enqueued");
+  reply.code(202).send({ jobId, status: "PENDING", environmentId: envId });
 }

@@ -11,6 +11,8 @@ function isPublicApiPath(path: string): boolean {
   if (path.startsWith("/api/v1/setup/")) return true;
   if (path.startsWith("/api/v1/auth/")) return true;
   if (path.startsWith("/api/v1/webhooks/")) return true;
+  if (path.startsWith("/api/webhooks/")) return true;
+  if (path.startsWith("/api/auth/github/")) return true;
   if (
     path === "/api/v1/system/update/status" ||
     path === "/api/v1/system/update/apply" ||
@@ -26,12 +28,12 @@ export type AuthedRequest = FastifyRequest & {
 };
 
 /**
- * Auth gate for `/api/v1/*` when the database URL is configured.
+ * Auth gate for `/api/v1/*` and `/api/github/*` when the database URL is configured.
  * Supports session cookies and API Bearer tokens (`Authorization: Bearer vg_live_...` or `X-API-Token`).
  */
 export async function requireApiAuth(req: AuthedRequest, reply: FastifyReply): Promise<void> {
   const path = pathOnly(req.url);
-  if (!path.startsWith("/api/v1/")) return;
+  if (!path.startsWith("/api/v1/") && !path.startsWith("/api/github/")) return;
   if (isPublicApiPath(path)) return;
 
   if (!process.env.DATABASE_URL?.trim()) {

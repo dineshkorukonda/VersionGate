@@ -1,5 +1,5 @@
 import { config } from "../config/env";
-import { parseProjectEnv } from "../utils/env";
+import { decryptProjectEnv } from "../utils/env";
 import { DeploymentRepository } from "../repositories/deployment.repository";
 import { ProjectRepository } from "../repositories/project.repository";
 import { EnvironmentRepository, DEFAULT_ENVIRONMENT_NAME } from "../repositories/environment.repository";
@@ -101,8 +101,10 @@ export class DeploymentService {
       await stopContainer(containerName).catch(() => null);
       await removeContainer(containerName).catch(() => null);
       await freeHostPort(hostPort);
-      const projectEnv = parseProjectEnv(project.env);
-      const envKeys = Object.keys(projectEnv);
+      const projectEnv = decryptProjectEnv(project.env);
+      const stageEnv = decryptProjectEnv((envRow as typeof envRow & { env?: unknown }).env);
+      const mergedEnv = { ...projectEnv, ...stageEnv };
+      const envKeys = Object.keys(mergedEnv);
       if (envKeys.length > 0) {
         logger.info({ projectId, envKeys }, "Injecting env keys");
       }
@@ -112,7 +114,7 @@ export class DeploymentService {
         hostPort,
         envRow.appPort,
         config.dockerNetwork,
-        projectEnv
+        mergedEnv
       );
       this.checkCancelled(environmentId);
 

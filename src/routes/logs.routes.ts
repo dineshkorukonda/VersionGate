@@ -55,15 +55,37 @@ export async function logsRoutes(app: FastifyInstance): Promise<void> {
       }
 
       const onLiveLog = (line: string): void => {
+        lastIndex++;
         sendJson({ type: "log", line, timestamp: new Date().toISOString() });
       };
+      const onLiveStatus = (status: string): void => {
+        sendJson({ type: "status", status });
+        if (isTerminal(status)) {
+          cleanup();
+        }
+      };
+
       const unsubLog = logEmitter.subscribeLog(jobId, onLiveLog);
+      const unsubStatus = logEmitter.subscribeStatus(jobId, onLiveStatus);
+
+      const cleanup = (): void => {
+        if (closed) return;
+        closed = true;
+        clearInterval(poll);
+        unsubLog();
+        unsubStatus();
+        try {
+          socket.close();
+        } catch {
+          /* ignore */
+        }
+      };
 
       const poll = setInterval(async () => {
         try {
           const [j] = await db.select().from(jobs).where(eq(jobs.id, jobId)).limit(1);
           if (!j || closed) {
-            clearInterval(poll);
+            cleanup();
             return;
           }
           const currentLogs = Array.isArray(j.logs) ? (j.logs as string[]) : [];
@@ -77,20 +99,15 @@ export async function logsRoutes(app: FastifyInstance): Promise<void> {
           }
           if (isTerminal(j.status)) {
             sendJson({ type: "status", status: j.status });
-            clearInterval(poll);
-            unsubLog();
-            closed = true;
-            socket.close();
+            cleanup();
           }
         } catch {
-          clearInterval(poll);
+          cleanup();
         }
       }, 400);
 
       socket.on("close", () => {
-        closed = true;
-        clearInterval(poll);
-        unsubLog();
+        cleanup();
       });
     })();
   });
