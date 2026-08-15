@@ -18,4 +18,16 @@ describe("decryptProjectEnv", () => {
     const result = decryptProjectEnv(plaintextEnv);
     expect(result.API_KEY).toBe("plain_text_value");
   });
+
+  test("properly decrypts and merges project env and stage env overrides", () => {
+    const projectSecret = "global-db-pass";
+    const stageSecret = "staging-db-pass";
+    const projectEnv = decryptProjectEnv({ DB_PASS: encrypt(projectSecret), APP_ENV: "production" });
+    const stageEnv = decryptProjectEnv({ DB_PASS: encrypt(stageSecret), STAGE_FLAG: "true" });
+    const merged = { ...projectEnv, ...stageEnv };
+
+    expect(merged.DB_PASS).toBe(stageSecret);
+    expect(merged.APP_ENV).toBe("production");
+    expect(merged.STAGE_FLAG).toBe("true");
+  });
 });

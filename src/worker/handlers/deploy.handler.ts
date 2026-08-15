@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { config } from "../../config/env";
-import { parseProjectEnv } from "../../utils/env";
+import { decryptProjectEnv } from "../../utils/env";
 import { DeploymentRepository } from "../../repositories/deployment.repository";
 import { EnvironmentRepository, DEFAULT_ENVIRONMENT_NAME } from "../../repositories/environment.repository";
 import { getDb } from "../../db/client";
@@ -118,8 +118,8 @@ export async function runDeployJob(
     await stopContainer(containerName).catch(() => null);
     await removeContainer(containerName).catch(() => null);
     await freeHostPort(hostPort);
-    const projectEnv = parseProjectEnv(project.env);
-    const stageEnv = parseProjectEnv((environment as typeof environment & { env?: unknown }).env);
+    const projectEnv = decryptProjectEnv(project.env);
+    const stageEnv = decryptProjectEnv((environment as typeof environment & { env?: unknown }).env);
     const mergedEnv = { ...projectEnv, ...stageEnv };
     const envKeys = Object.keys(mergedEnv);
     if (envKeys.length > 0) {

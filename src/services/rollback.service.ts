@@ -1,4 +1,4 @@
-import { parseProjectEnv } from "../utils/env";
+import { decryptProjectEnv } from "../utils/env";
 import { DeploymentRepository } from "../repositories/deployment.repository";
 import { ProjectRepository } from "../repositories/project.repository";
 import { EnvironmentRepository } from "../repositories/environment.repository";
@@ -63,8 +63,8 @@ export class RollbackService {
       "Rolling back"
     );
 
-    const projectEnv = parseProjectEnv(project.env);
-    const stageEnv = parseProjectEnv((envRow as typeof envRow & { env?: unknown }).env);
+    const projectEnv = decryptProjectEnv(project.env);
+    const stageEnv = decryptProjectEnv((envRow as typeof envRow & { env?: unknown }).env);
     const mergedEnv = { ...projectEnv, ...stageEnv };
 
     const { inspectContainer } = await import("../utils/docker");

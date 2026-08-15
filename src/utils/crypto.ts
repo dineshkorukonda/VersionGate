@@ -29,11 +29,10 @@ function resolveEncryptionKey(): Buffer {
   return Buffer.from(generatedKey, "hex");
 }
 
-const encryptionKey = resolveEncryptionKey();
-
 export function encrypt(text: string): string {
+  const key = resolveEncryptionKey();
   const iv = randomBytes(IV_LENGTH_BYTES);
-  const cipher = createCipheriv(ENCRYPTION_ALGORITHM, encryptionKey, iv);
+  const cipher = createCipheriv(ENCRYPTION_ALGORITHM, key, iv);
   const encrypted = Buffer.concat([cipher.update(text, "utf8"), cipher.final()]);
   const authTag = cipher.getAuthTag();
 
@@ -55,7 +54,8 @@ export function decrypt(text: string): string {
     throw new Error("Invalid encrypted payload components");
   }
 
-  const decipher = createDecipheriv(ENCRYPTION_ALGORITHM, encryptionKey, iv);
+  const key = resolveEncryptionKey();
+  const decipher = createDecipheriv(ENCRYPTION_ALGORITHM, key, iv);
   decipher.setAuthTag(authTag);
 
   return Buffer.concat([decipher.update(encrypted), decipher.final()]).toString("utf8");
