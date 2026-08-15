@@ -35,34 +35,47 @@ export async function githubWebhookHandler(
     return reply.code(200).send({ skipped: true, reason: `Ignoring event: ${event}` });
   }
 
-  // Only deploy when pushed to the configured branch
+  // Find all environments matching the pushed branch
   const ref = req.body?.ref ?? "";
   const pushedBranch = ref.replace("refs/heads/", "");
-  const defaultEnv = await envRepo.findDefaultForProject(project.id);
-  if (!defaultEnv) {
-    logger.error({ projectId: project.id }, "Webhook: no default environment — skipping deploy");
-    return reply.code(500).send({ error: "Misconfigured", message: "Project has no default environment" });
+
+  const environments = await envRepo.findAllForProject(project.id);
+  const matchingEnvs = pushedBranch
+    ? environments.filter((e) => e.branch === pushedBranch)
+    : environments.filter((e) => e.name === "production");
+
+  if (matchingEnvs.length === 0) {
+    const defaultEnv = await envRepo.findDefaultForProject(project.id);
+    if (defaultEnv && (!pushedBranch || defaultEnv.branch === pushedBranch)) {
+      matchingEnvs.push(defaultEnv);
+    }
   }
 
-  if (pushedBranch && pushedBranch !== defaultEnv.branch) {
+  if (matchingEnvs.length === 0) {
     logger.info(
-      { projectId: project.id, pushedBranch, configuredBranch: defaultEnv.branch },
+      { projectId: project.id, pushedBranch },
       "Webhook: branch mismatch — skipping"
     );
     return reply.code(200).send({
       skipped: true,
-      reason: `Push to '${pushedBranch}', environment tracks '${defaultEnv.branch}'`,
+      reason: `Push to '${pushedBranch}' does not match any configured environment branch`,
     });
   }
 
-  logger.info(
-    { projectId: project.id, projectName: project.name, environmentId: defaultEnv.id, ref },
-    "Webhook: triggering auto-deploy"
-  );
+  for (const targetEnv of matchingEnvs) {
+    logger.info(
+      { projectId: project.id, projectName: project.name, environmentId: targetEnv.id, envName: targetEnv.name, ref },
+      "Webhook: triggering auto-deploy"
+    );
 
-  enqueueJob("DEPLOY", project.id, {}, defaultEnv.id).catch((err) => {
-    logger.error({ projectId: project.id, err }, "Webhook: failed to enqueue deploy job");
+    enqueueJob("DEPLOY", project.id, {}, targetEnv.id).catch((err) => {
+      logger.error({ projectId: project.id, environmentId: targetEnv.id, err }, "Webhook: failed to enqueue deploy job");
+    });
+  }
+
+  return reply.code(200).send({
+    triggered: true,
+    project: project.name,
+    environments: matchingEnvs.map((e) => e.name),
   });
-
-  return reply.code(200).send({ triggered: true, project: project.name });
 }
