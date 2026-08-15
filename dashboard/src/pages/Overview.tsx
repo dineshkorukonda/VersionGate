@@ -1,6 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
-import { DonutChart } from "@/components/charts/DonutChart";
-import { SimpleBarChart } from "@/components/charts/SimpleBarChart";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   getAllDeployments,
@@ -10,7 +8,6 @@ import {
   listProjectJobs,
   triggerDeploy,
   type Deployment,
-  type InstanceSettings,
   type JobRecord,
   type Project,
 } from "@/lib/api";
@@ -43,9 +40,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { formatPublicDashboardUrl, normalizePublicBasePath } from "@/lib/public-url";
 import { AggregateJobLogStream } from "@/components/AggregateJobLogStream";
-import { BookOpen, Globe, Shield, Terminal } from "lucide-react";
 
 function timeAgo(date: string): string {
   const seconds = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
@@ -71,27 +66,27 @@ export function Overview() {
   const [deployments, setDeployments] = useState<Deployment[]>([]);
   const [latestJobs, setLatestJobs] = useState<Record<string, JobRecord | undefined>>({});
   const [recentJobs, setRecentJobs] = useState<JobRecord[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [instanceSettings, setInstanceSettings] = useState<InstanceSettings | null>(null);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [deleteTarget, setDeleteTarget] = useState<Project | null>(null);
 
-  const load = async () => {
-    setLoading(true);
+  const loadData = useCallback(async (isSilent = false) => {
+    if (!isSilent && projects.length === 0) {
+      setInitialLoading(true);
+    }
     try {
       const [p, d, allJobs, inst] = await Promise.all([
         getProjects(),
         getAllDeployments(),
-        listAllJobs({ limit: 5 }),
+        listAllJobs({ limit: 6 }),
         getInstanceSettings().catch(() => null),
       ]);
       setProjects(p.projects);
       setDeployments(d.deployments);
       setRecentJobs(allJobs.jobs);
-      setInstanceSettings(inst);
       setConfiguredPublicHost(inst?.publicDomain);
 
       const jobEntries = await Promise.all(
-        p.projects.map(async (proj) => {
+        p.projects.map(async (proj: Project) => {
           try {
             const r = await listProjectJobs(proj.id, { limit: 1 });
             return [proj.id, r.jobs[0]] as const;
@@ -102,15 +97,19 @@ export function Overview() {
       );
       setLatestJobs(Object.fromEntries(jobEntries));
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to load");
+      if (!isSilent) {
+        toast.error(e instanceof Error ? e.message : "Failed to load dashboard state");
+      }
     } finally {
-      setLoading(false);
+      setInitialLoading(false);
     }
-  };
+  }, [projects.length]);
 
   useEffect(() => {
-    void load();
-  }, []);
+    void loadData(false);
+    const interval = window.setInterval(() => void loadData(true), 12000);
+    return () => window.clearInterval(interval);
+  }, [loadData]);
 
   const stats = useMemo(() => {
     let running = 0;
@@ -125,38 +124,6 @@ export function Overview() {
     return { total: projects.length, running, failed, deploying };
   }, [projects, deployments]);
 
-  const projectHealthPie = useMemo(() => {
-    const m = new Map<string, number>();
-    for (const proj of projects) {
-      const s = projectDeploymentStatus(proj.id, deployments);
-      m.set(s, (m.get(s) ?? 0) + 1);
-    }
-    return [...m.entries()].map(([name, value]) => ({ name, value }));
-  }, [projects, deployments]);
-
-  const deploymentStatusPie = useMemo(() => {
-    const m = new Map<string, number>();
-    for (const d of deployments) {
-      m.set(d.status, (m.get(d.status) ?? 0) + 1);
-    }
-    return [...m.entries()].map(([name, value]) => ({ name, value }));
-  }, [deployments]);
-
-  const recentJobTypesBar = useMemo(() => {
-    const m = new Map<string, number>();
-    for (const j of recentJobs) {
-      m.set(j.type, (m.get(j.type) ?? 0) + 1);
-    }
-    return [...m.entries()]
-      .sort((a, b) => b[1] - a[1])
-      .map(([name, value]) => ({ name, value }));
-  }, [recentJobs]);
-
-  const dashboardPublicUrl = useMemo(() => {
-    if (!instanceSettings) return null;
-    return formatPublicDashboardUrl(instanceSettings.publicDomain ?? "", instanceSettings.publicBasePath ?? "/");
-  }, [instanceSettings]);
-
   const onDeploy = async (projectId: string) => {
     try {
       const r = await triggerDeploy(projectId);
@@ -167,7 +134,7 @@ export function Overview() {
     }
   };
 
-  if (loading) {
+  if (initialLoading && projects.length === 0) {
     return (
       <div className="space-y-8">
         <div className="space-y-2">
@@ -175,14 +142,14 @@ export function Overview() {
           <Skeleton className="h-4 w-full max-w-md" />
         </div>
         <div className="flex w-full divide-x divide-border border border-border bg-background rounded-md overflow-hidden">
-          <StatCard borderless label="Projects" value={stats.total} />
-          <StatCard borderless label="Active" value={stats.running} />
-          <StatCard borderless label="Deploys" value={stats.deploying} />
-          <StatCard borderless label="Failed" value={stats.failed} />
+          <StatCard borderless label="Projects" value={0} />
+          <StatCard borderless label="Active" value={0} />
+          <StatCard borderless label="Deploys" value={0} />
+          <StatCard borderless label="Failed" value={0} />
         </div>
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {[1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-52 " />
+            <Skeleton key={i} className="h-52" />
           ))}
         </div>
       </div>
@@ -193,170 +160,41 @@ export function Overview() {
     <div className="w-full space-y-8">
       <PageHeader
         title="Overview"
-        description="Cluster summary — projects, deploy state, and recent activity"
+        description="Cluster summary — projects, live routing slots, and deployment stream"
         actions={
-          <>
+          <div className="flex items-center gap-2">
             <Link to="/activity" className={buttonVariants({ variant: "outline", size: "sm" })}>
               Activity
             </Link>
             <Link to="/system" className={buttonVariants({ variant: "outline", size: "sm" })}>
               System
             </Link>
-            <Button onClick={launchCreate}>+ New Project</Button>
-          </>
+            <Button onClick={launchCreate} size="sm">
+              + New Project
+            </Button>
+          </div>
         }
       />
 
-<div className="flex w-full divide-x divide-border border border-border bg-background rounded-md overflow-hidden">
-          <StatCard borderless label="Projects" value={stats.total} />
-          <StatCard borderless label="Active" value={stats.running} />
-          <StatCard borderless label="Deploys" value={stats.deploying} />
-          <StatCard borderless label="Failed" value={stats.failed} />
-        </div>
-
-      <Card className="border-border bg-card">
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Globe className="size-5 text-muted-foreground" aria-hidden />
-            Public hostname
-          </CardTitle>
-          <CardDescription>Used for Live / Open links (set your VM IP or domain here).</CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div className="min-w-0 flex-1 space-y-2">
-            {dashboardPublicUrl ? (
-              <>
-                <a
-                  href={dashboardPublicUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="break-all font-mono text-sm text-primary underline decoration-primary/40 underline-offset-2 hover:decoration-primary"
-                >
-                  {dashboardPublicUrl}
-                </a>
-                {instanceSettings ? (
-                  <p className="text-xs text-muted-foreground">
-                    Hostname{" "}
-                    <span className="font-mono text-foreground">{instanceSettings.publicDomain || "—"}</span>
-                    {" · "}
-                    Path{" "}
-                    <span className="font-mono text-foreground">
-                      {normalizePublicBasePath(instanceSettings.publicBasePath || "/")}
-                    </span>
-                  </p>
-                ) : null}
-              </>
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                Set your public IP or domain so Open links are not 127.0.0.1.
-              </p>
-            )}
-          </div>
-          <Link
-            to="/settings#dashboard-url"
-            className={buttonVariants({ variant: "default", size: "sm", className: "w-full shrink-0 sm:w-auto" })}
-          >
-            Change hostname
-          </Link>
-        </CardContent>
-      </Card>
-
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card className="border-primary/25 bg-primary text-primary-foreground shadow-md">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base text-primary-foreground">
-              <BookOpen className="size-4" />
-              Runbooks & docs
-            </CardTitle>
-            <CardDescription className="text-primary-foreground/85">
-              Setup, API reference, and host prerequisites for VersionGate.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <a
-              href="https://github.com/dinexh/VersionGate/blob/main/docs/SETUP.md"
-              target="_blank"
-              rel="noreferrer"
-              className={buttonVariants({ variant: "secondary", className: "w-full bg-white text-primary hover:bg-white/90" })}
-            >
-              Open documentation
-            </a>
-          </CardContent>
-        </Card>
-        <Card className="border-border bg-card">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Terminal className="size-4 text-muted-foreground" />
-              CLI & host
-            </CardTitle>
-            <CardDescription>Preflight, PM2, Docker, and logs still live on the server shell.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Link to="/system" className={buttonVariants({ variant: "outline", className: "w-full" })}>
-              System health
-            </Link>
-          </CardContent>
-        </Card>
-        <Card className="border-border bg-card">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Shield className="size-4 text-muted-foreground" />
-              Activity & audit
-            </CardTitle>
-            <CardDescription>Trace deploy and rollback jobs across every project.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Link to="/activity" className={buttonVariants({ variant: "outline", className: "w-full" })}>
-              Global activity
-            </Link>
-          </CardContent>
-        </Card>
+      {/* Top Stat Matrix */}
+      <div className="flex w-full divide-x divide-border border border-border bg-background rounded-md overflow-hidden font-mono text-xs">
+        <StatCard borderless label="Total Projects" value={stats.total} />
+        <StatCard borderless label="Active Containers" value={stats.running} />
+        <StatCard borderless label="In Pipeline" value={stats.deploying} />
+        <StatCard borderless label="Failed / Alert" value={stats.failed} />
       </div>
-
-      {projects.length > 0 ? (
-        <div className="grid gap-4 lg:grid-cols-3">
-          <Card className="border-border bg-card">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base">Projects by status</CardTitle>
-              <CardDescription>Derived from the latest deployment per project.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <DonutChart data={projectHealthPie} emptyLabel="No projects" />
-            </CardContent>
-          </Card>
-          <Card className="border-border bg-card">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base">All deployments</CardTitle>
-              <CardDescription>Every recorded deployment version.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <DonutChart data={deploymentStatusPie} emptyLabel="No deployments" />
-            </CardContent>
-          </Card>
-          <Card className="border-border bg-card">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base">Recent jobs by type</CardTitle>
-              <CardDescription>Latest five jobs across the instance.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <SimpleBarChart data={recentJobTypesBar} />
-            </CardContent>
-          </Card>
-        </div>
-      ) : null}
 
       {projects.length === 0 ? (
         <Card className="border-dashed border-border/60 bg-card/40">
           <CardContent className="flex flex-col items-center justify-center gap-6 py-16">
             <div className="space-y-2 text-center">
-              <h3 className="text-lg font-semibold">No projects yet</h3>
-              <p className="max-w-md text-sm leading-relaxed text-muted-foreground">
-                Add a Git-backed project to clone, build, and run behind blue/green routing. You will pick branch, build
-                context, app port, and health path before the first deploy.
+              <h3 className="font-mono text-base font-semibold">No active projects</h3>
+              <p className="max-w-md font-mono text-xs leading-relaxed text-muted-foreground">
+                Deploy your first Git-backed project with zero-downtime blue/green routing and instant rollback support.
               </p>
             </div>
-            <Button size="lg" onClick={launchCreate}>
-              Create your first project
+            <Button size="sm" onClick={launchCreate} className="font-mono text-xs">
+              + Create First Project
             </Button>
           </CardContent>
         </Card>
@@ -364,17 +202,20 @@ export function Overview() {
         <div className="space-y-8">
           <div>
             <div className="mb-4 flex items-center justify-between gap-3">
-              <h2 className="text-lg font-semibold tracking-tight">Projects</h2>
-              <div className="flex items-center gap-3">
-                <Link
-                  to="/projects"
-                  className="text-xs font-medium text-primary underline-offset-2 hover:underline"
-                >
-                  Table view
-                </Link>
-                <span className="text-xs text-muted-foreground">{projects.length} total</span>
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-sm font-semibold tracking-tight">Active Projects</span>
+                <Badge variant="outline" className="font-mono text-[10px]">
+                  {projects.length}
+                </Badge>
               </div>
+              <Link
+                to="/projects"
+                className="font-mono text-xs text-primary underline-offset-2 hover:underline"
+              >
+                [ View Full Table ]
+              </Link>
             </div>
+
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
               {projects.map((p) => {
                 const mine = deployments.filter((d) => d.projectId === p.id);
@@ -383,7 +224,10 @@ export function Overview() {
                 const job = latestJobs[p.id];
                 const hostPort = row?.port ?? null;
                 const envLabel = row ? guessEnvironmentLabel(p, row) : "production";
-                const hostUrl = hostPort != null ? publicEnvironmentUrl(p, envLabel !== "—" ? envLabel : "production", hostPort) : null;
+                const hostUrl =
+                  hostPort != null
+                    ? publicEnvironmentUrl(p, envLabel !== "—" ? envLabel : "production", hostPort)
+                    : null;
                 const active = getActiveDeployment(p.id, deployments);
                 const deploying = getDeployingDeployment(p.id, deployments);
                 const bluePort = p.basePort;
@@ -391,37 +235,45 @@ export function Overview() {
                 const prodMine = mine.filter((d) => d.port === p.basePort || d.port === p.basePort + 1);
                 const blueLatest = latestDeploymentForColor(prodMine, "BLUE");
                 const greenLatest = latestDeploymentForColor(prodMine, "GREEN");
-                const lastDeploy = mine.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+                const lastDeploy = mine.sort(
+                  (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+                )[0];
 
                 return (
                   <Card
                     key={p.id}
-                    className="border-border/50 bg-card/60 shadow-none ring-1 ring-border/30 transition-all hover:ring-primary/30 hover:shadow-md hover:shadow-primary/5"
+                    className="border-border/50 bg-card/60 shadow-none ring-1 ring-border/30 transition-all hover:ring-primary/30"
                   >
                     <CardHeader className="pb-3">
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0 flex-1">
-                          <CardTitle className="truncate text-base font-semibold transition-colors hover:text-primary">
+                          <CardTitle className="truncate font-mono text-sm font-semibold transition-colors hover:text-primary">
                             <Link to={`/projects/${p.id}`}>{p.name}</Link>
                           </CardTitle>
-                          <CardDescription className="mt-1 space-y-0.5 font-mono text-xs">
-                            <div className="truncate">Branch: {p.branch}</div>
-                            <div className="truncate text-muted-foreground">Region: {regionLabel(p)}</div>
+                          <CardDescription className="mt-1 space-y-0.5 font-mono text-[11px]">
+                            <div className="truncate text-muted-foreground">Branch: {p.branch}</div>
+                            <div className="truncate text-muted-foreground/70">Host: {regionLabel(p)}</div>
                           </CardDescription>
                         </div>
                         <div className="flex shrink-0 items-center gap-2">
                           <StatusBadge status={st} />
                           <DropdownMenu>
                             <DropdownMenuTrigger
-                              className="relative z-20 inline-flex size-7 items-center justify-center rounded-md border border-border/60 bg-card/90 text-muted-foreground  hover:bg-muted hover:text-foreground"
+                              className="relative z-20 inline-flex size-7 items-center justify-center rounded-md border border-border/60 bg-card/90 font-mono text-muted-foreground hover:bg-muted hover:text-foreground"
                               onPointerDown={(e) => e.stopPropagation()}
                             >
                               <span className="sr-only">Project actions</span>
-                              <span className="text-lg leading-none" aria-hidden>
-                                ⋯
-                              </span>
+                              <span className="text-xs leading-none">...</span>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="z-50 w-44">
+                            <DropdownMenuContent align="end" className="z-50 w-44 font-mono text-xs">
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  navigate(`/projects/${p.id}`);
+                                }}
+                              >
+                                Project Settings
+                              </DropdownMenuItem>
                               <DropdownMenuItem
                                 variant="destructive"
                                 onClick={(e) => {
@@ -429,42 +281,42 @@ export function Overview() {
                                   setDeleteTarget(p);
                                 }}
                               >
-                                Delete project
+                                Delete Project
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </div>
                       </div>
                     </CardHeader>
+
                     <CardContent className="space-y-3 pb-3">
-                      {st === "DEPLOYING" ? (
+                      {st === "DEPLOYING" && (
                         <div className="relative z-20 space-y-1">
-                          <p className="text-[10px] font-medium uppercase tracking-wide text-sky-700">Deploy in progress</p>
-                          <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                          <p className="font-mono text-[10px] uppercase text-sky-400">
+                            [ PIPELINE ACTIVE ] Deploying container...
+                          </p>
+                          <div className="h-1 w-full overflow-hidden rounded-full bg-muted">
                             <div className="h-full w-2/5 animate-pulse rounded-full bg-sky-500" />
                           </div>
                         </div>
-                      ) : null}
-                      <div className="text-xs text-muted-foreground">
+                      )}
+
+                      <div className="font-mono text-xs text-muted-foreground truncate">
                         <a
                           href={/^https?:\/\//i.test(p.repoUrl) ? p.repoUrl : `https://${p.repoUrl}`}
                           target="_blank"
                           rel="noreferrer"
                           onClick={(e) => e.stopPropagation()}
-                          className="font-mono hover:text-primary hover:underline"
+                          className="hover:text-primary hover:underline"
                         >
                           {p.repoUrl.replace(/^https?:\/\/(www\.)?/, "")}
                         </a>
                       </div>
 
+                      {/* Blue / Green Slots */}
                       <div className="space-y-2">
                         <div className="flex flex-wrap items-center gap-2">
                           {row && <SlotBadge color={row.color} />}
-                          {envLabel && envLabel !== "—" ? (
-                            <Badge variant="outline" className="font-mono text-[9px] uppercase">
-                              {envLabel}
-                            </Badge>
-                          ) : null}
                           {hostUrl ? (
                             <a
                               href={hostUrl}
@@ -472,15 +324,16 @@ export function Overview() {
                               rel="noreferrer"
                               className={cn(
                                 buttonVariants({ variant: "default", size: "xs" }),
-                                "bg-emerald-600 hover:bg-emerald-700 text-white font-medium border-emerald-500/30 text-[10px]"
+                                "bg-emerald-600 hover:bg-emerald-700 text-white font-mono text-[10px]"
                               )}
                             >
-                              Open App ({hostUrl.replace(/^https?:\/\//, "")})
+                              [ Open Live App ]
                             </a>
                           ) : (
-                            <span className="text-xs text-muted-foreground/50">Not deployed</span>
+                            <span className="font-mono text-xs text-muted-foreground/60">Not deployed</span>
                           )}
                         </div>
+
                         <div className="grid grid-cols-2 gap-2 text-[10px] leading-tight">
                           {(["BLUE", "GREEN"] as const).map((c) => {
                             const port = c === "BLUE" ? bluePort : greenPort;
@@ -491,24 +344,26 @@ export function Overview() {
                             return (
                               <div
                                 key={c}
-                                className={`rounded-md border px-2 py-1.5 ${
+                                className={`rounded-md border p-2 font-mono ${
                                   c === "BLUE"
-                                    ? "border-sky-500/25 bg-sky-500/[0.06]"
-                                    : "border-emerald-500/25 bg-emerald-500/[0.06]"
+                                    ? "border-sky-500/25 bg-sky-500/[0.05]"
+                                    : "border-emerald-500/25 bg-emerald-500/[0.05]"
                                 }`}
                               >
                                 <div className="flex items-center justify-between gap-1">
-                                  <span className="font-mono font-semibold text-foreground">{c === "BLUE" ? "Blue" : "Green"}</span>
+                                  <span className="font-semibold text-foreground">
+                                    {c === "BLUE" ? "Slot A" : "Slot B"}
+                                  </span>
                                   {isLive ? (
-                                    <Badge className="h-4 bg-emerald-600/90 px-1 py-0 text-[9px] leading-none text-white hover:bg-emerald-600">
+                                    <Badge className="h-4 bg-emerald-600 px-1 py-0 text-[8px] font-bold text-white">
                                       LIVE
                                     </Badge>
                                   ) : isDeploy ? (
-                                    <Badge variant="outline" className="h-4 border-amber-500/40 px-1 py-0 text-[9px] text-amber-200">
+                                    <Badge variant="outline" className="h-4 border-amber-500/40 px-1 py-0 text-[8px] text-amber-300">
                                       DEPLOY
                                     </Badge>
                                   ) : (
-                                    <span className="text-muted-foreground">idle</span>
+                                    <span className="text-muted-foreground/60">idle</span>
                                   )}
                                 </div>
                                 <a
@@ -516,16 +371,16 @@ export function Overview() {
                                   target="_blank"
                                   rel="noreferrer"
                                   onClick={(e) => e.stopPropagation()}
-                                  className="relative z-20 mt-0.5 block truncate font-mono text-muted-foreground hover:text-primary hover:underline"
+                                  className="relative z-20 mt-1 block truncate font-mono text-muted-foreground hover:text-primary hover:underline"
                                 >
                                   :{port}
                                 </a>
                                 {latest ? (
                                   <p className="mt-0.5 truncate text-muted-foreground" title={latest.containerName}>
-                                    v{latest.version} · {latest.status === "ACTIVE" ? "active" : latest.status.toLowerCase()}
+                                    v{latest.version} ({latest.status.toLowerCase()})
                                   </p>
                                 ) : (
-                                  <p className="mt-0.5 text-muted-foreground/70">—</p>
+                                  <p className="mt-0.5 text-muted-foreground/50">—</p>
                                 )}
                               </div>
                             );
@@ -533,17 +388,21 @@ export function Overview() {
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-4 border-t border-border/30 pt-3 text-xs text-muted-foreground">
-                        <span className="font-mono tabular-nums">Container port {p.appPort}</span>
-                        {lastDeploy && <span>Last deploy {timeAgo(lastDeploy.createdAt)}</span>}
-                        <div className="ml-auto flex items-center gap-1.5">
+                      {/* Footer Actions */}
+                      <div className="flex items-center gap-3 border-t border-border/30 pt-3 font-mono text-[11px] text-muted-foreground">
+                        <span>Port {p.appPort}</span>
+                        {lastDeploy && <span>{timeAgo(lastDeploy.createdAt)}</span>}
+                        <div className="ml-auto flex items-center gap-2">
                           {job && (
                             <Link
                               to={`/projects/${p.id}/deploy/${job.id}`}
                               onClick={(e) => e.stopPropagation()}
                               className="relative z-20"
                             >
-                              <Badge variant={job.status === "FAILED" ? "destructive" : "secondary"} className="font-mono text-[10px]">
+                              <Badge
+                                variant={job.status === "FAILED" ? "destructive" : "secondary"}
+                                className="font-mono text-[10px]"
+                              >
                                 {job.status}
                               </Badge>
                             </Link>
@@ -551,7 +410,7 @@ export function Overview() {
                           <Button
                             size="sm"
                             variant="ghost"
-                            className="relative z-20 h-7 px-2 text-xs"
+                            className="relative z-20 h-7 px-2 font-mono text-xs"
                             onClick={(e) => {
                               e.stopPropagation();
                               e.preventDefault();
@@ -566,32 +425,28 @@ export function Overview() {
                   </Card>
                 );
               })}
-
-              <Card
-                className="flex min-h-[180px] cursor-pointer items-center justify-center border-dashed border-border/40 bg-card/20 shadow-none ring-1 ring-border/20 transition-all hover:bg-card/40 hover:ring-primary/20"
-                onClick={launchCreate}
-              >
-                <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                  <span className="text-sm font-medium">New project</span>
-                  <span className="text-center text-xs">Add another repository</span>
-                </div>
-              </Card>
             </div>
           </div>
 
+          {/* Recent Activity Stream */}
           {recentJobs.length > 0 && (
-            <Card className="border-border/50 bg-card/50 shadow-none ring-1 ring-border/25">
+            <Card className="border-border bg-card">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
                 <div>
-                  <CardTitle className="text-base">Recent activity</CardTitle>
-                  <CardDescription>Latest deploy and rollback jobs across all projects</CardDescription>
+                  <CardTitle className="font-mono text-sm font-semibold">Recent Pipeline Executions</CardTitle>
+                  <CardDescription className="font-mono text-xs">
+                    Latest deployment and rollback runs across all project environments
+                  </CardDescription>
                 </div>
-                <Link to="/activity" className={buttonVariants({ variant: "ghost", size: "sm", className: "text-xs" })}>
-                  View all
+                <Link
+                  to="/activity"
+                  className={buttonVariants({ variant: "ghost", size: "sm", className: "font-mono text-xs" })}
+                >
+                  [ View All Activity ]
                 </Link>
               </CardHeader>
               <CardContent className="px-0 pb-2">
-                <div className="divide-y divide-border/30">
+                <div className="divide-y divide-border/40 font-mono text-xs">
                   {recentJobs.map((job) => {
                     const badgeVar =
                       job.status === "COMPLETE"
@@ -604,11 +459,11 @@ export function Overview() {
                       <Link
                         key={job.id}
                         to={`/projects/${job.projectId}/deploy/${job.id}`}
-                        className="flex items-center justify-between gap-4 px-4 py-3 transition-colors hover:bg-muted/30"
+                        className="flex items-center justify-between gap-4 px-4 py-3 transition-colors hover:bg-muted/40"
                       >
                         <div className="flex min-w-0 items-center gap-3">
-                          <div
-                            className={`size-2 shrink-0 rounded-full ${
+                          <span
+                            className={`inline-block size-2 shrink-0 rounded-full ${
                               job.status === "COMPLETE"
                                 ? "bg-emerald-500"
                                 : job.status === "FAILED"
@@ -619,9 +474,12 @@ export function Overview() {
                             }`}
                           />
                           <div className="min-w-0">
-                            <span className="text-sm font-medium">{job.project?.name ?? "Unknown"}</span>
-                            <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                              <span className="font-mono">{job.type}</span>
+                            <span className="font-semibold text-foreground">
+                              {job.project?.name ?? "Unknown Project"}
+                            </span>
+                            <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+                              <span className="uppercase">{job.type}</span>
+                              <span>·</span>
                               <span>{timeAgo(job.createdAt)}</span>
                             </div>
                           </div>
@@ -630,7 +488,7 @@ export function Overview() {
                           <Badge variant={badgeVar} className="font-mono text-[10px]">
                             {job.status}
                           </Badge>
-                          <span className="text-xs text-muted-foreground">Open</span>
+                          <span className="text-muted-foreground">[ View Log ]</span>
                         </div>
                       </Link>
                     );
@@ -641,8 +499,10 @@ export function Overview() {
           )}
 
           <section className="space-y-2">
-            <h2 className="text-sm font-medium text-muted-foreground">Recent system logs</h2>
-            <AggregateJobLogStream title="Live deployment tail" pollMs={7000} />
+            <h2 className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
+              Aggregate Real-Time Cluster Logs
+            </h2>
+            <AggregateJobLogStream title="Live deployment tail" pollMs={8000} />
           </section>
         </div>
       )}
@@ -657,7 +517,7 @@ export function Overview() {
           projectName={deleteTarget.name}
           navigateTo={false}
           onDeleted={() => {
-            void load();
+            void loadData(false);
             setDeleteTarget(null);
           }}
         />
