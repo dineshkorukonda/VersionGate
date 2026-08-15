@@ -10,7 +10,6 @@ import { Input } from "@/components/ui/input";
 import {
   ApiError,
   applyNginxSite,
-  applySelfUpdateFromSettings,
   checkSelfUpdateFromSettings,
   createApiToken,
   enableSelfUpdateFromSettings,
@@ -28,6 +27,7 @@ import {
 } from "@/lib/api";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { SystemUpdateModal } from "@/components/modals/SystemUpdateModal";
 import { DonutChart } from "@/components/charts/DonutChart";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Globe } from "lucide-react";
@@ -204,6 +204,7 @@ export function Settings() {
   const [publicUrlSaving, setPublicUrlSaving] = useState(false);
   const [nginxApplying, setNginxApplying] = useState(false);
   const [certbotRunning, setCertbotRunning] = useState(false);
+  const [suModalOpen, setSuModalOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -361,25 +362,7 @@ export function Settings() {
   };
 
   const onApplySelfUpdate = async () => {
-    if (!window.confirm("Pull latest code, rebuild the dashboard, and reload PM2? The UI may disconnect briefly.")) {
-      return;
-    }
-    setSuBusy("apply");
-    try {
-      const r = await applySelfUpdateFromSettings();
-      if (r.ok) {
-        toast.success("Update applied — PM2 reload scheduled. Refresh this page in a few seconds.");
-        await refreshSelfUpdate();
-      } else {
-        toast.error(r.error ?? "Update failed", {
-          description: r.steps?.length ? r.steps.slice(-3).join(" → ") : undefined,
-        });
-      }
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Update failed");
-    } finally {
-      setSuBusy(null);
-    }
+    setSuModalOpen(true);
   };
 
   const onSaveSelfUpdateOpts = async (e: React.FormEvent) => {
@@ -1136,6 +1119,15 @@ export function Settings() {
           <ApiTokensCard />
         </TabsContent>
       </Tabs>
+
+      <SystemUpdateModal
+        open={suModalOpen}
+        onOpenChange={setSuModalOpen}
+        branch={selfUpdate?.branch ?? "main"}
+        onComplete={() => {
+          void refreshSelfUpdate();
+        }}
+      />
     </div>
   );
 }

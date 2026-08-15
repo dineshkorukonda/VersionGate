@@ -419,12 +419,25 @@ export function enableSelfUpdateFromSettings(): Promise<{ message: string }> {
   return request("POST", "/settings/self-update/enable");
 }
 
+export interface SelfUpdateProgress {
+  status: "idle" | "running" | "complete" | "failed";
+  startedAt: string | null;
+  finishedAt: string | null;
+  currentStep: string | null;
+  steps: string[];
+  error?: string;
+}
+
 export function checkSelfUpdateFromSettings(): Promise<SelfUpdateGitStatus> {
   return request("POST", "/settings/self-update/check");
 }
 
-export function applySelfUpdateFromSettings(): Promise<{ ok: boolean; steps: string[]; error?: string }> {
+export function applySelfUpdateFromSettings(): Promise<{ ok: boolean; started?: boolean; steps: string[]; error?: string }> {
   return request("POST", "/settings/self-update/apply");
+}
+
+export function getSelfUpdateProgress(): Promise<SelfUpdateProgress> {
+  return request("GET", "/settings/self-update/progress");
 }
 
 export function getInstanceSettings(): Promise<InstanceSettings> {
