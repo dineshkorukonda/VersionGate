@@ -19,7 +19,7 @@ import { projectRoot, envFilePath } from "../src/utils/paths";
 
 function printHeader() {
   console.log("\n=======================================================");
-  console.log("  🚀 VersionGate Setup & Preflight Inspection Wizard");
+  console.log("  [ SETUP ] VersionGate Setup & Preflight Inspection Wizard");
   console.log("=======================================================\n");
 }
 
@@ -43,7 +43,7 @@ function detectOS(): { name: string; distro?: string } {
 
 function suggestInstallCommands(missing: string[], os: { name: string; distro?: string }) {
   console.log("\n-------------------------------------------------------");
-  console.log(" 💡 OS-Specific Dependency Installation Suggestions");
+  console.log(" [ INFO ] OS-Specific Dependency Installation Suggestions");
   console.log("-------------------------------------------------------\n");
 
   if (os.name === "macOS") {
@@ -63,7 +63,7 @@ function suggestInstallCommands(missing: string[], os: { name: string; distro?: 
 }
 
 async function ensureDotEnv(): Promise<boolean> {
-  console.log("📦 1. Provisioning Environment Configuration (.env)...");
+  console.log("01 // Provisioning Environment Configuration (.env)...");
   if (!existsSync(envFilePath)) {
     const examplePath = join(projectRoot, ".env.example");
     let content = "";
@@ -84,59 +84,59 @@ ENCRYPTION_KEY=${randomBytes(32).toString("hex")}
     }
 
     writeFileSync(envFilePath, content, "utf8");
-    console.log("   ✅ Created .env file with secure ENCRYPTION_KEY.");
+    console.log("   [ OK ] Created .env file with secure ENCRYPTION_KEY.");
   } else {
-    console.log("   ✅ Existing .env file found.");
+    console.log("   [ OK ] Existing .env file found.");
   }
   return true;
 }
 
 function ensureDockerNetwork() {
-  console.log("\n🐳 2. Initializing Docker Network (versiongate-net)...");
+  console.log("\n02 // Initializing Docker Network (versiongate-net)...");
   try {
     const networks = execSync("docker network ls --format '{{.Name}}'", { encoding: "utf8" });
     if (!networks.includes("versiongate-net")) {
       execSync("docker network create versiongate-net");
-      console.log("   ✅ Docker network 'versiongate-net' created.");
+      console.log("   [ OK ] Docker network 'versiongate-net' created.");
     } else {
-      console.log("   ✅ Docker network 'versiongate-net' already exists.");
+      console.log("   [ OK ] Docker network 'versiongate-net' already exists.");
     }
   } catch (err: any) {
-    console.log("   ⚠️  Docker daemon not reachable or network creation skipped.");
+    console.log("   [ WARN ] Docker daemon not reachable or network creation skipped.");
   }
 }
 
 function ensureLocalDatabaseCreated() {
-  console.log("\n🗄️  3. Verifying Local PostgreSQL Database...");
+  console.log("\n03 // Verifying Local PostgreSQL Database...");
   try {
     execSync("createdb versiongate 2>/dev/null || true", { stdio: "ignore" });
-    console.log("   ✅ Database 'versiongate' verified/ready.");
+    console.log("   [ OK ] Database 'versiongate' verified/ready.");
   } catch {
-    console.log("   ⚠️  Database verification skipped.");
+    console.log("   [ WARN ] Database verification skipped.");
   }
 }
 
 async function syncDatabaseSchema() {
-  console.log("\n⚡ 4. Syncing PostgreSQL Schema via Drizzle ORM...");
+  console.log("\n04 // Syncing PostgreSQL Schema via Drizzle ORM...");
   try {
     const result = runDrizzleSchemaSync();
     if (result.ok) {
-      console.log(`   ✅ Drizzle schema synchronized (${result.appliedCount} statements executed).`);
+      console.log(`   [ OK ] Drizzle schema synchronized (${result.appliedCount} statements executed).`);
     } else {
-      console.log(`   ⚠️  Drizzle schema sync completed with warnings: ${result.error}`);
+      console.log(`   [ WARN ] Drizzle schema sync completed with warnings: ${result.error}`);
     }
   } catch (err: any) {
-    console.log(`   ⚠️  Database sync skipped or DATABASE_URL not ready: ${err.message}`);
+    console.log(`   [ WARN ] Database sync skipped or DATABASE_URL not ready: ${err.message}`);
   }
 }
 
 function buildDashboardAssets() {
-  console.log("\n🎨 5. Building Dashboard UI Static Assets...");
+  console.log("\n05 // Building Dashboard UI Static Assets...");
   try {
     execSync("bun run build:dashboard", { cwd: projectRoot, stdio: "inherit" });
-    console.log("   ✅ Dashboard built successfully to dashboard/out/.");
+    console.log("   [ OK ] Dashboard built successfully to dashboard/out/.");
   } catch (err: any) {
-    console.log("   ❌ Dashboard build failed. Run 'cd dashboard && bun run build' to inspect errors.");
+    console.log("   [ ERROR ] Dashboard build failed. Run 'cd dashboard && bun run build' to inspect errors.");
   }
 }
 
@@ -144,7 +144,7 @@ async function main() {
   printHeader();
 
   const os = detectOS();
-  console.log(`🔍 Detected Operating System: ${os.name}${os.distro ? ` (${os.distro})` : ""}`);
+  console.log(`[ HOST ] Detected Operating System: ${os.name}${os.distro ? ` (${os.distro})` : ""}`);
 
   // Ensure local projects directory exists
   const projectsDir = join(projectRoot, "projects");
@@ -153,14 +153,14 @@ async function main() {
   }
 
   console.log("\n-------------------------------------------------------");
-  console.log(" 🩺 Running System & Host Dependency Preflight Checks");
+  console.log(" [ CHECK ] Running System & Host Dependency Preflight Checks");
   console.log("-------------------------------------------------------\n");
 
   const report = await runPreflightChecks();
   const missing: string[] = [];
 
   for (const check of report.checks) {
-    const symbol = check.ok ? "✅" : check.severity === "required" ? "❌" : "⚠️ ";
+    const symbol = check.ok ? "[ OK ]" : check.severity === "required" ? "[ FAIL ]" : "[ WARN ]";
     console.log(`${symbol} [${check.severity}] ${check.label}: ${check.message}`);
     if (!check.ok && check.severity === "required") {
       missing.push(check.label);
@@ -169,8 +169,8 @@ async function main() {
 
   if (!report.ok) {
     suggestInstallCommands(missing, os);
-    console.log("❌ Setup cannot complete automatically because required dependencies are missing.");
-    console.log("   Please install the missing tools above and re-run: bun run setup\n");
+    console.log("[ ERROR ] Setup cannot complete automatically because required dependencies are missing.");
+    console.log("          Please install the missing tools above and re-run: bun run setup\n");
     process.exit(1);
   }
 
@@ -181,7 +181,7 @@ async function main() {
   buildDashboardAssets();
 
   console.log("\n=======================================================");
-  console.log("  🎉 Setup Complete! VersionGate is Ready to Run.");
+  console.log("  [ READY ] Setup Complete. VersionGate is Ready to Run.");
   console.log("=======================================================");
   console.log("\nStart the backend server & background worker:");
   console.log("  bun run dev           (Starts Backend API on port 9090)");
@@ -189,6 +189,6 @@ async function main() {
 }
 
 main().catch((err) => {
-  console.error("\n❌ Fatal setup error:", err);
+  console.error("\n[ FATAL ] Setup error:", err);
   process.exit(1);
 });
