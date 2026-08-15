@@ -227,7 +227,7 @@ JWT_SECRET="${jwtSecret}"
 
   // 3. Sync database schema using Drizzle Kit
   logger.info("Setup: running database schema sync with Drizzle Kit…");
-  const setupEnv = { ...process.env, DATABASE_URL: databaseUrl, ENCRYPTION_KEY: encryptionKey };
+  const setupEnv = { ...process.env, DATABASE_URL: normalizedDbUrl, ENCRYPTION_KEY: encryptionKey };
   try {
     runDrizzleSchemaSync({
       cwd: projectRoot,
