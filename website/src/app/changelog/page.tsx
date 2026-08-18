@@ -44,9 +44,60 @@ interface ProcessedRelease {
 
 const FALLBACK_RELEASES: ProcessedRelease[] = [
   {
-    version: "v1.8.0",
+    version: "v1.9.0",
     date: "August 15, 2026",
     isLatest: true,
+    summary: "Asynchronous zero-downtime system self-updates with live log streaming modal, complete dashboard UI overhaul with silent SWR revalidation, and smart terminal scroll locking.",
+    categories: [
+      {
+        title: "Zero-Downtime System Self-Updates",
+        badge: "NEW",
+        items: [
+          {
+            title: "Non-Blocking Background Update Pipeline",
+            description:
+              "System updates run asynchronously in the background with GET /api/v1/system/update/progress telemetry, eliminating HTTP timeouts and connection drops during builds.",
+            command: "versiongate system update --async",
+          },
+          {
+            title: "Interactive Live Progress Modal",
+            description:
+              "Replaced abrupt banners and page reload loops with an interactive live progress drawer showing real-time git fetch, bun install, schema sync, and build steps.",
+          },
+          {
+            title: "Graceful Environment-Aware Reloading",
+            description:
+              "Automatically detects PM2 vs standalone / container runtimes, applying asset updates in-place without crashing or terminating live dev sessions.",
+          },
+        ],
+      },
+      {
+        title: "Dashboard UI & Experience Redesign",
+        badge: "IMPROVEMENT",
+        items: [
+          {
+            title: "Zero-Flicker SWR Background Revalidation",
+            description:
+              "Cluster metrics and project states refresh silently in the background without full-screen skeleton flashing or layout jitter.",
+          },
+          {
+            title: "Smart Terminal Scroll Lock",
+            description:
+              "DeployLog viewer automatically pins to the bottom during live streams while respecting user scroll intent, with a convenient Jump to Latest button.",
+          },
+          {
+            title: "Precision Developer Typography & Clean Metrics",
+            description:
+              "Redesigned Overview and Project Detail screens with clean slot status indicators, verified container ports, and rapid deployment action triggers.",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    version: "v1.8.0",
+    date: "August 15, 2026",
+    isLatest: false,
     summary: "Engine resilience hardening with encrypted env injection, multi-stage Git auto-deploy, startup stuck job recovery, modern Bun lockfile support, and deduplicated log streams.",
     categories: [
       {

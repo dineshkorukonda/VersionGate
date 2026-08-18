@@ -104,13 +104,22 @@ const CAPABILITIES: Capability[] = [
     badge: "v1.8 Feature",
   },
   {
-    id: "cap-installer",
+    id: "cap-asyncupdate",
     category: "Deployment",
-    title: "Universal One-Line Host Installer",
-    command: "curl -fsSL https://versiongate.tech/install.sh | sudo bash",
-    description: "Automated VM bootstrap installing Node 20, Bun, Docker, PM2 systemd persistence, Nginx reverse proxy, and optional Certbot TLS.",
-    details: "Downloads install.sh from versiongate.tech to configure Docker daemon networking, PM2 systemd auto-boot persistence, Nginx reverse proxying (80/443 -> 9090), automatic Certbot TLS, and end-to-end health checks.",
-    badge: "v1.7 Feature",
+    title: "Non-Blocking Async Engine Self-Update",
+    command: "versiongate system update --async",
+    description: "Background self-update pipeline streaming live build logs with zero connection drops and graceful PM2 / standalone reload.",
+    details: "Executes git merge, bun install, drizzle schema sync, and dashboard build in the background with GET /api/v1/system/update/progress streaming.",
+    badge: "v1.9 Feature",
+  },
+  {
+    id: "cap-uiredesign",
+    category: "Monitoring",
+    title: "Zero-Flicker Dashboard & Smart Scroll",
+    command: "versiongate dashboard status",
+    description: "SWR-style silent data revalidation, clean slot metrics, and intelligent terminal scroll locking without layout shifts.",
+    details: "Eliminates skeleton loader flickering during polling and locks log scrolling so active inspections are never interrupted.",
+    badge: "v1.9 Feature",
   },
 ];
 

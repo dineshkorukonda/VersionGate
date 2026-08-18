@@ -3,6 +3,7 @@ import { reconcileHandler, getServerStatsHandler, getServerDashboardHandler, get
 import { preflightHandler } from "../controllers/preflight.controller";
 import {
   selfUpdateApplyHandler,
+  selfUpdateProgressHandler,
   selfUpdateStatusHandler,
   selfUpdateWebhookHandler,
 } from "../controllers/self-update.controller";
@@ -17,6 +18,7 @@ export async function systemRoutes(app: FastifyInstance): Promise<void> {
   app.get("/system/engine-health", { handler: getEngineHealthHandler });
 
   app.get("/system/update/status", { handler: selfUpdateStatusHandler });
+  app.get("/system/update/progress", { handler: selfUpdateProgressHandler });
   app.post("/system/update/apply", { handler: selfUpdateApplyHandler });
   app.post("/system/update/webhook", { handler: selfUpdateWebhookHandler });
 

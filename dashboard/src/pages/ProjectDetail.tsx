@@ -64,13 +64,15 @@ export function ProjectDetail() {
   const [loading, setLoading] = useState(true);
   const [deleteOpen, setDeleteOpen] = useState(false);
 
-  const load = async () => {
+  const load = async (isSilent = false) => {
     if (!id) {
       setLoading(false);
       setProject(null);
       return;
     }
-    setLoading(true);
+    if (!isSilent && !project) {
+      setLoading(true);
+    }
     setEnvironmentsError(null);
     try {
       const [p, d, j] = await Promise.all([
@@ -91,19 +93,18 @@ export function ProjectDetail() {
         setEnvironmentsError(envEx instanceof Error ? envEx.message : "Failed to load environments");
       }
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to load project");
-      setProject(null);
-      setDeployments([]);
-      setEnvironments([]);
-      setEnvironmentsError(null);
-      setJobs([]);
+      if (!isSilent) {
+        toast.error(e instanceof Error ? e.message : "Failed to load project");
+      }
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    void load();
+    void load(false);
+    const idTimer = window.setInterval(() => void load(true), 10000);
+    return () => window.clearInterval(idTimer);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- load only when project id changes
   }, [id]);
 
