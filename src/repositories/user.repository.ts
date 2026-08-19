@@ -29,4 +29,8 @@ export class UserRepository {
     }).returning();
     return created;
   }
+
+  async createUser(data: UserInsert): Promise<UserSelect> {
+    return this.create(data);
+  }
 }
