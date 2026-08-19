@@ -69,7 +69,12 @@ export async function githubInstallHandler(req: FastifyRequest, reply: FastifyRe
   }
 
   const effectivePublicUrl = (process.env.PUBLIC_URL || config.publicUrl || `${req.protocol}://${req.headers.host}`).trim().replace(/\/+$/, "");
-  const effectiveStateSecret = "vg_relay_shared_secret";
+  const effectiveStateSecret = (process.env.GITHUB_STATE_SECRET || config.githubStateSecret || "").trim();
+  if (!effectiveStateSecret) {
+    logger.error("githubInstallHandler: GITHUB_STATE_SECRET is not configured");
+    reply.code(500).send({ error: "Server Error", message: "GitHub App relay state secret is unconfigured", code: "GITHUB_CONFIG_ERROR" });
+    return;
+  }
 
   const state = createRelayInstallState(user.id, effectivePublicUrl, effectiveStateSecret);
   const url = new URL(INSTALL_APP_URL);
@@ -482,7 +487,7 @@ export async function githubRepoBranchesHandler(
     return;
   }
 
-  const secretsToTry = [process.env.GITHUB_STATE_SECRET, config.githubStateSecret, "vg_relay_shared_secret"].filter((s): s is string => Boolean(s && s.trim()));
+  const secretsToTry = [process.env.GITHUB_STATE_SECRET, config.githubStateSecret].filter((s): s is string => Boolean(s && s.trim()));
   for (const sec of secretsToTry) {
     try {
       const branches = await fetchBranchesFromRelay({
@@ -567,7 +572,7 @@ export async function githubReposHandler(
     return;
   }
 
-  const secretsToTry = [process.env.GITHUB_STATE_SECRET, config.githubStateSecret, "vg_relay_shared_secret"].filter((s): s is string => Boolean(s && s.trim()));
+  const secretsToTry = [process.env.GITHUB_STATE_SECRET, config.githubStateSecret].filter((s): s is string => Boolean(s && s.trim()));
   for (const sec of secretsToTry) {
     try {
       const repositories = await fetchReposFromRelay({
