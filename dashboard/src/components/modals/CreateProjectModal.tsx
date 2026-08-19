@@ -1,6 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Info } from "lucide-react";
 import {
   ApiError,
   createProject,
@@ -251,7 +250,7 @@ export function CreateProjectModal({
             className="flex gap-3 border border-border bg-muted p-3 text-sm leading-relaxed text-muted-foreground"
             role="note"
           >
-            <Info className="mt-0.5 size-4 shrink-0 text-sky-600" aria-hidden />
+            <span className="mt-0.5 font-mono text-xs font-semibold text-sky-600 shrink-0">[ INFO ]</span>
             <p>
               Each project gets two fixed host ports. New deploys build into the idle slot; after health checks pass,
               traffic can switch with no downtime.

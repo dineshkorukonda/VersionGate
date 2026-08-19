@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { Cable, Code2, ExternalLink, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -187,7 +186,7 @@ export function Integrations() {
             <div className="space-y-1">
               <div className="flex items-center gap-2">
                 <CardTitle className="flex items-center gap-2 text-lg">
-                  <Cable className="size-5 opacity-80" aria-hidden />
+                  <span className="font-mono text-xs opacity-70">[ APP ]</span>
                   GitHub Integration
                 </CardTitle>
                 <Badge variant="outline" className="font-mono text-[10px] uppercase tracking-wider">
@@ -253,12 +252,12 @@ export function Integrations() {
                     href={MANAGE_APP_HREF}
                     target="_blank"
                     rel="noreferrer"
-                    className={cn(buttonVariants({ variant: "outline", size: "sm" }), "inline-flex gap-1.5")}
+                    className={cn(buttonVariants({ variant: "outline", size: "sm" }), "inline-flex gap-1.5 font-mono text-xs")}
                   >
-                    <ExternalLink className="size-3.5" />
+                    <span>[ LINK ]</span>
                     Manage on GitHub
                   </a>
-                  <a href={INSTALL_HREF} className={cn(buttonVariants({ variant: "secondary", size: "sm" }))}>
+                  <a href={INSTALL_HREF} className={cn(buttonVariants({ variant: "secondary", size: "sm" }), "font-mono text-xs")}>
                     Add another org
                   </a>
                 </div>
@@ -267,7 +266,7 @@ export function Integrations() {
                 <>
                   <Separator />
                   <div>
-                    <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground font-mono">
                       All installations
                     </p>
                     <ul className="grid gap-2 text-sm">
@@ -277,7 +276,7 @@ export function Integrations() {
                           className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border bg-muted/30 px-3 py-2"
                         >
                           <span className="font-mono font-medium">{i.githubAccountLogin}</span>
-                          <span className="text-xs capitalize text-muted-foreground">{i.githubAccountType}</span>
+                          <span className="text-xs capitalize text-muted-foreground font-mono">{i.githubAccountType}</span>
                           <span className="font-mono text-xs text-muted-foreground">{i.installationId}</span>
                         </li>
                       ))}
@@ -293,7 +292,7 @@ export function Integrations() {
                   Connect your GitHub account or organization so VersionGate can read repositories you grant access to.
                 </p>
                 <div className="flex flex-wrap gap-2">
-                  <a href={INSTALL_HREF} className={cn(buttonVariants())}>
+                  <a href={INSTALL_HREF} className={cn(buttonVariants(), "font-mono text-xs")}>
                     Connect GitHub
                   </a>
                   <Button
@@ -302,10 +301,10 @@ export function Integrations() {
                     size="sm"
                     disabled={checking}
                     onClick={() => void fetchStatus()}
-                    className="inline-flex gap-1.5"
+                    className="inline-flex gap-1.5 font-mono text-xs"
                   >
-                    <RefreshCw className={cn("size-3.5", checking && "animate-spin")} />
-                    Re-check
+                    <span>[ SYNC ]</span>
+                    {checking ? "Checking..." : "Re-check"}
                   </Button>
                 </div>
               </div>
@@ -345,7 +344,7 @@ export function Integrations() {
             <div className="space-y-1">
               <div className="flex items-center gap-2">
                 <CardTitle className="flex items-center gap-2 text-base font-semibold">
-                  <Code2 className="size-4 opacity-80" aria-hidden />
+                  <span className="font-mono text-xs opacity-70">[ DEV ]</span>
                   Developer Settings // Custom GitHub App Manifest
                 </CardTitle>
                 <Badge variant="secondary" className="font-mono text-[10px] uppercase tracking-wider">

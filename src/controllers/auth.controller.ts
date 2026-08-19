@@ -1,9 +1,7 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
-import { count, eq } from "drizzle-orm";
 import { config } from "../config/env";
 import { logger } from "../utils/logger";
-import { getDb } from "../db/client";
-import { users } from "../db/schema";
+import { userService } from "../services/user.service";
 import {
   AUTH_MIN_PASSWORD_LENGTH,
   SESSION_MAX_AGE_SEC,
@@ -34,9 +32,8 @@ export async function authStatusHandler(req: FastifyRequest, reply: FastifyReply
   }
 
   try {
-    const db = getDb();
-    const [res] = await db.select({ value: count() }).from(users);
-    const hasUsers = (res?.value ?? 0) > 0;
+    const userCount = await userService.countUsers();
+    const hasUsers = userCount > 0;
     const raw = getSessionTokenFromRequest(req.headers.cookie);
     const user = await getUserFromSessionToken(raw);
     reply.code(200).send({
@@ -69,9 +66,7 @@ export async function authRegisterHandler(
     return;
   }
 
-  const db = getDb();
-  const [res] = await db.select({ value: count() }).from(users);
-  const userCount = res?.value ?? 0;
+  const userCount = await userService.countUsers();
   if (userCount > 0) {
     reply.code(403).send({ error: "Forbidden", message: "An admin account already exists" });
     return;
@@ -93,7 +88,7 @@ export async function authRegisterHandler(
   }
 
   const passwordHash = await hashPassword(password);
-  const [user] = await db.insert(users).values({ email, passwordHash }).returning();
+  const user = await userService.createUser({ email, passwordHash });
 
   const token = await createSession(user.id);
   reply.header("Set-Cookie", buildSetSessionCookie(token, SESSION_MAX_AGE_SEC, config.cookieSecure));
@@ -112,8 +107,7 @@ export async function authLoginHandler(
   const email = typeof req.body?.email === "string" ? req.body.email.trim().toLowerCase() : "";
   const password = typeof req.body?.password === "string" ? req.body.password : "";
 
-  const db = getDb();
-  const [user] = await db.select().from(users).where(eq(users.email, email)).limit(1);
+  const user = await userService.findByEmail(email);
 
   if (!user || !(await verifyPassword(password, user.passwordHash))) {
     reply.code(401).send({ error: "Unauthorized", message: "Invalid email or password" });

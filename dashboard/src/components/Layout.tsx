@@ -1,23 +1,11 @@
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import {
-  Activity,
-  Bell,
-  Cable,
-  CircleHelp,
-  FolderKanban,
-  HeartPulse,
-  LayoutGrid,
-  Plus,
-  Search,
-  Settings,
-} from "lucide-react";
-import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
-    SidebarHeader,
+  SidebarHeader,
   SidebarInset,
   SidebarMenu,
   SidebarMenuItem,
@@ -52,12 +40,12 @@ const API_HREF = "https://github.com/dinexh/VersionGate/blob/main/docs/SETUP.md"
 const SUPPORT_HREF = "https://github.com/dinexh/VersionGate/issues";
 
 const nav = [
-  { to: "/", label: "Overview", end: true, icon: LayoutGrid },
-  { to: "/projects", label: "Projects", end: true, icon: FolderKanban },
-  { to: "/activity", label: "Activity", end: false, icon: Activity },
-  { to: "/dashboard/integrations", label: "Integrations", end: false, icon: Cable },
-  { to: "/system", label: "System health", end: false, icon: HeartPulse },
-  { to: "/settings", label: "Settings", end: false, icon: Settings },
+  { to: "/", label: "Overview", end: true, tag: "[ 01 ]" },
+  { to: "/projects", label: "Projects", end: true, tag: "[ 02 ]" },
+  { to: "/activity", label: "Activity", end: false, tag: "[ 03 ]" },
+  { to: "/dashboard/integrations", label: "Integrations", end: false, tag: "[ 04 ]" },
+  { to: "/system", label: "System health", end: false, tag: "[ 05 ]" },
+  { to: "/settings", label: "Settings", end: false, tag: "[ 06 ]" },
 ] as const;
 
 const navBtn =
@@ -185,7 +173,6 @@ export function Layout() {
                 <SidebarGroupContent>
                   <SidebarMenu className="gap-0.5">
                     {nav.map((item) => {
-                      const Icon = item.icon;
                       return (
                         <SidebarMenuItem key={item.to}>
                           <NavLink
@@ -199,7 +186,7 @@ export function Layout() {
                               )
                             }
                           >
-                            <Icon className="size-4 shrink-0 opacity-80" aria-hidden />
+                            <span className="font-mono text-xs opacity-70 shrink-0">{item.tag}</span>
                             <span>{item.label}</span>
                           </NavLink>
                         </SidebarMenuItem>
@@ -225,7 +212,7 @@ export function Layout() {
                               )
                             }
                           >
-                            <FolderKanban className="size-4 shrink-0 opacity-70" aria-hidden />
+                            <span className="font-mono text-xs opacity-70 shrink-0">&gt;</span>
                             <span className="truncate">{p.name}</span>
                           </NavLink>
                         </SidebarMenuItem>
@@ -240,10 +227,10 @@ export function Layout() {
               
               <Button
                 type="button"
-                className="w-full gap-2 bg-white text-black hover:bg-zinc-200"
+                className="w-full gap-2 bg-white font-mono text-xs text-black hover:bg-zinc-200"
                 onClick={() => setCreateProjectOpen(true)}
               >
-                <Plus className="size-4" />
+                <span>[ + ]</span>
                 <span className="group-data-[collapsible=icon]:hidden">New project</span>
               </Button>
             </SidebarFooter>
@@ -259,28 +246,28 @@ export function Layout() {
 
               <div className="mx-auto hidden max-w-md flex-1 px-2 sm:block">
                 <div className="relative">
-                  <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                  <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 font-mono text-xs text-muted-foreground">[ SEARCH ]</span>
                   <Input
                     readOnly
                     aria-label="Search projects"
                     title="Open search (⌘K or Ctrl+K)"
                     placeholder="Search projects…"
                     onClick={() => setSearchOpen(true)}
-                    className="h-8 cursor-pointer rounded-md border-border bg-card pl-9 text-sm text-foreground placeholder:text-muted-foreground"
+                    className="h-8 cursor-pointer rounded-md border-border bg-card pl-24 text-sm text-foreground placeholder:text-muted-foreground font-mono"
                   />
                 </div>
               </div>
 
               <div className="ml-auto flex shrink-0 items-center gap-0.5 sm:gap-1">
-                <Button type="button" size="sm" className="hidden gap-1.5 sm:inline-flex" onClick={() => setCreateProjectOpen(true)}>
-                  <Plus className="size-3.5" />
+                <Button type="button" size="sm" className="hidden gap-1.5 font-mono text-xs sm:inline-flex" onClick={() => setCreateProjectOpen(true)}>
+                  <span>[ + ]</span>
                   New project
                 </Button>
                 <a
                   href={DOCS_HREF}
                   target="_blank"
                   rel="noreferrer"
-                  className="hidden rounded-md px-2 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground lg:inline"
+                  className="hidden rounded-md px-2 py-1.5 text-xs font-mono font-medium text-muted-foreground hover:bg-muted hover:text-foreground lg:inline"
                 >
                   Docs
                 </a>
@@ -288,7 +275,7 @@ export function Layout() {
                   href={API_HREF}
                   target="_blank"
                   rel="noreferrer"
-                  className="hidden rounded-md px-2 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground lg:inline"
+                  className="hidden rounded-md px-2 py-1.5 text-xs font-mono font-medium text-muted-foreground hover:bg-muted hover:text-foreground lg:inline"
                 >
                   API
                 </a>
@@ -296,7 +283,7 @@ export function Layout() {
                   href={SUPPORT_HREF}
                   target="_blank"
                   rel="noreferrer"
-                  className="hidden rounded-md px-2 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground xl:inline"
+                  className="hidden rounded-md px-2 py-1.5 text-xs font-mono font-medium text-muted-foreground hover:bg-muted hover:text-foreground xl:inline"
                 >
                   Support
                 </a>
@@ -305,25 +292,25 @@ export function Layout() {
                   <DropdownMenuTrigger
                     className={cn(
                       buttonVariants({ variant: "ghost", size: "icon-sm" }),
-                      "text-muted-foreground"
+                      "text-muted-foreground font-mono text-xs px-2"
                     )}
                     aria-label="Notifications"
                   >
-                    <Bell className="size-4" />
+                    [ ALERTS ]
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-64">
-                    <div className="px-3 py-8 text-center text-sm text-muted-foreground">No notifications</div>
+                    <div className="px-3 py-8 text-center text-sm font-mono text-muted-foreground">No notifications</div>
                   </DropdownMenuContent>
                 </DropdownMenu>
                 <Button
                   type="button"
                   variant="ghost"
                   size="icon-sm"
-                  className="text-muted-foreground"
+                  className="text-muted-foreground font-mono text-xs px-2"
                   aria-label="Help"
                   onClick={() => window.open(DOCS_HREF, "_blank", "noopener,noreferrer")}
                 >
-                  <CircleHelp className="size-4" />
+                  [ ? ]
                 </Button>
                 <DropdownMenu>
                   <DropdownMenuTrigger

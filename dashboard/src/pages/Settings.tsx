@@ -30,7 +30,6 @@ import { cn } from "@/lib/utils";
 import { SystemUpdateModal } from "@/components/modals/SystemUpdateModal";
 import { DonutChart } from "@/components/charts/DonutChart";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Globe } from "lucide-react";
 import { formatPublicDashboardUrl, looksLikeIpv4, normalizePublicBasePath } from "@/lib/public-url";
 import { setConfiguredPublicHost } from "@/lib/deployment-display";
 
@@ -594,7 +593,7 @@ export function Settings() {
       <Card id="dashboard-url" className="border-border/50 bg-card/60 ring-1 ring-border/30 scroll-mt-24">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Globe className="size-5 text-muted-foreground" aria-hidden />
+            <span className="font-mono text-xs opacity-70">[ HOST ]</span>
             Dashboard URL &amp; hostname
           </CardTitle>
           <CardDescription>

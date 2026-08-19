@@ -10,7 +10,6 @@ import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/PageHeader";
 import { toast } from "sonner";
 import { Progress } from "@/components/ui/progress";
-import { Download, StopCircle } from "lucide-react";
 
 type LineKind = "info" | "success" | "error" | "step";
 
@@ -273,8 +272,8 @@ export function DeployLog() {
           <Badge variant={badgeVariant} className={cn("shrink-0 font-mono text-xs", statusColor)}>
             {jobStatus}
           </Badge>
-          <Button type="button" variant="outline" size="sm" className="gap-1.5" onClick={downloadLogs} disabled={lines.length === 0}>
-            <Download className="size-3.5" />
+          <Button type="button" variant="outline" size="sm" className="gap-1.5 font-mono text-xs" onClick={downloadLogs} disabled={lines.length === 0}>
+            <span>[ EXP ]</span>
             Export logs
           </Button>
           {jobStatus === "PENDING" && (
@@ -282,11 +281,11 @@ export function DeployLog() {
               type="button"
               variant="destructive"
               size="sm"
-              className="gap-1.5"
+              className="gap-1.5 font-mono text-xs"
               disabled={cancelBusy}
               onClick={() => void onCancelJob()}
             >
-              <StopCircle className="size-3.5" />
+              <span>[ STOP ]</span>
               {cancelBusy ? "Cancelling…" : "Cancel job"}
             </Button>
           )}

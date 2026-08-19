@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search } from "lucide-react";
 import { getProjects, type Project } from "@/lib/api";
 import {
   Dialog,
@@ -60,7 +59,7 @@ export function GlobalSearchDialog({
           <DialogDescription>Jump to a project by name or repository URL.</DialogDescription>
         </DialogHeader>
         <div className="flex items-center gap-2 border-b border-border px-3 py-2">
-          <Search className="size-4 shrink-0 text-muted-foreground" />
+          <span className="shrink-0 font-mono text-xs text-muted-foreground">[ SEARCH ]</span>
           <Input
             autoFocus
             value={q}
