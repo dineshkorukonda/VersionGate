@@ -6,6 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export function Login() {
   const navigate = useNavigate();
@@ -15,6 +22,7 @@ export function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [forgotOpen, setForgotOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -110,9 +118,20 @@ export function Login() {
                 />
               </div>
               <div className="space-y-2">
-                <label htmlFor="vg-login-password" className="text-sm font-medium">
-                  Password
-                </label>
+                <div className="flex items-center justify-between">
+                  <label htmlFor="vg-login-password" className="text-sm font-medium">
+                    Password
+                  </label>
+                  {!bootstrapPending ? (
+                    <button
+                      type="button"
+                      onClick={() => setForgotOpen(true)}
+                      className="text-xs text-muted-foreground hover:text-foreground hover:underline"
+                    >
+                      Forgot password?
+                    </button>
+                  ) : null}
+                </div>
                 <Input
                   id="vg-login-password"
                   type="password"
@@ -127,11 +146,19 @@ export function Login() {
                 {submitting ? "Please wait…" : bootstrapPending ? "Create account" : "Sign in"}
               </Button>
               {!bootstrapPending ? (
-                <p className="text-center text-xs text-muted-foreground">
-                  <Link to="/setup" className="text-primary underline-offset-2 hover:underline">
+                <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground">
+                  <Link to="/setup" className="hover:text-foreground hover:underline">
                     Setup wizard
                   </Link>
-                </p>
+                  <span>·</span>
+                  <button
+                    type="button"
+                    onClick={() => setForgotOpen(true)}
+                    className="hover:text-foreground hover:underline"
+                  >
+                    Reset via server
+                  </button>
+                </div>
               ) : null}
             </form>
           </CardContent>
@@ -165,6 +192,40 @@ export function Login() {
           </a>
         </footer>
       </div>
+      <Dialog open={forgotOpen} onOpenChange={setForgotOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Reset Administrator Password</DialogTitle>
+            <DialogDescription>
+              For security, self-hosted VersionGate administrator credentials can be reset directly from the host CLI without exposing external email dependencies.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 pt-2 font-mono text-xs">
+            <div className="rounded-md border border-border bg-muted p-3">
+              <p className="text-muted-foreground">Run on your host server CLI:</p>
+              <pre className="mt-2 text-foreground font-mono text-[11px] select-all bg-background p-2 rounded border border-border overflow-x-auto">
+                bun run create-admin admin@example.com 'NewPassword123!'
+              </pre>
+            </div>
+            <div className="space-y-1.5 text-muted-foreground">
+              <p>
+                <span className="text-foreground font-medium">Alternative (Reset existing user):</span> Connect to PostgreSQL locally and update the user record:
+              </p>
+              <pre className="text-[10px] text-foreground bg-background p-2 rounded border border-border overflow-x-auto">
+                sudo -u postgres psql -d versiongate -c "DELETE FROM \"User\";"
+              </pre>
+              <p className="text-[10px]">
+                Deleting the record allows you to immediately set a new admin account from the login screen.
+              </p>
+            </div>
+            <div className="flex justify-end pt-2">
+              <Button variant="outline" size="sm" onClick={() => setForgotOpen(false)}>
+                Close
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
       <Toaster position="top-center" richColors theme="dark" />
     </div>
   );
