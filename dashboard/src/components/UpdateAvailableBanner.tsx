@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { getSelfUpdateSettings } from "@/lib/api";
-import { X } from "lucide-react";
 import { SystemUpdateModal } from "@/components/modals/SystemUpdateModal";
 
 const POLL_MS = 120_000;
@@ -74,10 +73,10 @@ export function UpdateAvailableBanner() {
           <button
             type="button"
             onClick={onDismiss}
-            className="rounded p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            className="rounded px-1.5 py-0.5 font-mono text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             aria-label="Dismiss"
           >
-            <X className="h-3.5 w-3.5" />
+            [ X ]
           </button>
         </div>
       </div>

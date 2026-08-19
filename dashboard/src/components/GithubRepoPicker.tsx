@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { ExternalLink, GitBranch, Lock, Search } from "lucide-react";
 import { ApiError, getGithubRepos, type GithubRepoRow } from "@/lib/api";
 import { Input } from "@/components/ui/input";
 import { buttonVariants } from "@/components/ui/button";
@@ -86,12 +85,12 @@ export function GithubRepoPicker({
   return (
     <div className="grid gap-3">
       <div className="relative">
-        <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+        <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 font-mono text-xs text-muted-foreground">[ SEARCH ]</span>
         <Input
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
           placeholder="Search by repository name…"
-          className="pl-9"
+          className="pl-24 font-mono text-xs"
           disabled={loading}
           aria-label="Filter repositories"
         />
@@ -140,33 +139,25 @@ export function GithubRepoPicker({
                   <div className="flex min-w-0 items-center justify-between gap-2">
                     <span className="truncate font-medium text-foreground">{r.fullName}</span>
                     <div className="flex shrink-0 items-center gap-1">
-                      <Badge variant={r.private ? "secondary" : "outline"} className="text-[10px] font-normal">
-                        {r.private ? (
-                          <>
-                            <Lock className="mr-0.5 size-3" aria-hidden />
-                            Private
-                          </>
-                        ) : (
-                          "Public"
-                        )}
+                      <Badge variant={r.private ? "secondary" : "outline"} className="text-[10px] font-mono font-normal">
+                        {r.private ? "[ PRIV ]" : "[ PUB ]"}
                       </Badge>
                       <a
                         href={r.htmlUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="rounded p-0.5 text-muted-foreground hover:text-foreground"
+                        className="rounded px-1 py-0.5 font-mono text-[10px] text-muted-foreground hover:text-foreground"
                         title="Open on GitHub"
                         onClick={(e) => e.stopPropagation()}
                       >
-                        <ExternalLink className="size-3.5" aria-hidden />
+                        [ LINK ]
                       </a>
                     </div>
                   </div>
-                  <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground font-mono">
                     {r.language ? <span>{r.language}</span> : null}
                     <span className="inline-flex items-center gap-1">
-                      <GitBranch className="size-3 opacity-70" aria-hidden />
-                      {r.defaultBranch ?? "—"}
+                      branch: {r.defaultBranch ?? "—"}
                     </span>
                     <span>Updated {formatUpdated(r.updatedAt ?? r.pushedAt)}</span>
                   </div>

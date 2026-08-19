@@ -1,5 +1,4 @@
 import { cn } from "@/lib/utils";
-import { Loader2 } from "lucide-react";
 
 export type PillStatus = "ACTIVE" | "DEPLOYING" | "FAILED" | "CRITICAL" | "ROLLED_BACK" | "PENDING" | string;
 
@@ -25,7 +24,7 @@ export function StatusPill({ status, className }: { status: PillStatus; classNam
       )}
     >
       {status === "DEPLOYING" ? (
-        <Loader2 className="size-2.5 animate-spin" />
+        <span className="animate-pulse text-sky-400 font-bold">[ SYNC ]</span>
       ) : (
         <span className={cn("size-1.5 rounded-full", isCritical ? "bg-red-500" : s.dot)} />
       )}
@@ -33,3 +32,4 @@ export function StatusPill({ status, className }: { status: PillStatus; classNam
     </span>
   );
 }
+
