@@ -44,9 +44,34 @@ interface ProcessedRelease {
 
 const FALLBACK_RELEASES: ProcessedRelease[] = [
   {
+    version: "v2.0.0",
+    date: "August 19, 2026",
+    isLatest: true,
+    summary: "Automated host Certbot and Nginx plugin installation in the one-command installer script, enhanced Let's Encrypt path resolution, and non-blocking diagnostic feedback for host setups.",
+    categories: [
+      {
+        title: "Automated Host Certbot Installation",
+        badge: "NEW",
+        items: [
+          {
+            title: "Pre-packaged Host Certbot & Nginx Plugin",
+            description:
+              "Updated the 1-command installer script (install.sh) and host bootstrap scripts to automatically download and configure certbot and python3-certbot-nginx out of the box.",
+            command: "curl -fsSL https://versiongate.tech/install.sh | sudo bash",
+          },
+          {
+            title: "Enhanced Certbot Path Resolution & Diagnostics",
+            description:
+              "Added multi-path binary resolution (/usr/bin/certbot, /snap/bin/certbot, /usr/local/bin/certbot) and detailed error diagnostics for missing binaries and Cloudflare proxying.",
+          },
+        ],
+      },
+    ],
+  },
+  {
     version: "v1.9.0",
     date: "August 15, 2026",
-    isLatest: true,
+    isLatest: false,
     summary: "Asynchronous zero-downtime system self-updates with live log streaming modal, complete dashboard UI overhaul with silent SWR revalidation, and smart terminal scroll locking.",
     categories: [
       {

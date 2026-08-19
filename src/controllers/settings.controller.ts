@@ -489,7 +489,7 @@ async function logDnsForPublicHostname(context: string, hostname: string): Promi
 function isCertbotMissingError(message: string): boolean {
   const m = message.toLowerCase();
   return (
-    (m.includes("certbot") && m.includes("command not found")) ||
+    (m.includes("certbot") && (m.includes("command not found") || m.includes("not found"))) ||
     m.includes("enoent") ||
     (m.includes("no such file or directory") && m.includes("certbot"))
   );
@@ -507,9 +507,13 @@ function runCertbotNginxPlugin(args: string[], domain: string): void {
     } catch (directErr) {
       const msg = directErr instanceof Error ? directErr.message : String(directErr);
       logger.warn({ err: msg, certbotPath: explicit, domain }, "certbot: failed as current user — trying sudo -n with same path");
-      execFileSync("sudo", ["-n", explicit, ...args], { stdio: "pipe", timeout: 240_000 });
-      logger.info({ certbotPath: explicit, domain, via: "sudo" }, "certbot: finished OK (sudo)");
-      return;
+      try {
+        execFileSync("sudo", ["-n", explicit, ...args], { stdio: "pipe", timeout: 240_000 });
+        logger.info({ certbotPath: explicit, domain, via: "sudo" }, "certbot: finished OK (sudo)");
+        return;
+      } catch (sudoErr) {
+        throw sudoErr instanceof Error ? sudoErr : directErr;
+      }
     }
   }
 
@@ -527,7 +531,7 @@ function runCertbotNginxPlugin(args: string[], domain: string): void {
       logger.info({ domain, via: "sudo", certbotPath: "/usr/bin/certbot" }, "certbot: finished OK");
     } catch (sudoErr) {
       const msg2 = sudoErr instanceof Error ? sudoErr.message : String(sudoErr);
-      if (isCertbotMissingError(msg1) && isCertbotMissingError(msg2)) {
+      if (isCertbotMissingError(msg1) || isCertbotMissingError(msg2)) {
         throw new Error(
           "CERTBOT_MISSING: certbot is not installed or not on PATH for this process or sudo. " +
             "On Debian/Ubuntu run: sudo apt update && sudo apt install -y certbot python3-certbot-nginx. " +

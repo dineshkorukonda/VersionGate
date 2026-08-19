@@ -121,6 +121,15 @@ const CAPABILITIES: Capability[] = [
     details: "Eliminates skeleton loader flickering during polling and locks log scrolling so active inspections are never interrupted.",
     badge: "v1.9 Feature",
   },
+  {
+    id: "cap-certbotauto",
+    category: "Security",
+    title: "Automated Host Certbot & TLS Provisioning",
+    command: "curl -fsSL https://versiongate.tech/install.sh | sudo bash",
+    description: "1-command host installer pre-packages Certbot and python3-certbot-nginx for instant 1-click HTTPS in Settings.",
+    details: "Installs Certbot dependencies out-of-the-box, verifies PATH resolution across /usr/bin/certbot and /snap/bin/certbot, and provides non-blocking SSL fallback diagnostics.",
+    badge: "v2.0 Feature",
+  },
 ];
 
 export function CapabilityGrid() {
