@@ -53,16 +53,16 @@ ok "Detected package family: $PKG_FAMILY"
 # ---------------------------------------------------------------------------
 # 2. Base packages
 # ---------------------------------------------------------------------------
-log "1. Base packages (curl, git, unzip, ca-certificates, tar, nginx)"
+log "1. Base packages (curl, git, unzip, ca-certificates, tar, nginx, certbot)"
 if [[ "$PKG_FAMILY" == deb ]]; then
   export DEBIAN_FRONTEND=noninteractive
   apt-get update -y
   apt-get install -y --no-install-recommends \
-    ca-certificates curl git gnupg lsb-release apt-transport-https unzip tar nginx
+    ca-certificates curl git gnupg lsb-release apt-transport-https unzip tar nginx certbot python3-certbot-nginx
 else
-  "$PKG_MGR" install -y curl git unzip ca-certificates tar nginx
+  "$PKG_MGR" install -y curl git unzip ca-certificates tar nginx certbot python3-certbot-nginx
 fi
-ok "Base dependencies installed"
+ok "Base dependencies installed (including Certbot & Nginx plugin)"
 
 # ---------------------------------------------------------------------------
 # 3. Node.js via NodeSource (fixes version-roulette from distro apt)
