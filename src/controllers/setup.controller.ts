@@ -7,8 +7,7 @@ import { logger } from "../utils/logger";
 import { config } from "../config/env";
 import { envFilePath, projectRoot } from "../utils/paths";
 import { runDrizzleSchemaSync } from "../utils/drizzle-schema-sync";
-import { getDb } from "../db/client";
-import { users } from "../db/schema";
+import { userService } from "../services/user.service";
 import { notifySetupApplied } from "../services/post-setup-hooks.service";
 import {
   AUTH_MIN_PASSWORD_LENGTH,
@@ -246,9 +245,8 @@ JWT_SECRET="${jwtSecret}"
   // 3b. Create first admin and session
   let sessionToken: string;
   try {
-    const db = getDb();
     const passwordHash = await hashPassword(password);
-    const [user] = await db.insert(users).values({ email, passwordHash }).returning();
+    const user = await userService.createUser({ email, passwordHash });
     sessionToken = await createSession(user.id);
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
