@@ -345,6 +345,10 @@ export function authLogout(): Promise<{ ok: boolean }> {
   return request("POST", "/auth/logout");
 }
 
+export function changePassword(body: { currentPassword?: string; newPassword: string }): Promise<{ ok: boolean; message: string }> {
+  return request("POST", "/auth/password", body);
+}
+
 export interface ApiTokenItem {
   id: string;
   name: string;

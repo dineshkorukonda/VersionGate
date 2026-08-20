@@ -182,3 +182,49 @@ export async function revokeApiTokenHandler(
   await revokeApiToken(authed.authUser.id, id);
   reply.code(200).send({ ok: true });
 }
+
+interface ChangePasswordBody {
+  currentPassword?: string;
+  newPassword: string;
+}
+
+export async function changePasswordHandler(
+  req: FastifyRequest<{ Body: ChangePasswordBody }>,
+  reply: FastifyReply
+): Promise<void> {
+  const authed = req as FastifyRequest & { authUser?: { id: string; email: string } };
+  const user = authed.authUser ?? (await getUserFromSessionToken(getSessionTokenFromRequest(req.headers.cookie)));
+
+  if (!user) {
+    reply.code(401).send({ error: "Unauthorized", message: "Sign in required" });
+    return;
+  }
+
+  const newPassword = typeof req.body?.newPassword === "string" ? req.body.newPassword : "";
+  const currentPassword = typeof req.body?.currentPassword === "string" ? req.body.currentPassword : "";
+
+  if (newPassword.length < AUTH_MIN_PASSWORD_LENGTH) {
+    reply.code(400).send({
+      error: "ValidationError",
+      message: `Password must be at least ${AUTH_MIN_PASSWORD_LENGTH} characters`,
+    });
+    return;
+  }
+
+  const existingUser = await userService.findByEmail(user.email);
+  if (!existingUser) {
+    reply.code(404).send({ error: "NotFound", message: "User account not found" });
+    return;
+  }
+
+  if (currentPassword && !(await verifyPassword(currentPassword, existingUser.passwordHash))) {
+    reply.code(400).send({ error: "ValidationError", message: "Current password is incorrect" });
+    return;
+  }
+
+  const passwordHash = await hashPassword(newPassword);
+  await userService.updatePasswordByEmail(user.email, passwordHash);
+
+  reply.code(200).send({ ok: true, message: "Password updated successfully" });
+}
+
