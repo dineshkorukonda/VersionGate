@@ -48,19 +48,19 @@ export function AggregateJobLogStream({
   }, [pollMs]);
 
   return (
-    <div className={cn("overflow-hidden  border border-border/80 bg-[#0c1222] shadow-inner", className)}>
-      <div className="flex items-center justify-between border-b border-white/10 px-4 py-2">
-        <span className="text-xs font-semibold uppercase tracking-wide text-zinc-300">{title}</span>
-        <span className="flex items-center gap-1.5 text-[10px] font-medium text-zinc-400">
+    <div className={cn("overflow-hidden rounded-xl border border-neutral-800 bg-[#050505] shadow-sm", className)}>
+      <div className="flex items-center justify-between border-b border-neutral-800 px-4 py-2.5 bg-[#0a0a0a]">
+        <span className="text-xs font-mono font-medium text-neutral-300">{title}</span>
+        <span className="flex items-center gap-1.5 text-[10px] font-mono text-neutral-400">
           <span className={cn("size-1.5 rounded-full", pollOk ? "bg-emerald-400" : "bg-amber-400")} />
           {pollOk ? "POLLING" : "DEGRADED"}
         </span>
       </div>
       <pre
-        className="max-h-64 overflow-auto p-4 font-mono text-[11px] leading-relaxed text-zinc-200"
+        className="max-h-64 overflow-auto p-4 font-mono text-[11px] leading-relaxed text-neutral-300"
         style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}
       >
-        {lines.length === 0 ? <span className="text-zinc-500">Waiting for job activity…</span> : lines.join("\n")}
+        {lines.length === 0 ? <span className="text-neutral-600">Waiting for job activity…</span> : lines.join("\n")}
       </pre>
     </div>
   );

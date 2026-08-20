@@ -212,7 +212,7 @@ export function Overview() {
                 to="/projects"
                 className="font-mono text-xs text-primary underline-offset-2 hover:underline"
               >
-                [ View Full Table ]
+                View Full Table
               </Link>
             </div>
 
@@ -242,7 +242,7 @@ export function Overview() {
                 return (
                   <Card
                     key={p.id}
-                    className="border-border/50 bg-card/60 shadow-none ring-1 ring-border/30 transition-all hover:ring-primary/30"
+                    className="border border-neutral-800 bg-[#0a0a0a] rounded-xl shadow-sm transition-all hover:border-neutral-700"
                   >
                     <CardHeader className="pb-3">
                       <div className="flex items-start justify-between gap-3">
@@ -293,7 +293,7 @@ export function Overview() {
                       {st === "DEPLOYING" && (
                         <div className="relative z-20 space-y-1">
                           <p className="font-mono text-[10px] uppercase text-sky-400">
-                            [ PIPELINE ACTIVE ] Deploying container...
+                            Pipeline Active · Deploying container...
                           </p>
                           <div className="h-1 w-full overflow-hidden rounded-full bg-muted">
                             <div className="h-full w-2/5 animate-pulse rounded-full bg-sky-500" />
@@ -327,7 +327,7 @@ export function Overview() {
                                 "bg-emerald-600 hover:bg-emerald-700 text-white font-mono text-[10px]"
                               )}
                             >
-                              [ Open Live App ]
+                              Open Live App
                             </a>
                           ) : (
                             <span className="font-mono text-xs text-muted-foreground/60">Not deployed</span>
@@ -442,7 +442,7 @@ export function Overview() {
                   to="/activity"
                   className={buttonVariants({ variant: "ghost", size: "sm", className: "font-mono text-xs" })}
                 >
-                  [ View All Activity ]
+                  View All Activity
                 </Link>
               </CardHeader>
               <CardContent className="px-0 pb-2">
@@ -488,7 +488,7 @@ export function Overview() {
                           <Badge variant={badgeVar} className="font-mono text-[10px]">
                             {job.status}
                           </Badge>
-                          <span className="text-muted-foreground">[ View Log ]</span>
+                          <span className="text-muted-foreground">View Log</span>
                         </div>
                       </Link>
                     );

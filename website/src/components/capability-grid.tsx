@@ -59,6 +59,15 @@ const CAPABILITIES: Capability[] = [
     badge: "v2.1 Feature",
   },
   {
+    id: "cap-vercelremodel",
+    category: "Monitoring",
+    title: "Vercel Geist Obsidian Visual Remodel",
+    command: "versiongate theme set --preset vercel-geist",
+    description: "Full platform aesthetic redesign featuring Geist typography, #000000 obsidian dark canvas, hairline cards, and solid white CTAs.",
+    details: "Overhauls entire dashboard, navigation bar, and login cards with Geist Sans/Mono typography, backdrop-blur sticky headers, and rounded-xl hairline panels.",
+    badge: "v2.2 Feature",
+  },
+  {
     id: "cap-autohealing",
     category: "Monitoring",
     title: "In-Process Worker & Base Href Proxy",

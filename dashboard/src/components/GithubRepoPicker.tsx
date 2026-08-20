@@ -85,12 +85,12 @@ export function GithubRepoPicker({
   return (
     <div className="grid gap-3">
       <div className="relative">
-        <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 font-mono text-xs text-muted-foreground">[ SEARCH ]</span>
+        <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 font-sans text-xs text-neutral-500">Search</span>
         <Input
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
           placeholder="Search by repository name…"
-          className="pl-24 font-mono text-xs"
+          className="pl-16 font-sans text-xs"
           disabled={loading}
           aria-label="Filter repositories"
         />
@@ -139,18 +139,18 @@ export function GithubRepoPicker({
                   <div className="flex min-w-0 items-center justify-between gap-2">
                     <span className="truncate font-medium text-foreground">{r.fullName}</span>
                     <div className="flex shrink-0 items-center gap-1">
-                      <Badge variant={r.private ? "secondary" : "outline"} className="text-[10px] font-mono font-normal">
-                        {r.private ? "[ PRIV ]" : "[ PUB ]"}
+                      <Badge variant={r.private ? "secondary" : "outline"} className="text-[10px] font-sans font-normal">
+                        {r.private ? "Private" : "Public"}
                       </Badge>
                       <a
                         href={r.htmlUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="rounded px-1 py-0.5 font-mono text-[10px] text-muted-foreground hover:text-foreground"
+                        className="rounded px-1 py-0.5 font-sans text-[10px] text-neutral-400 hover:text-white"
                         title="Open on GitHub"
                         onClick={(e) => e.stopPropagation()}
                       >
-                        [ LINK ]
+                        Link
                       </a>
                     </div>
                   </div>

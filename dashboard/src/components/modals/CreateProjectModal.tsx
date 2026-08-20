@@ -250,7 +250,7 @@ export function CreateProjectModal({
             className="flex gap-3 border border-border bg-muted p-3 text-sm leading-relaxed text-muted-foreground"
             role="note"
           >
-            <span className="mt-0.5 font-mono text-xs font-semibold text-sky-600 shrink-0">[ INFO ]</span>
+            <span className="mt-0.5 font-sans text-xs font-semibold text-sky-400 shrink-0">Info</span>
             <p>
               Each project gets two fixed host ports. New deploys build into the idle slot; after health checks pass,
               traffic can switch with no downtime.

@@ -185,11 +185,10 @@ export function Integrations() {
           <div className="flex items-start justify-between gap-4">
             <div className="space-y-1">
               <div className="flex items-center gap-2">
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <span className="font-mono text-xs opacity-70">[ APP ]</span>
+                <CardTitle className="text-lg">
                   GitHub Integration
                 </CardTitle>
-                <Badge variant="outline" className="font-mono text-[10px] uppercase tracking-wider">
+                <Badge variant="outline" className="font-sans text-[10px] uppercase tracking-wider">
                   Primary // Relay
                 </Badge>
               </div>
@@ -252,12 +251,11 @@ export function Integrations() {
                     href={MANAGE_APP_HREF}
                     target="_blank"
                     rel="noreferrer"
-                    className={cn(buttonVariants({ variant: "outline", size: "sm" }), "inline-flex gap-1.5 font-mono text-xs")}
+                    className={cn(buttonVariants({ variant: "outline", size: "sm" }), "inline-flex gap-1.5 font-sans text-xs")}
                   >
-                    <span>[ LINK ]</span>
                     Manage on GitHub
                   </a>
-                  <a href={INSTALL_HREF} className={cn(buttonVariants({ variant: "secondary", size: "sm" }), "font-mono text-xs")}>
+                  <a href={INSTALL_HREF} className={cn(buttonVariants({ variant: "secondary", size: "sm" }), "font-sans text-xs")}>
                     Add another org
                   </a>
                 </div>
@@ -303,8 +301,7 @@ export function Integrations() {
                     onClick={() => void fetchStatus()}
                     className="inline-flex gap-1.5 font-mono text-xs"
                   >
-                    <span>[ SYNC ]</span>
-                    {checking ? "Checking..." : "Re-check"}
+                    Re-check
                   </Button>
                 </div>
               </div>
@@ -344,7 +341,7 @@ export function Integrations() {
             <div className="space-y-1">
               <div className="flex items-center gap-2">
                 <CardTitle className="flex items-center gap-2 text-base font-semibold">
-                  <span className="font-mono text-xs opacity-70">[ DEV ]</span>
+                  <span className="font-mono text-xs opacity-70">DEV</span>
                   Developer Settings // Custom GitHub App Manifest
                 </CardTitle>
                 <Badge variant="secondary" className="font-mono text-[10px] uppercase tracking-wider">
@@ -368,7 +365,7 @@ export function Integrations() {
             <div className="flex items-center justify-between">
               <span className="text-muted-foreground uppercase tracking-wider text-[11px]">GITHUB_APP_ID</span>
               <span className="text-foreground font-mono">
-                {import.meta.env.VITE_GITHUB_APP_ID ? String(import.meta.env.VITE_GITHUB_APP_ID) : "[ Using Relay ]"}
+                {import.meta.env.VITE_GITHUB_APP_ID ? String(import.meta.env.VITE_GITHUB_APP_ID) : "Using Relay"}
               </span>
             </div>
           </div>
