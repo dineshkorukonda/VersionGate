@@ -66,17 +66,17 @@ export function UpdateAvailableBanner() {
           <button
             type="button"
             onClick={() => setModalOpen(true)}
-            className="rounded bg-primary px-3 py-1 font-mono text-xs font-semibold text-primary-foreground transition-colors hover:brightness-110"
+            className="rounded-lg bg-white px-3 py-1 font-sans text-xs font-semibold text-black transition-colors hover:bg-neutral-200"
           >
-            [ Inspect & Apply ]
+            Inspect & Apply
           </button>
           <button
             type="button"
             onClick={onDismiss}
-            className="rounded px-1.5 py-0.5 font-mono text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            className="rounded px-1.5 py-0.5 font-sans text-xs text-neutral-400 transition-colors hover:bg-neutral-900 hover:text-white"
             aria-label="Dismiss"
           >
-            [ X ]
+            Dismiss
           </button>
         </div>
       </div>

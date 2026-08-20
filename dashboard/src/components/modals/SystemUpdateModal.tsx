@@ -120,7 +120,7 @@ export function SystemUpdateModal({
       <DialogContent className="max-w-3xl border-border bg-card p-6">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 font-mono text-base font-semibold">
-            <span className="text-primary">[ UPDATE ]</span>
+            <span className="text-white">Update</span>
             <span>Zero-Downtime System Engine Update</span>
           </DialogTitle>
           <DialogDescription className="font-mono text-xs text-muted-foreground">
@@ -135,7 +135,7 @@ export function SystemUpdateModal({
             <div className="flex items-center justify-between border-b border-border/40 pb-2 text-[11px] text-muted-foreground">
               <span>PIPELINE EXECUTION LOG</span>
               <span className="uppercase text-primary">
-                {isRunning ? "[ RUNNING ]" : isDone ? "[ COMPLETE ]" : isFailed ? "[ FAILED ]" : "[ IDLE ]"}
+                {isRunning ? "RUNNING" : isDone ? "COMPLETE" : isFailed ? "FAILED" : "IDLE"}
               </span>
             </div>
 
@@ -152,9 +152,9 @@ export function SystemUpdateModal({
                   <div
                     key={idx}
                     className={
-                      step.includes("[ FAIL ]")
+                      step.includes("[ FAIL ]") || step.includes("FAIL")
                         ? "text-red-400"
-                        : step.includes("[ OK ]") || step.includes("[ READY ]")
+                        : step.includes("[ OK ]") || step.includes("[ READY ]") || step.includes("OK") || step.includes("READY")
                           ? "text-emerald-400 font-semibold"
                           : "text-zinc-300"
                     }
@@ -170,8 +170,8 @@ export function SystemUpdateModal({
         <div className="flex items-center justify-between border-t border-border/40 pt-4">
           <div className="font-mono text-xs text-muted-foreground">
             {isRunning && <span>Executing pipeline steps in background...</span>}
-            {isDone && <span className="text-emerald-500 font-medium">[ OK ] All steps completed successfully</span>}
-            {isFailed && <span className="text-red-500">[ FAIL ] Update halted with errors</span>}
+            {isDone && <span className="text-emerald-500 font-medium">All steps completed successfully</span>}
+            {isFailed && <span className="text-red-500">Update halted with errors</span>}
           </div>
 
           <div className="flex items-center gap-2">

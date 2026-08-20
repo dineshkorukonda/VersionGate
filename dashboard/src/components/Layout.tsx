@@ -40,12 +40,12 @@ const API_HREF = "https://github.com/dineshkorukonda/VersionGate/blob/main/docs/
 const SUPPORT_HREF = "https://github.com/dineshkorukonda/VersionGate/issues";
 
 const nav = [
-  { to: "/", label: "Overview", end: true, tag: "[ 01 ]" },
-  { to: "/projects", label: "Projects", end: true, tag: "[ 02 ]" },
-  { to: "/activity", label: "Activity", end: false, tag: "[ 03 ]" },
-  { to: "/dashboard/integrations", label: "Integrations", end: false, tag: "[ 04 ]" },
-  { to: "/system", label: "System health", end: false, tag: "[ 05 ]" },
-  { to: "/settings", label: "Settings", end: false, tag: "[ 06 ]" },
+  { to: "/", label: "Overview", end: true, tag: "01" },
+  { to: "/projects", label: "Projects", end: true, tag: "02" },
+  { to: "/activity", label: "Activity", end: false, tag: "03" },
+  { to: "/dashboard/integrations", label: "Integrations", end: false, tag: "04" },
+  { to: "/system", label: "System health", end: false, tag: "05" },
+  { to: "/settings", label: "Settings", end: false, tag: "06" },
 ] as const;
 
 const navBtn =
@@ -227,10 +227,10 @@ export function Layout() {
             <SidebarFooter className="p-4">
               <Button
                 type="button"
-                className="w-full gap-2 bg-white font-mono text-xs text-black hover:bg-neutral-200"
+                className="w-full gap-2 bg-white font-sans text-xs text-black hover:bg-neutral-200"
                 onClick={() => setCreateProjectOpen(true)}
               >
-                <span>[ + ]</span>
+                <span>+</span>
                 <span className="group-data-[collapsible=icon]:hidden">New project</span>
               </Button>
             </SidebarFooter>
@@ -246,28 +246,28 @@ export function Layout() {
 
               <div className="mx-auto hidden max-w-md flex-1 px-2 sm:block">
                 <div className="relative">
-                  <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 font-mono text-xs text-muted-foreground">[ SEARCH ]</span>
+                  <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 font-sans text-xs text-neutral-500">Search</span>
                   <Input
                     readOnly
                     aria-label="Search projects"
                     title="Open search (⌘K or Ctrl+K)"
                     placeholder="Search projects…"
                     onClick={() => setSearchOpen(true)}
-                    className="h-8 cursor-pointer rounded-md border-border bg-card pl-24 text-sm text-foreground placeholder:text-muted-foreground font-mono"
+                    className="h-8 cursor-pointer rounded-lg border-neutral-800 bg-black pl-16 text-xs text-white placeholder:text-neutral-500 font-sans"
                   />
                 </div>
               </div>
 
               <div className="ml-auto flex shrink-0 items-center gap-0.5 sm:gap-1">
-                <Button type="button" size="sm" className="hidden gap-1.5 font-mono text-xs sm:inline-flex" onClick={() => setCreateProjectOpen(true)}>
-                  <span>[ + ]</span>
+                <Button type="button" size="sm" className="hidden gap-1.5 font-sans text-xs sm:inline-flex" onClick={() => setCreateProjectOpen(true)}>
+                  <span>+</span>
                   New project
                 </Button>
                 <a
                   href={DOCS_HREF}
                   target="_blank"
                   rel="noreferrer"
-                  className="hidden rounded-md px-2 py-1.5 text-xs font-mono font-medium text-muted-foreground hover:bg-muted hover:text-foreground lg:inline"
+                  className="hidden rounded-md px-2 py-1.5 text-xs font-sans font-medium text-neutral-400 hover:bg-neutral-900 hover:text-white lg:inline"
                 >
                   Docs
                 </a>
@@ -275,7 +275,7 @@ export function Layout() {
                   href={API_HREF}
                   target="_blank"
                   rel="noreferrer"
-                  className="hidden rounded-md px-2 py-1.5 text-xs font-mono font-medium text-muted-foreground hover:bg-muted hover:text-foreground lg:inline"
+                  className="hidden rounded-md px-2 py-1.5 text-xs font-sans font-medium text-neutral-400 hover:bg-neutral-900 hover:text-white lg:inline"
                 >
                   API
                 </a>
@@ -283,7 +283,7 @@ export function Layout() {
                   href={SUPPORT_HREF}
                   target="_blank"
                   rel="noreferrer"
-                  className="hidden rounded-md px-2 py-1.5 text-xs font-mono font-medium text-muted-foreground hover:bg-muted hover:text-foreground xl:inline"
+                  className="hidden rounded-md px-2 py-1.5 text-xs font-sans font-medium text-neutral-400 hover:bg-neutral-900 hover:text-white xl:inline"
                 >
                   Support
                 </a>
@@ -292,25 +292,25 @@ export function Layout() {
                   <DropdownMenuTrigger
                     className={cn(
                       buttonVariants({ variant: "ghost", size: "sm" }),
-                      "h-8 px-2 font-mono text-xs text-muted-foreground hover:text-foreground"
+                      "h-8 px-2 font-sans text-xs text-neutral-400 hover:text-white"
                     )}
                     aria-label="Notifications"
                   >
-                    [ ALERTS ]
+                    Alerts
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-64">
-                    <div className="px-3 py-8 text-center text-sm font-mono text-muted-foreground">No notifications</div>
+                    <div className="px-3 py-8 text-center text-xs font-sans text-neutral-400">No notifications</div>
                   </DropdownMenuContent>
                 </DropdownMenu>
                 <Button
                   type="button"
                   variant="ghost"
                   size="sm"
-                  className="h-8 px-2 font-mono text-xs text-muted-foreground hover:text-foreground"
+                  className="h-8 px-2 font-sans text-xs text-neutral-400 hover:text-white"
                   aria-label="Help"
                   onClick={() => window.open(DOCS_HREF, "_blank", "noopener,noreferrer")}
                 >
-                  [ ? ]
+                  Help
                 </Button>
                 <DropdownMenu>
                   <DropdownMenuTrigger

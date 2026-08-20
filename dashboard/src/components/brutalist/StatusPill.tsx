@@ -24,7 +24,7 @@ export function StatusPill({ status, className }: { status: PillStatus; classNam
       )}
     >
       {status === "DEPLOYING" ? (
-        <span className="animate-pulse text-sky-400 font-bold">[ SYNC ]</span>
+        <span className="size-1.5 animate-pulse rounded-full bg-sky-400" />
       ) : (
         <span className={cn("size-1.5 rounded-full", isCritical ? "bg-red-500" : s.dot)} />
       )}

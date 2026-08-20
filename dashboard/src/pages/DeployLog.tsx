@@ -272,8 +272,7 @@ export function DeployLog() {
           <Badge variant={badgeVariant} className={cn("shrink-0 font-mono text-xs", statusColor)}>
             {jobStatus}
           </Badge>
-          <Button type="button" variant="outline" size="sm" className="gap-1.5 font-mono text-xs" onClick={downloadLogs} disabled={lines.length === 0}>
-            <span>[ EXP ]</span>
+          <Button type="button" variant="outline" size="sm" className="gap-1.5 font-sans text-xs" onClick={downloadLogs} disabled={lines.length === 0}>
             Export logs
           </Button>
           {jobStatus === "PENDING" && (
@@ -281,11 +280,10 @@ export function DeployLog() {
               type="button"
               variant="destructive"
               size="sm"
-              className="gap-1.5 font-mono text-xs"
+              className="gap-1.5 font-sans text-xs"
               disabled={cancelBusy}
               onClick={() => void onCancelJob()}
             >
-              <span>[ STOP ]</span>
               {cancelBusy ? "Cancelling…" : "Cancel job"}
             </Button>
           )}
@@ -394,9 +392,9 @@ export function DeployLog() {
                 <button
                   type="button"
                   onClick={scrollToBottom}
-                  className="absolute bottom-4 right-4 rounded-md border border-primary/40 bg-card/95 px-3 py-1.5 font-mono text-xs font-semibold text-primary shadow-lg backdrop-blur transition-all hover:bg-primary hover:text-primary-foreground"
+                  className="absolute bottom-4 right-4 rounded-lg border border-neutral-800 bg-[#0a0a0a] px-3 py-1.5 font-sans text-xs font-semibold text-white shadow-lg backdrop-blur transition-all hover:bg-neutral-900"
                 >
-                  [ Jump to Latest Log ]
+                  Jump to Latest Log
                 </button>
               )}
             </CardContent>
