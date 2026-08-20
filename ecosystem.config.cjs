@@ -12,6 +12,8 @@ module.exports = {
       script: "src/server.ts",
       interpreter: "bun",
       watch: false,
+      kill_timeout: 3000,
+      listen_timeout: 3000,
       env: { NODE_ENV: "production", PATH: pathEnv, IN_PROCESS_WORKER: "false" },
     },
     {
