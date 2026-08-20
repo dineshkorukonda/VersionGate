@@ -204,18 +204,18 @@ export function Login() {
             <div className="rounded-md border border-border bg-muted p-3">
               <p className="text-muted-foreground">Run on your host server CLI:</p>
               <pre className="mt-2 text-foreground font-mono text-[11px] select-all bg-background p-2 rounded border border-border overflow-x-auto">
-                bun run create-admin admin@example.com 'NewPassword123!'
+                bun run reset-password admin@example.com 'NewPassword123!'
               </pre>
             </div>
             <div className="space-y-1.5 text-muted-foreground">
               <p>
-                <span className="text-foreground font-medium">Alternative (Reset existing user):</span> Connect to PostgreSQL locally and update the user record:
+                <span className="text-foreground font-medium">Alternative (--reset flag):</span> You can also pass the <code className="text-foreground">--reset</code> flag to create-admin:
               </p>
               <pre className="text-[10px] text-foreground bg-background p-2 rounded border border-border overflow-x-auto">
-                sudo -u postgres psql -d versiongate -c "DELETE FROM \"User\";"
+                bun run create-admin admin@example.com 'NewPassword123!' --reset
               </pre>
               <p className="text-[10px]">
-                Deleting the record allows you to immediately set a new admin account from the login screen.
+                Both commands update existing account credentials directly without requiring database table manipulation.
               </p>
             </div>
             <div className="flex justify-end pt-2">
