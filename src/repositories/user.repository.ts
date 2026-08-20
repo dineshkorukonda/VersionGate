@@ -29,4 +29,19 @@ export class UserRepository {
     }).returning();
     return created;
   }
+
+  async createUser(data: UserInsert): Promise<UserSelect> {
+    return this.create(data);
+  }
+
+  async updatePasswordByEmail(email: string, passwordHash: string): Promise<UserSelect | null> {
+    const db = getDb();
+    const normalizedEmail = email.toLowerCase().trim();
+    const [updated] = await db
+      .update(users)
+      .set({ passwordHash })
+      .where(eq(users.email, normalizedEmail))
+      .returning();
+    return updated ?? null;
+  }
 }

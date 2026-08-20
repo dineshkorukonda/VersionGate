@@ -24,7 +24,8 @@
     "agent": "bun scripts/agent.ts",
     "setup": "bun scripts/setup.ts",
     "self-update": "bun run scripts/self-update.ts",
-    "create-admin": "bun scripts/create-admin.ts"
+    "create-admin": "bun scripts/create-admin.ts",
+    "reset-password": "bun scripts/reset-password.ts"
   },
   "dependencies": {
     "@fastify/static": "^6.12.0",
