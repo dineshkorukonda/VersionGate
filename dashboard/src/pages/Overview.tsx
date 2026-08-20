@@ -242,7 +242,7 @@ export function Overview() {
                 return (
                   <Card
                     key={p.id}
-                    className="border-border/50 bg-card/60 shadow-none ring-1 ring-border/30 transition-all hover:ring-primary/30"
+                    className="border border-neutral-800 bg-[#0a0a0a] rounded-xl shadow-sm transition-all hover:border-neutral-700"
                   >
                     <CardHeader className="pb-3">
                       <div className="flex items-start justify-between gap-3">
