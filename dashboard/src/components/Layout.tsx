@@ -230,15 +230,13 @@ export function Layout() {
           </Sidebar>
 
           <SidebarInset className="flex min-h-svh flex-col bg-black">
-            {/* Top Vercel Scope Bar */}
+            {/* Top Clean Platform Header Bar */}
             <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center justify-between border-b border-neutral-800 bg-black/90 backdrop-blur-md px-4 md:px-6">
               <div className="flex items-center gap-3">
                 <SidebarTrigger className="md:hidden" />
                 <div className="flex items-center gap-2 font-sans text-xs">
                   <span className="flex size-6 items-center justify-center rounded-md bg-white font-mono text-xs font-bold text-black">V</span>
-                  <span className="font-semibold text-white">VersionGate</span>
-                  <span className="text-neutral-600">/</span>
-                  <span className="rounded bg-neutral-900 px-2 py-0.5 font-medium text-neutral-300">Personal Workspace</span>
+                  <span className="font-semibold text-white tracking-tight text-sm font-sans">VersionGate</span>
                 </div>
               </div>
 
@@ -293,29 +291,6 @@ export function Layout() {
                 </DropdownMenu>
               </div>
             </header>
-
-            {/* Horizontal Sub-Header Navigation Tab Bar */}
-            <div className="sticky top-14 z-20 border-b border-neutral-800 bg-black/80 backdrop-blur-md px-4 md:px-6">
-              <nav className="flex space-x-1 overflow-x-auto py-1.5 scrollbar-none" aria-label="Main Navigation">
-                {nav.map((item) => (
-                  <NavLink
-                    key={item.to}
-                    to={item.to}
-                    end={item.end}
-                    className={({ isActive }) =>
-                      cn(
-                        "rounded-md px-3 py-1.5 font-sans text-xs font-medium transition-colors whitespace-nowrap",
-                        isActive
-                          ? "bg-neutral-900 text-white font-semibold shadow-sm"
-                          : "text-neutral-400 hover:bg-neutral-900/50 hover:text-white"
-                      )
-                    }
-                  >
-                    {item.label}
-                  </NavLink>
-                ))}
-              </nav>
-            </div>
 
             <UpdateAvailableBanner />
             {needsRestartBanner ? (
