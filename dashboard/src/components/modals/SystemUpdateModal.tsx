@@ -117,7 +117,7 @@ export function SystemUpdateModal({
 
   return (
     <Dialog open={open} onOpenChange={isRunning ? undefined : onOpenChange}>
-      <DialogContent className="max-w-2xl border-border bg-card p-6">
+      <DialogContent className="max-w-3xl border-border bg-card p-6">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 font-mono text-base font-semibold">
             <span className="text-primary">[ UPDATE ]</span>

@@ -52,7 +52,7 @@ export function DeleteProjectDialog({
 
   return (
     <Dialog open={open} onOpenChange={(next) => !busy && onOpenChange(next)}>
-      <DialogContent showCloseButton={!busy} className="sm:max-w-md">
+      <DialogContent showCloseButton={!busy} className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Delete project?</DialogTitle>
           <DialogDescription>
