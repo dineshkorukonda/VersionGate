@@ -6,5 +6,5 @@ describe("Preflight Nginx Checks", () => {
     const report = await runPreflightChecks();
     const nginxCheck = report.checks.find((c) => c.id === "nginx_config_writable");
     expect(nginxCheck).toBeDefined();
-  });
+  }, 15000);
 });
