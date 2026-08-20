@@ -44,9 +44,35 @@ interface ProcessedRelease {
 
 const FALLBACK_RELEASES: ProcessedRelease[] = [
   {
-    version: "v2.1.0",
+    version: "v2.2.0",
     date: "August 20, 2026",
     isLatest: true,
+    summary: "Full platform visual remodel to Vercel Geist Obsidian design system featuring Geist Sans/Mono typography, pure #000000 obsidian dark canvas, translucent backdrop-blur sticky header, rounded-xl hairline panels, and solid white CTA buttons.",
+    categories: [
+      {
+        title: "Aesthetics & Design System",
+        badge: "NEW",
+        items: [
+          {
+            title: "Vercel Geist Typography Integration",
+            description: "Integrated Geist Sans Variable and Geist Mono Variable fonts across entire dashboard, header, login cards, and terminal viewers.",
+          },
+          {
+            title: "Vercel Geist Obsidian Theme Tokens",
+            description: "Configured #000000 obsidian canvas, #0a0a0a surface cards, #1f1f1f hairline borders, and glowing status micro-badges.",
+          },
+          {
+            title: "UI Primitive & Card Overhaul",
+            description: "Standardized Button, Card, Input, Badge, and StatCard components to Vercel Geist rounded-xl hairline panels and solid white CTAs.",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    version: "v2.1.0",
+    date: "August 20, 2026",
+    isLatest: false,
     summary: "CLI administrator password reset script, in-dashboard password updates under Settings -> Security, reorganized 5-tab Settings page, and fixed header navigation bar layout.",
     categories: [
       {

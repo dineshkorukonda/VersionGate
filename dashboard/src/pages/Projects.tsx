@@ -134,7 +134,7 @@ export function Projects() {
                 const url = publicEnvironmentUrl(proj, envLabel !== "—" ? envLabel : "production", port);
                 return (
                   <Link key={proj.id} to={`/projects/${proj.id}`} className="block group">
-                    <Card className="h-full transition-all hover:border-muted-foreground/30 hover:bg-accent/40 bg-card">
+                    <Card className="h-full border border-neutral-800 bg-[#0a0a0a] rounded-xl shadow-sm transition-all hover:border-neutral-700">
                       <CardHeader className="pb-3">
                         <div className="flex items-start justify-between">
                           <CardTitle className="text-base font-medium">{proj.name}</CardTitle>
