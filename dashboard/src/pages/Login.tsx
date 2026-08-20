@@ -79,34 +79,35 @@ export function Login() {
     );
   }
 
-  const title = bootstrapPending ? "Create first administrator" : "Sign in";
+  const title = bootstrapPending ? "Create Administrator" : "Sign in to VersionGate";
   const subtitle = bootstrapPending
-    ? "Your database is configured but there are no dashboard users yet (for example after a fresh install or restore). Set the first account here, or run bun run create-admin on the server."
-    : "Sign in to manage projects and deployments.";
+    ? "Set up the initial administrator credentials for your self-hosted instance."
+    : "Enter your administrator credentials to access dashboard deployment controls.";
 
   return (
-    <div className="relative min-h-svh overflow-hidden bg-background flex flex-col items-center justify-center">
-      
-      
-      <div className="relative mx-auto flex min-h-svh max-w-lg flex-col justify-center px-4 py-12">
-        <div className="mb-8 space-y-2 text-center">
-          <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">VersionGate</p>
-          <h1 className="text-3xl font-bold uppercase tracking-tight">{title}</h1>
-          <p className="text-sm text-muted-foreground">{subtitle}</p>
+    <div className="relative min-h-svh overflow-hidden bg-black flex flex-col items-center justify-center">
+      <div className="relative mx-auto flex min-h-svh max-w-md flex-col justify-center px-4 py-12">
+        <div className="mb-6 space-y-2 text-center">
+          <div className="inline-flex items-center gap-2 rounded-full border border-neutral-800 bg-neutral-900 px-3 py-1 text-xs font-mono text-neutral-300">
+            <span className="inline-block size-2 rounded-full bg-white" />
+            <span>VERSIONGATE</span>
+          </div>
+          <h1 className="text-2xl font-semibold tracking-tight text-white pt-2">{title}</h1>
+          <p className="text-xs text-neutral-400">{subtitle}</p>
         </div>
 
-        <Card className="border-border bg-card">
+        <Card className="border-neutral-800 bg-[#0a0a0a] shadow-sm">
           <CardHeader>
-            <CardTitle>{bootstrapPending ? "Bootstrap (one-time)" : "Credentials"}</CardTitle>
-            <CardDescription>
-              Password must be at least 10 characters. Session lasts 7 days on this device.
+            <CardTitle className="text-sm font-medium">{bootstrapPending ? "Initial Setup" : "Credentials"}</CardTitle>
+            <CardDescription className="text-xs">
+              Password minimum length is 10 characters. Session is persisted securely.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={(e) => void onSubmit(e)} className="space-y-4">
-              <div className="space-y-2">
-                <label htmlFor="vg-login-email" className="text-sm font-medium">
-                  Email
+              <div className="space-y-1.5">
+                <label htmlFor="vg-login-email" className="text-xs font-medium text-neutral-300">
+                  Email address
                 </label>
                 <Input
                   id="vg-login-email"
@@ -114,19 +115,20 @@ export function Login() {
                   autoComplete="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  placeholder="admin@example.com"
                   required
                 />
               </div>
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <label htmlFor="vg-login-password" className="text-sm font-medium">
+                  <label htmlFor="vg-login-password" className="text-xs font-medium text-neutral-300">
                     Password
                   </label>
                   {!bootstrapPending ? (
                     <button
                       type="button"
                       onClick={() => setForgotOpen(true)}
-                      className="text-xs text-muted-foreground hover:text-foreground hover:underline"
+                      className="text-xs text-neutral-400 hover:text-white hover:underline"
                     >
                       Forgot password?
                     </button>
@@ -138,23 +140,24 @@ export function Login() {
                   autoComplete={bootstrapPending ? "new-password" : "current-password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter password"
                   required
                   minLength={10}
                 />
               </div>
-              <Button type="submit" className="w-full" disabled={submitting}>
-                {submitting ? "Please wait…" : bootstrapPending ? "Create account" : "Sign in"}
+              <Button type="submit" className="w-full bg-white text-black hover:bg-neutral-200 font-semibold h-9 text-xs" disabled={submitting}>
+                {submitting ? "Processing…" : bootstrapPending ? "Create account" : "Sign in"}
               </Button>
               {!bootstrapPending ? (
-                <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground">
-                  <Link to="/setup" className="hover:text-foreground hover:underline">
+                <div className="flex items-center justify-center gap-4 text-xs text-neutral-400 pt-1">
+                  <Link to="/setup" className="hover:text-white hover:underline">
                     Setup wizard
                   </Link>
                   <span>·</span>
                   <button
                     type="button"
                     onClick={() => setForgotOpen(true)}
-                    className="hover:text-foreground hover:underline"
+                    className="hover:text-white hover:underline"
                   >
                     Reset via server
                   </button>
@@ -165,11 +168,11 @@ export function Login() {
         </Card>
 
         <div className="mt-6 flex justify-center">
-          <div className="border border-border bg-card px-4 py-2 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-            Dashboard{" "}
-            <span className="text-foreground">{typeof __DASHBOARD_VERSION__ !== "undefined" ? __DASHBOARD_VERSION__ : "dev"}</span>
-            <span className="mx-2 text-border">|</span>
-            Status: <span className="text-foreground">Operational</span>
+          <div className="rounded-full border border-neutral-800 bg-[#0a0a0a] px-4 py-1.5 font-mono text-[11px] text-neutral-400">
+            Engine Version{" "}
+            <span className="text-white font-medium">{typeof __DASHBOARD_VERSION__ !== "undefined" ? __DASHBOARD_VERSION__ : "dev"}</span>
+            <span className="mx-2 text-neutral-700">|</span>
+            Status: <span className="text-emerald-400 font-medium">Operational</span>
           </div>
         </div>
 
@@ -193,7 +196,7 @@ export function Login() {
         </footer>
       </div>
       <Dialog open={forgotOpen} onOpenChange={setForgotOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-xl">
           <DialogHeader>
             <DialogTitle>Reset Administrator Password</DialogTitle>
             <DialogDescription>

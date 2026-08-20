@@ -49,7 +49,7 @@ const nav = [
 ] as const;
 
 const navBtn =
-  "peer/menu-button flex w-full items-center gap-3 overflow-hidden px-3 py-2 text-sm font-medium text-sidebar-foreground transition-colors hover:text-white border-l-4 border-transparent [&>span:last-child]:truncate";
+  "peer/menu-button flex w-full items-center gap-3 overflow-hidden px-3 py-2 text-xs font-medium text-neutral-400 transition-colors hover:text-white hover:bg-neutral-900 rounded-lg [&>span:last-child]:truncate";
 
 export function Layout() {
   const navigate = useNavigate();
@@ -163,13 +163,15 @@ export function Layout() {
     <TooltipProvider>
       <CreateProjectLaunchContext.Provider value={() => setCreateProjectOpen(true)}>
         <SidebarProvider>
-          <Sidebar collapsible="icon" className="border-r border-sidebar-border bg-sidebar">
-            <SidebarHeader className="gap-3 border-b border-sidebar-border px-3 py-4">
-              <div className="flex items-center"><span className="text-base font-semibold text-white">VersionGate</span></div>
+          <Sidebar collapsible="icon" className="border-r border-neutral-800 bg-[#0a0a0a]">
+            <SidebarHeader className="gap-3 border-b border-neutral-800 px-3 py-4">
+              <div className="flex items-center gap-2">
+                <span className="inline-block size-3 rounded-full bg-white" />
+                <span className="text-sm font-semibold tracking-tight text-white">VersionGate</span>
+              </div>
             </SidebarHeader>
             <SidebarContent className="gap-0 px-2 py-3">
               <SidebarGroup className="p-0">
-                
                 <SidebarGroupContent>
                   <SidebarMenu className="gap-0.5">
                     {nav.map((item) => {
@@ -182,7 +184,7 @@ export function Layout() {
                               cn(
                                 navBtn,
                                 isActive &&
-                                  "border-white text-white bg-sidebar-accent/10"
+                                  "bg-neutral-900 text-white font-medium"
                               )
                             }
                           >
@@ -198,7 +200,6 @@ export function Layout() {
 
               {projects.length > 0 && (
                 <SidebarGroup className="mt-4 p-0">
-                  
                   <SidebarGroupContent>
                     <SidebarMenu className="gap-0.5">
                       {projects.map((p) => (
@@ -208,7 +209,7 @@ export function Layout() {
                             className={({ isActive }) =>
                               cn(
                                 navBtn,
-                                isActive && "border-white text-white bg-sidebar-accent/10"
+                                isActive && "bg-neutral-900 text-white font-medium"
                               )
                             }
                           >
@@ -224,10 +225,9 @@ export function Layout() {
             </SidebarContent>
 
             <SidebarFooter className="p-4">
-              
               <Button
                 type="button"
-                className="w-full gap-2 bg-white font-mono text-xs text-black hover:bg-zinc-200"
+                className="w-full gap-2 bg-white font-mono text-xs text-black hover:bg-neutral-200"
                 onClick={() => setCreateProjectOpen(true)}
               >
                 <span>[ + ]</span>
@@ -236,8 +236,8 @@ export function Layout() {
             </SidebarFooter>
           </Sidebar>
 
-          <SidebarInset className="flex min-h-svh flex-col bg-background">
-            <header className="sticky top-0 z-30 flex h-12 shrink-0 items-center gap-3 border-b border-border bg-background px-4">
+          <SidebarInset className="flex min-h-svh flex-col bg-black">
+            <header className="sticky top-0 z-30 flex h-12 shrink-0 items-center gap-3 border-b border-neutral-800 bg-black/80 backdrop-blur-md px-4">
               <SidebarTrigger className="md:hidden" />
               <div className="hidden min-w-0 flex-col gap-0.5 sm:flex md:max-w-[min(40%,20rem)]">
                 

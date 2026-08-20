@@ -66,7 +66,7 @@ export function EnvironmentEnvModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[540px]">
+      <DialogContent className="sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle className="font-mono text-sm uppercase tracking-wide">
             Stage Env Vars — {environment.name}
