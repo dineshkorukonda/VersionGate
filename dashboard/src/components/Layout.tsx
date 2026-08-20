@@ -271,22 +271,6 @@ export function Layout() {
                 >
                   Docs
                 </a>
-                <a
-                  href={API_HREF}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="hidden rounded-md px-2 py-1.5 text-xs font-sans font-medium text-neutral-400 hover:bg-neutral-900 hover:text-white lg:inline"
-                >
-                  API
-                </a>
-                <a
-                  href={SUPPORT_HREF}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="hidden rounded-md px-2 py-1.5 text-xs font-sans font-medium text-neutral-400 hover:bg-neutral-900 hover:text-white xl:inline"
-                >
-                  Support
-                </a>
                 <Separator orientation="vertical" className="hidden h-6 sm:block" />
                 <DropdownMenu>
                   <DropdownMenuTrigger
@@ -302,16 +286,6 @@ export function Layout() {
                     <div className="px-3 py-8 text-center text-xs font-sans text-neutral-400">No notifications</div>
                   </DropdownMenuContent>
                 </DropdownMenu>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 px-2 font-sans text-xs text-neutral-400 hover:text-white"
-                  aria-label="Help"
-                  onClick={() => window.open(DOCS_HREF, "_blank", "noopener,noreferrer")}
-                >
-                  Help
-                </Button>
                 <DropdownMenu>
                   <DropdownMenuTrigger
                     className={cn(
