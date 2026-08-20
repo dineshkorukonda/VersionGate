@@ -119,11 +119,17 @@ async function runUpdatePipeline(branch: string): Promise<void> {
     appendStep(`[ 1/5 ] Fetching origin ${branch}...`);
     await execFileAsync("git", ["fetch", "origin", branch], { cwd: projectRoot });
 
-    appendStep(`[ 2/5 ] Fast-forward merging origin/${branch}...`);
-    await execFileAsync("git", ["merge", "--ff-only", `origin/${branch}`], { cwd: projectRoot });
+    appendStep(`[ 2/5 ] Syncing code with origin/${branch}...`);
+    try {
+      await execFileAsync("git", ["merge", "--ff-only", `origin/${branch}`], { cwd: projectRoot });
+    } catch {
+      appendStep(`[ WARN ] Fast-forward merge prevented by local modifications. Resetting working tree to origin/${branch}...`);
+      await execFileAsync("git", ["reset", "--hard", `origin/${branch}`], { cwd: projectRoot });
+    }
 
-    appendStep("[ 3/5 ] Installing dependencies via Bun...");
+    appendStep("[ 3/5 ] Installing root & dashboard dependencies via Bun...");
     await execFileAsync("bun", ["install"], { cwd: projectRoot });
+    await execFileAsync("bun", ["install"], { cwd: join(projectRoot, "dashboard") });
 
     appendStep("[ 4/5 ] Synchronizing database schema...");
     if (process.env.DATABASE_URL?.trim()) {

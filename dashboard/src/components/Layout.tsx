@@ -271,6 +271,22 @@ export function Layout() {
                 >
                   Docs
                 </a>
+                <a
+                  href={API_HREF}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="hidden rounded-md px-2 py-1.5 text-xs font-sans font-medium text-neutral-400 hover:bg-neutral-900 hover:text-white lg:inline"
+                >
+                  API
+                </a>
+                <a
+                  href={SUPPORT_HREF}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="hidden rounded-md px-2 py-1.5 text-xs font-sans font-medium text-neutral-400 hover:bg-neutral-900 hover:text-white xl:inline"
+                >
+                  Support
+                </a>
                 <Separator orientation="vertical" className="hidden h-6 sm:block" />
                 <DropdownMenu>
                   <DropdownMenuTrigger
