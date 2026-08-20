@@ -50,6 +50,15 @@ const CAPABILITIES: Capability[] = [
     badge: "v1.4 Feature",
   },
   {
+    id: "cap-passwordreset",
+    category: "Security",
+    title: "CLI & Dashboard Password Management",
+    command: "bun run reset-password admin@example.com 'NewPass123!'",
+    description: "Self-hosted CLI password reset tools and in-dashboard administrator password management.",
+    details: "Enables host-level password resets via `bun run reset-password` or `bun run create-admin --reset`, and in-dashboard password updates under Settings -> Security.",
+    badge: "v2.1 Feature",
+  },
+  {
     id: "cap-autohealing",
     category: "Monitoring",
     title: "In-Process Worker & Base Href Proxy",

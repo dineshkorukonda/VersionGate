@@ -44,9 +44,34 @@ interface ProcessedRelease {
 
 const FALLBACK_RELEASES: ProcessedRelease[] = [
   {
+    version: "v2.1.0",
+    date: "August 20, 2026",
+    isLatest: true,
+    summary: "CLI administrator password reset script, in-dashboard password updates under Settings -> Security, reorganized 5-tab Settings page, and fixed header navigation bar layout.",
+    categories: [
+      {
+        title: "Administrator Credential Management",
+        badge: "NEW",
+        items: [
+          {
+            title: "Host CLI Password Reset Tools",
+            description:
+              "Added `bun run reset-password` script and `--reset` / `--force` flags to `create-admin` for direct credential updates on existing host user records.",
+            command: "bun run reset-password admin@example.com 'NewPassword123!'",
+          },
+          {
+            title: "In-Dashboard Password Updates & Settings Overhaul",
+            description:
+              "Added Change Password form under Settings -> Security and reorganized Settings into 5 fully populated tabs (General, Network, Security, Updates, Advanced).",
+          },
+        ],
+      },
+    ],
+  },
+  {
     version: "v2.0.0",
     date: "August 19, 2026",
-    isLatest: true,
+    isLatest: false,
     summary: "Automated host Certbot and Nginx plugin installation in the one-command installer script, enhanced Let's Encrypt path resolution, and non-blocking diagnostic feedback for host setups.",
     categories: [
       {

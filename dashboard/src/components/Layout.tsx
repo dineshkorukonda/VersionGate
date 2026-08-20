@@ -35,9 +35,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-const DOCS_HREF = "https://github.com/dinexh/VersionGate/blob/main/docs/SETUP.md";
-const API_HREF = "https://github.com/dinexh/VersionGate/blob/main/docs/SETUP.md";
-const SUPPORT_HREF = "https://github.com/dinexh/VersionGate/issues";
+const DOCS_HREF = "https://github.com/dineshkorukonda/VersionGate/blob/main/docs/SETUP.md";
+const API_HREF = "https://github.com/dineshkorukonda/VersionGate/blob/main/docs/SETUP.md";
+const SUPPORT_HREF = "https://github.com/dineshkorukonda/VersionGate/issues";
 
 const nav = [
   { to: "/", label: "Overview", end: true, tag: "[ 01 ]" },
@@ -291,8 +291,8 @@ export function Layout() {
                 <DropdownMenu>
                   <DropdownMenuTrigger
                     className={cn(
-                      buttonVariants({ variant: "ghost", size: "icon-sm" }),
-                      "text-muted-foreground font-mono text-xs px-2"
+                      buttonVariants({ variant: "ghost", size: "sm" }),
+                      "h-8 px-2 font-mono text-xs text-muted-foreground hover:text-foreground"
                     )}
                     aria-label="Notifications"
                   >
@@ -305,8 +305,8 @@ export function Layout() {
                 <Button
                   type="button"
                   variant="ghost"
-                  size="icon-sm"
-                  className="text-muted-foreground font-mono text-xs px-2"
+                  size="sm"
+                  className="h-8 px-2 font-mono text-xs text-muted-foreground hover:text-foreground"
                   aria-label="Help"
                   onClick={() => window.open(DOCS_HREF, "_blank", "noopener,noreferrer")}
                 >

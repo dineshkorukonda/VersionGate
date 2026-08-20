@@ -23,6 +23,10 @@ export class UserService {
   async createUser(data: UserInsert): Promise<UserSelect> {
     return this.userRepo.create(data);
   }
+
+  async updatePasswordByEmail(email: string, passwordHash: string): Promise<UserSelect | null> {
+    return this.userRepo.updatePasswordByEmail(email, passwordHash);
+  }
 }
 
 export const userService = new UserService();
