@@ -53,7 +53,7 @@ export function GlobalSearchDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-lg">
+      <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-2xl">
         <DialogHeader className="sr-only">
           <DialogTitle>Search resources</DialogTitle>
           <DialogDescription>Jump to a project by name or repository URL.</DialogDescription>

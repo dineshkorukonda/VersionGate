@@ -193,7 +193,7 @@ export function Login() {
         </footer>
       </div>
       <Dialog open={forgotOpen} onOpenChange={setForgotOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-xl">
           <DialogHeader>
             <DialogTitle>Reset Administrator Password</DialogTitle>
             <DialogDescription>
