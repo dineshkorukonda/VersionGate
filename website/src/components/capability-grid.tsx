@@ -23,6 +23,15 @@ const CAPABILITIES: Capability[] = [
     badge: "Core Engine",
   },
   {
+    id: "cap-structuraloverhaul",
+    category: "Deployment",
+    title: "Vercel Platform Structural Overhaul",
+    command: "versiongate ui overhaul --layout vercel-platform",
+    description: "Complete structural overhaul featuring top scope bar, horizontal sub-nav, 4-column telemetry hero matrix, and grid/table view modes.",
+    details: "Restructures top navigation header, project matrix grids, dense data tables, and project detail workspace for modern cloud operations.",
+    badge: "v2.3 Feature",
+  },
+  {
     id: "cap-warmswap",
     category: "Deployment",
     title: "Instant Warm-Swap Rollback",

@@ -44,9 +44,35 @@ interface ProcessedRelease {
 
 const FALLBACK_RELEASES: ProcessedRelease[] = [
   {
-    version: "v2.2.0",
+    version: "v2.3.0",
     date: "August 20, 2026",
     isLatest: true,
+    summary: "Complete Vercel platform structural and layout overhaul featuring top scope bar with workspace switcher, horizontal sub-header navigation bar, 4-column telemetry hero matrix, and Grid vs Dense Table view modes.",
+    categories: [
+      {
+        title: "Platform Navigation Architecture Overhaul",
+        badge: "NEW",
+        items: [
+          {
+            title: "Top Vercel Scope Bar & Horizontal Nav Sub-Bar",
+            description: "Restructured top bar to include workspace switcher, ⌘K command trigger, system status pill, and horizontal navigation tabs.",
+          },
+          {
+            title: "Telemetry Hero Matrix Grid",
+            description: "Added 4-column hero telemetry matrix for Total Projects, Active Containers, Pipeline Status, and Cluster Health.",
+          },
+          {
+            title: "Grid Cards & Dense Data Table View Switcher",
+            description: "Added Grid vs Dense Table view mode toggling in Projects page for high-density cloud management.",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    version: "v2.2.0",
+    date: "August 20, 2026",
+    isLatest: false,
     summary: "Full platform visual remodel to Vercel Geist Obsidian design system featuring Geist Sans/Mono typography, pure #000000 obsidian dark canvas, translucent backdrop-blur sticky header, rounded-xl hairline panels, and solid white CTA buttons.",
     categories: [
       {

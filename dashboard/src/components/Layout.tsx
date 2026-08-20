@@ -12,7 +12,6 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { Separator } from "@/components/ui/separator";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
 import { useEffect, useState } from "react";
@@ -22,10 +21,8 @@ import { cn } from "@/lib/utils";
 import { GlobalSearchDialog } from "@/components/modals/GlobalSearchDialog";
 import { CreateProjectModal } from "@/components/modals/CreateProjectModal";
 import { CreateProjectLaunchContext } from "@/create-project-launch";
-import { SidebarBreadcrumbs } from "@/components/SidebarBreadcrumbs";
 import { UpdateAvailableBanner } from "@/components/UpdateAvailableBanner";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -34,10 +31,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-
-const DOCS_HREF = "https://github.com/dineshkorukonda/VersionGate/blob/main/docs/SETUP.md";
-const API_HREF = "https://github.com/dineshkorukonda/VersionGate/blob/main/docs/SETUP.md";
-const SUPPORT_HREF = "https://github.com/dineshkorukonda/VersionGate/issues";
 
 const nav = [
   { to: "/", label: "Overview", end: true, tag: "01" },
@@ -237,71 +230,42 @@ export function Layout() {
           </Sidebar>
 
           <SidebarInset className="flex min-h-svh flex-col bg-black">
-            <header className="sticky top-0 z-30 flex h-12 shrink-0 items-center gap-3 border-b border-neutral-800 bg-black/80 backdrop-blur-md px-4">
-              <SidebarTrigger className="md:hidden" />
-              <div className="hidden min-w-0 flex-col gap-0.5 sm:flex md:max-w-[min(40%,20rem)]">
-                
-                <SidebarBreadcrumbs />
-              </div>
-
-              <div className="mx-auto hidden max-w-md flex-1 px-2 sm:block">
-                <div className="relative">
-                  <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 font-sans text-xs text-neutral-500">Search</span>
-                  <Input
-                    readOnly
-                    aria-label="Search projects"
-                    title="Open search (⌘K or Ctrl+K)"
-                    placeholder="Search projects…"
-                    onClick={() => setSearchOpen(true)}
-                    className="h-8 cursor-pointer rounded-lg border-neutral-800 bg-black pl-16 text-xs text-white placeholder:text-neutral-500 font-sans"
-                  />
+            {/* Top Vercel Scope Bar */}
+            <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center justify-between border-b border-neutral-800 bg-black/90 backdrop-blur-md px-4 md:px-6">
+              <div className="flex items-center gap-3">
+                <SidebarTrigger className="md:hidden" />
+                <div className="flex items-center gap-2 font-sans text-xs">
+                  <span className="flex size-6 items-center justify-center rounded-md bg-white font-mono text-xs font-bold text-black">V</span>
+                  <span className="font-semibold text-white">VersionGate</span>
+                  <span className="text-neutral-600">/</span>
+                  <span className="rounded bg-neutral-900 px-2 py-0.5 font-medium text-neutral-300">Personal Workspace</span>
                 </div>
               </div>
 
-              <div className="ml-auto flex shrink-0 items-center gap-0.5 sm:gap-1">
-                <Button type="button" size="sm" className="hidden gap-1.5 font-sans text-xs sm:inline-flex" onClick={() => setCreateProjectOpen(true)}>
+              <div className="hidden max-w-sm flex-1 px-4 md:block">
+                <button
+                  type="button"
+                  onClick={() => setSearchOpen(true)}
+                  className="flex w-full items-center justify-between rounded-lg border border-neutral-800 bg-[#0a0a0a] px-3 py-1.5 font-sans text-xs text-neutral-400 transition-colors hover:border-neutral-700 hover:text-white"
+                >
+                  <span className="flex items-center gap-2">
+                    <span className="text-neutral-500">Search projects, logs, settings...</span>
+                  </span>
+                  <kbd className="rounded border border-neutral-800 bg-black px-1.5 py-0.5 font-mono text-[10px] text-neutral-400">⌘K</kbd>
+                </button>
+              </div>
+
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="hidden items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-sans font-medium text-emerald-400 sm:flex">
+                  <span className="size-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  Systems Operational
+                </div>
+
+                <Button type="button" size="sm" className="gap-1.5 bg-white font-sans text-xs font-semibold text-black hover:bg-neutral-200" onClick={() => setCreateProjectOpen(true)}>
                   <span>+</span>
-                  New project
+                  Deploy Project
                 </Button>
-                <a
-                  href={DOCS_HREF}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="hidden rounded-md px-2 py-1.5 text-xs font-sans font-medium text-neutral-400 hover:bg-neutral-900 hover:text-white lg:inline"
-                >
-                  Docs
-                </a>
-                <a
-                  href={API_HREF}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="hidden rounded-md px-2 py-1.5 text-xs font-sans font-medium text-neutral-400 hover:bg-neutral-900 hover:text-white lg:inline"
-                >
-                  API
-                </a>
-                <a
-                  href={SUPPORT_HREF}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="hidden rounded-md px-2 py-1.5 text-xs font-sans font-medium text-neutral-400 hover:bg-neutral-900 hover:text-white xl:inline"
-                >
-                  Support
-                </a>
-                <Separator orientation="vertical" className="hidden h-6 sm:block" />
-                <DropdownMenu>
-                  <DropdownMenuTrigger
-                    className={cn(
-                      buttonVariants({ variant: "ghost", size: "sm" }),
-                      "h-8 px-2 font-sans text-xs text-neutral-400 hover:text-white"
-                    )}
-                    aria-label="Notifications"
-                  >
-                    Alerts
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-64">
-                    <div className="px-3 py-8 text-center text-xs font-sans text-neutral-400">No notifications</div>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+
                 <DropdownMenu>
                   <DropdownMenuTrigger
                     className={cn(
@@ -310,28 +274,47 @@ export function Layout() {
                     )}
                     aria-label="Account menu"
                   >
-                    <Avatar size="sm" className="size-8 border border-border/80">
-                      <AvatarFallback className="bg-primary/10 text-xs font-semibold text-primary">{avatarLetter}</AvatarFallback>
+                    <Avatar size="sm" className="size-8 border border-neutral-800">
+                      <AvatarFallback className="bg-neutral-900 text-xs font-semibold text-white">{avatarLetter}</AvatarFallback>
                     </Avatar>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuContent align="end" className="w-56 bg-[#0a0a0a] border-neutral-800 text-white">
                     {headerUserEmail ? (
                       <>
                         <div className="px-2 py-1.5">
-                          <p className="truncate text-xs text-muted-foreground">Signed in as</p>
-                          <p className="truncate text-sm font-medium">{headerUserEmail}</p>
+                          <p className="truncate text-xs text-neutral-400">Signed in as</p>
+                          <p className="truncate text-sm font-medium text-white">{headerUserEmail}</p>
                         </div>
-                        <DropdownMenuSeparator />
+                        <DropdownMenuSeparator className="bg-neutral-800" />
                       </>
                     ) : null}
-                    <DropdownMenuItem onClick={() => void signOut()}>Sign out</DropdownMenuItem>
+                    <DropdownMenuItem className="hover:bg-neutral-900 cursor-pointer" onClick={() => void signOut()}>Sign out</DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
             </header>
 
-            <div className="flex border-b border-border bg-card px-3 py-2 sm:hidden">
-              <SidebarBreadcrumbs />
+            {/* Horizontal Sub-Header Navigation Tab Bar */}
+            <div className="sticky top-14 z-20 border-b border-neutral-800 bg-black/80 backdrop-blur-md px-4 md:px-6">
+              <nav className="flex space-x-1 overflow-x-auto py-1.5 scrollbar-none" aria-label="Main Navigation">
+                {nav.map((item) => (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    end={item.end}
+                    className={({ isActive }) =>
+                      cn(
+                        "rounded-md px-3 py-1.5 font-sans text-xs font-medium transition-colors whitespace-nowrap",
+                        isActive
+                          ? "bg-neutral-900 text-white font-semibold shadow-sm"
+                          : "text-neutral-400 hover:bg-neutral-900/50 hover:text-white"
+                      )
+                    }
+                  >
+                    {item.label}
+                  </NavLink>
+                ))}
+              </nav>
             </div>
 
             <UpdateAvailableBanner />
@@ -340,16 +323,16 @@ export function Layout() {
                 className="flex items-center justify-center gap-3 border-b border-amber-500/30 bg-amber-500/5 px-4 py-2.5 text-sm"
                 role="status"
               >
-                <span className="inline-block h-2 w-2 rounded-full bg-amber-500" />
-                <span className="text-amber-400">
-                  Configuration change detected — the engine will apply it automatically on the next job cycle.
+                <span className="inline-block size-2 rounded-full bg-amber-500" />
+                <span className="text-amber-400 font-sans text-xs">
+                  Configuration change detected — engine will apply automatically on next job cycle.
                 </span>
               </div>
             ) : null}
-            <div className="flex flex-1 flex-col gap-4 bg-background px-4 py-4 md:px-6 md:py-6 lg:px-8">
+            <div className="flex flex-1 flex-col gap-6 bg-black px-4 py-6 md:px-8 md:py-8">
               {setupGate === "loading" ? (
                 <div className="flex flex-1 items-center justify-center">
-                  <span className="text-sm text-muted-foreground">Loading...</span>
+                  <span className="text-sm text-neutral-400 font-sans">Loading workspace...</span>
                 </div>
               ) : (
                 <Outlet />

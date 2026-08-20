@@ -226,16 +226,21 @@ export function ProjectDetail() {
   const totalDeploys = productionDeployments.length;
 
   return (
-    <div className="w-full space-y-6">
-      <div className="flex flex-col gap-4 border-b border-border pb-6 lg:flex-row lg:items-start lg:justify-between">
+    <div className="w-full space-y-8 font-sans">
+      {/* Project Workspace Header Bar */}
+      <div className="flex flex-col gap-4 border-b border-neutral-800 pb-6 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0 space-y-2">
-          <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-            prj_{project.id.slice(0, 8).toUpperCase()}
-          </p>
+          <div className="flex items-center gap-2 font-mono text-[11px] text-neutral-400">
+            <span className="rounded bg-neutral-900 px-2 py-0.5 font-sans font-medium text-neutral-300">Project</span>
+            <span>·</span>
+            <span>ID: {project.id.slice(0, 8)}</span>
+            <span>·</span>
+            <span>Branch: {project.branch}</span>
+          </div>
           <div className="flex flex-wrap items-center gap-3">
-            <h1 className="text-2xl font-bold uppercase tracking-tight">{project.name}</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-white md:text-3xl font-sans">{project.name}</h1>
             {active ? (
-              <Badge variant="outline" className="font-mono text-[10px] uppercase">
+              <Badge variant="outline" className="border-neutral-800 bg-neutral-900 font-mono text-[10px] text-neutral-300">
                 v{active.version}
               </Badge>
             ) : null}
@@ -245,36 +250,33 @@ export function ProjectDetail() {
             href={repoHref}
             target="_blank"
             rel="noreferrer"
-            className="block font-mono text-xs text-muted-foreground hover:text-foreground"
+            className="inline-flex items-center gap-1.5 font-mono text-xs text-neutral-400 hover:text-white transition-colors"
           >
-            {project.repoUrl.replace(/^https?:\/\/(www\.)?/, "")}
+            <span>{project.repoUrl.replace(/^https?:\/\/(www\.)?/, "")}</span>
           </a>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {liveUrl ? (
             <a
               href={liveUrl}
               target="_blank"
               rel="noreferrer"
               className={cn(
-                buttonVariants({ variant: "default", size: "default" }),
-                "gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-medium border-emerald-500/30"
+                buttonVariants({ variant: "default", size: "sm" }),
+                "gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold font-sans text-xs"
               )}
             >
-              <span>Open Live App</span>
-              <span className="font-mono text-xs opacity-80">(:{liveHostPort})</span>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-                <polyline points="15 3 21 3 21 9" />
-                <line x1="10" y1="14" x2="21" y2="3" />
-              </svg>
+              Visit App
+              <span className="font-mono text-[10px] opacity-80">(:{liveHostPort})</span>
             </a>
           ) : null}
-          <Button variant="outline" className="border-destructive/50 text-destructive" onClick={() => void onRollback()}>
+          <Button variant="outline" size="sm" className="border-rose-900/50 text-rose-400 hover:bg-rose-950/40 text-xs font-sans" onClick={() => void onRollback()}>
             Rollback
           </Button>
-          <Button onClick={() => void onDeploy()}>Deploy production</Button>
-          <Button type="button" variant="ghost" className="text-destructive" onClick={() => setDeleteOpen(true)}>
+          <Button size="sm" className="bg-white text-black font-semibold hover:bg-neutral-200 text-xs font-sans" onClick={() => void onDeploy()}>
+            Deploy Production
+          </Button>
+          <Button type="button" variant="ghost" size="sm" className="text-neutral-400 hover:text-rose-400 text-xs font-sans" onClick={() => setDeleteOpen(true)}>
             Delete
           </Button>
         </div>
