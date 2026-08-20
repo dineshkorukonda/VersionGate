@@ -59,7 +59,7 @@ export function GlobalSearchDialog({
           <DialogDescription>Jump to a project by name or repository URL.</DialogDescription>
         </DialogHeader>
         <div className="flex items-center gap-2 border-b border-border px-3 py-2">
-          <span className="shrink-0 font-mono text-xs text-muted-foreground">[ SEARCH ]</span>
+          <span className="shrink-0 font-sans text-xs text-neutral-400">Search</span>
           <Input
             autoFocus
             value={q}

@@ -694,8 +694,7 @@ export function Settings() {
         <TabsContent value="network" className="space-y-6">
           <Card id="dashboard-url" className="border-border/50 bg-card/60 ring-1 ring-border/30 scroll-mt-24">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <span className="font-mono text-xs opacity-70">[ HOST ]</span>
+              <CardTitle className="text-base font-semibold">
                 Dashboard URL &amp; hostname
               </CardTitle>
               <CardDescription>
