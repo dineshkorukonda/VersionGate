@@ -255,6 +255,17 @@ const CAPABILITIES: Capability[] = [
       "certbot-path.ts checks /usr/bin/certbot, /snap/bin/certbot, and other paths. settings.controller postCertbotSslHandler falls back to sudo -n when needed.",
     badge: "Host / Dashboard",
   },
+  {
+    id: "cap-github-diagnostics",
+    category: "Monitoring",
+    title: "GitHub Integration Diagnostic Checkpoints",
+    command: "GET /api/github/test-connection",
+    description:
+      "Four-stage real-time connection probe validating database records, secrets, relay reachability, and GitHub API repository access.",
+    details:
+      "Runs automated diagnostic checks across PostgreSQL installation records, engine state HMAC secret configuration, central cloud relay network latency (versiongate.tech), and Octokit token repository access with instant troubleshooting advice.",
+    badge: "Dashboard / Engine",
+  },
 ];
 
 export function CapabilityGrid() {

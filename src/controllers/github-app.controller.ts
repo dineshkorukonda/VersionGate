@@ -21,6 +21,7 @@ import {
   verifyRelayHopSignature,
   fetchReposFromRelay,
   fetchBranchesFromRelay,
+  probeRelayReachability,
 } from "../utils/github/github-relay";
 import { dashboardIntegrationsAbsoluteUrl } from "../utils/public-app-origin";
 import { stackDetectorService } from "../services/stack-detector.service";
@@ -846,3 +847,299 @@ export async function githubDetectRepoHandler(
     suggestions: result.suggestions,
   });
 }
+
+export interface DiagnosticCheckpoint {
+  id: "database" | "config" | "relay" | "repositories";
+  title: string;
+  status: "ok" | "fail" | "warn" | "skipped";
+  message: string;
+  latencyMs?: number;
+  details?: Record<string, unknown>;
+}
+
+export interface GithubDiagnosticsResponse {
+  healthy: boolean;
+  mode: "direct" | "relay";
+  timestamp: string;
+  installationId: string | null;
+  checkpoints: DiagnosticCheckpoint[];
+  recommendations: string[];
+}
+
+export async function githubTestConnectionHandler(
+  req: FastifyRequest<{ Querystring: { installationId?: string } }>,
+  reply: FastifyReply
+): Promise<void> {
+  const user = await resolveRequestUser(req);
+  if (!user) {
+    reply.code(401).send({ error: "Unauthorized", message: "Sign in required", code: "AUTH_REQUIRED" });
+    return;
+  }
+
+  const q = req.query as { installationId?: string };
+  const checkpoints: DiagnosticCheckpoint[] = [];
+  const recommendations: string[] = [];
+  const isDirect = githubAppReady();
+  const mode: "direct" | "relay" = isDirect ? "direct" : "relay";
+
+  // Checkpoint 1: Database Installation Record
+  const dbStart = Date.now();
+  const row = await resolveInstallationForUser(user.id, q.installationId);
+  const dbLatency = Date.now() - dbStart;
+
+  if (row) {
+    checkpoints.push({
+      id: "database",
+      title: "Local Database Record",
+      status: "ok",
+      latencyMs: dbLatency,
+      message: `Installation #${row.installationId} (@${row.githubAccountLogin}) verified in local database.`,
+      details: {
+        installationId: row.installationId.toString(),
+        accountLogin: row.githubAccountLogin,
+        accountType: row.githubAccountType,
+        createdAt: row.createdAt.toISOString(),
+      },
+    });
+  } else {
+    checkpoints.push({
+      id: "database",
+      title: "Local Database Record",
+      status: "fail",
+      latencyMs: dbLatency,
+      message: "No GitHub App installation linked to your account in the local database.",
+      details: { installationId: q.installationId ?? null },
+    });
+    recommendations.push(
+      "Click 'Connect GitHub' on Integrations or paste your numeric Installation ID into the Manual Sync field."
+    );
+  }
+
+  // Checkpoint 2: Integration Mode & Environment Config
+  if (isDirect) {
+    checkpoints.push({
+      id: "config",
+      title: "Integration Mode & Secrets",
+      status: "ok",
+      message: `Direct GitHub App mode active (App ID: ${config.githubAppId}). Engine communicates directly with GitHub.`,
+      details: {
+        mode: "direct",
+        appId: config.githubAppId,
+        hasPrivateKey: true,
+      },
+    });
+  } else {
+    const effectiveSecret = (process.env.GITHUB_STATE_SECRET || config.githubStateSecret || "").trim();
+    if (effectiveSecret) {
+      checkpoints.push({
+        id: "config",
+        title: "Integration Mode & Secrets",
+        status: "ok",
+        message: "Central Cloud Relay mode active. Shared HMAC state secret is configured.",
+        details: {
+          mode: "relay",
+          relayOrigin: config.githubRelayOrigin,
+          relayTimeoutMs: config.githubRelayTimeoutMs,
+          secretConfigured: true,
+        },
+      });
+    } else {
+      checkpoints.push({
+        id: "config",
+        title: "Integration Mode & Secrets",
+        status: "warn",
+        message: "Central Cloud Relay mode active, but GITHUB_STATE_SECRET is not explicitly configured.",
+        details: {
+          mode: "relay",
+          relayOrigin: config.githubRelayOrigin,
+          relayTimeoutMs: config.githubRelayTimeoutMs,
+          secretConfigured: false,
+        },
+      });
+      recommendations.push(
+        "Set GITHUB_STATE_SECRET in your server .env file to match the relay shared secret."
+      );
+    }
+  }
+
+  // Checkpoint 3: Central Relay Server Reachability (Relay mode only)
+  if (isDirect) {
+    checkpoints.push({
+      id: "relay",
+      title: "Central Relay Reachability",
+      status: "skipped",
+      message: "Skipped — Direct GitHub App mode does not use the central cloud relay.",
+      details: { mode: "direct" },
+    });
+  } else {
+    const probe = await probeRelayReachability({
+      relayOrigin: config.githubRelayOrigin,
+      timeoutMs: Math.min(config.githubRelayTimeoutMs, 8000),
+    });
+    if (probe.reachable) {
+      checkpoints.push({
+        id: "relay",
+        title: "Central Relay Reachability",
+        status: "ok",
+        latencyMs: probe.latencyMs,
+        message: `Relay at ${probe.origin} is reachable (HTTP ${probe.status}, round-trip ${probe.latencyMs}ms).`,
+        details: {
+          origin: probe.origin,
+          endpoint: probe.endpoint,
+          status: probe.status,
+          latencyMs: probe.latencyMs,
+        },
+      });
+    } else {
+      checkpoints.push({
+        id: "relay",
+        title: "Central Relay Reachability",
+        status: "fail",
+        latencyMs: probe.latencyMs,
+        message: `Unable to reach relay at ${probe.origin} (${probe.error || `HTTP ${probe.status}`}).`,
+        details: {
+          origin: probe.origin,
+          endpoint: probe.endpoint,
+          status: probe.status,
+          latencyMs: probe.latencyMs,
+          error: probe.error,
+        },
+      });
+      recommendations.push(
+        `Ensure your server has outbound network access to ${probe.origin}, or increase GITHUB_RELAY_TIMEOUT_MS.`
+      );
+    }
+  }
+
+  // Checkpoint 4: GitHub API Repository Access
+  if (!row) {
+    checkpoints.push({
+      id: "repositories",
+      title: "GitHub Repositories Access",
+      status: "skipped",
+      message: "Skipped — Requires a verified installation record in step 01.",
+    });
+  } else if (isDirect) {
+    const repoStart = Date.now();
+    try {
+      const { token } = await getInstallationAccessToken(row.installationId);
+      const octokit = new Octokit({ auth: token });
+      const { data } = await octokit.rest.apps.listReposAccessibleToInstallation({
+        per_page: 10,
+      });
+      const repoLatency = Date.now() - repoStart;
+      checkpoints.push({
+        id: "repositories",
+        title: "GitHub Repositories Access",
+        status: "ok",
+        latencyMs: repoLatency,
+        message: `Successfully authenticated with GitHub App and retrieved ${data.total_count} accessible repositories (${repoLatency}ms).`,
+        details: {
+          totalCount: data.total_count,
+          sampleRepos: data.repositories.slice(0, 3).map((r) => r.full_name),
+        },
+      });
+    } catch (err) {
+      const repoLatency = Date.now() - repoStart;
+      const errMsg = err instanceof Error ? err.message : String(err);
+      checkpoints.push({
+        id: "repositories",
+        title: "GitHub Repositories Access",
+        status: "fail",
+        latencyMs: repoLatency,
+        message: `Direct GitHub API authentication failed: ${errMsg}`,
+        details: { error: errMsg, latencyMs: repoLatency },
+      });
+      recommendations.push(
+        "Verify that GITHUB_APP_PRIVATE_KEY is valid and matches GITHUB_APP_ID on GitHub."
+      );
+    }
+  } else {
+    const repoStart = Date.now();
+    const secretsToTry = [process.env.GITHUB_STATE_SECRET, config.githubStateSecret].filter(
+      (s): s is string => Boolean(s && s.trim())
+    );
+    let successCount: number | null = null;
+    let sampleNames: string[] = [];
+    let lastError: string | null = null;
+
+    for (const sec of secretsToTry) {
+      try {
+        const repos = await fetchReposFromRelay({
+          installationId: row.installationId.toString(),
+          relaySecret: sec.trim(),
+          relayOrigin: config.githubRelayOrigin,
+          timeoutMs: config.githubRelayTimeoutMs,
+        });
+        successCount = repos.length;
+        sampleNames = repos.slice(0, 3).map((r) => r.fullName);
+        break;
+      } catch (err) {
+        lastError = err instanceof Error ? err.message : String(err);
+      }
+    }
+
+    const repoLatency = Date.now() - repoStart;
+
+    if (successCount !== null) {
+      checkpoints.push({
+        id: "repositories",
+        title: "GitHub Repositories Access",
+        status: "ok",
+        latencyMs: repoLatency,
+        message: `Successfully fetched ${successCount} accessible repositories through central relay (${repoLatency}ms).`,
+        details: {
+          totalCount: successCount,
+          sampleRepos: sampleNames,
+          latencyMs: repoLatency,
+        },
+      });
+    } else {
+      checkpoints.push({
+        id: "repositories",
+        title: "GitHub Repositories Access",
+        status: "fail",
+        latencyMs: repoLatency,
+        message: lastError
+          ? `Could not fetch repositories from relay: ${lastError}`
+          : "Could not fetch repositories through central relay.",
+        details: {
+          error: lastError,
+          latencyMs: repoLatency,
+          timeoutConfigured: config.githubRelayTimeoutMs,
+        },
+      });
+
+      if (lastError && lastError.toLowerCase().includes("timed out")) {
+        recommendations.push(
+          `The relay request timed out after ${config.githubRelayTimeoutMs}ms. You can set GITHUB_RELAY_TIMEOUT_MS=30000 in your server .env file to give GitHub more time to respond.`
+        );
+        recommendations.push(
+          "Alternatively, switch to Direct Mode by providing GITHUB_APP_ID and GITHUB_APP_PRIVATE_KEY in your .env file to bypass the central cloud relay."
+        );
+      } else if (lastError && (lastError.includes("401") || lastError.toLowerCase().includes("signature"))) {
+        recommendations.push(
+          "Ensure GITHUB_STATE_SECRET in your server .env matches the RELAY_SECRET expected by versiongate.tech."
+        );
+      } else {
+        recommendations.push(
+          "Check relay connectivity or configure custom GitHub App credentials in .env for direct access."
+        );
+      }
+    }
+  }
+
+  const healthy = checkpoints.every((c) => c.status === "ok" || c.status === "skipped");
+
+  const responsePayload: GithubDiagnosticsResponse = {
+    healthy,
+    mode,
+    timestamp: new Date().toISOString(),
+    installationId: row?.installationId.toString() ?? null,
+    checkpoints,
+    recommendations,
+  };
+
+  reply.code(200).send(responsePayload);
+}
+

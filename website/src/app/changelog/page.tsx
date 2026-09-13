@@ -85,6 +85,12 @@ const FALLBACK_RELEASES: ProcessedRelease[] = [
         badge: "NEW",
         items: [
           {
+            title: "GitHub Integration Diagnostics & Connection Checkpoints",
+            description:
+              "Interactive four-checkpoint system probe on Integrations and Repo Picker testing database records, HMAC secret configuration, central relay reachability (latency in ms), and GitHub API token repository access with instant troubleshooting guidance.",
+            command: "GET /api/github/test-connection",
+          },
+          {
             title: "Per-Project Traffic & Response Telemetry",
             description:
               "Sliding 24-hour hit counters, response status code distributions (2xx, 3xx, 4xx, 5xx), and average latency telemetry per project.",

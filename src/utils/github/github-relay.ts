@@ -1,4 +1,5 @@
 import { createHmac, timingSafeEqual } from "crypto";
+import { config } from "../../config/env";
 
 /**
  * Hop signature from versiongate.tech fan-out.
@@ -51,6 +52,14 @@ export function signRegisterPayload(p: RegisterPayload, secret: string): string 
 
 const DEFAULT_RELAY_ORIGIN = "https://versiongate.tech";
 
+function resolveRelayOrigin(explicit?: string): string {
+  return (explicit ?? config.githubRelayOrigin ?? DEFAULT_RELAY_ORIGIN).trim().replace(/\/+$/, "");
+}
+
+function resolveRelayTimeout(explicit?: number): number {
+  return explicit ?? config.githubRelayTimeoutMs ?? 15_000;
+}
+
 /** Notify the central relay of installation → this instance mapping. */
 export async function registerInstallationWithRelay(opts: {
   installationId: string;
@@ -58,6 +67,7 @@ export async function registerInstallationWithRelay(opts: {
   instanceUrl: string;
   relaySecret: string;
   relayOrigin?: string;
+  timeoutMs?: number;
 }): Promise<void> {
   const token = signRegisterPayload(
     {
@@ -68,12 +78,13 @@ export async function registerInstallationWithRelay(opts: {
     },
     opts.relaySecret
   );
-  const origin = (opts.relayOrigin ?? DEFAULT_RELAY_ORIGIN).replace(/\/+$/, "");
+  const origin = resolveRelayOrigin(opts.relayOrigin);
+  const timeoutMs = resolveRelayTimeout(opts.timeoutMs);
   const res = await fetch(`${origin}/api/github/register`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ token }),
-    signal: AbortSignal.timeout(10_000),
+    signal: AbortSignal.timeout(timeoutMs),
   });
   if (!res.ok) {
     const text = await res.text().catch(() => "");
@@ -99,8 +110,10 @@ export async function fetchReposFromRelay(opts: {
   installationId: string;
   relaySecret: string;
   relayOrigin?: string;
+  timeoutMs?: number;
 }): Promise<RelayRepoRow[]> {
-  const origin = (opts.relayOrigin ?? DEFAULT_RELAY_ORIGIN).replace(/\/+$/, "");
+  const origin = resolveRelayOrigin(opts.relayOrigin);
+  const timeoutMs = resolveRelayTimeout(opts.timeoutMs);
   const sig = createHmac("sha256", opts.relaySecret)
     .update(`repos:${opts.installationId}`, "utf8")
     .digest("hex");
@@ -110,7 +123,7 @@ export async function fetchReposFromRelay(opts: {
     {
       method: "GET",
       headers: { "Content-Type": "application/json" },
-      signal: AbortSignal.timeout(10_000),
+      signal: AbortSignal.timeout(timeoutMs),
     }
   );
 
@@ -129,8 +142,10 @@ export async function fetchBranchesFromRelay(opts: {
   repo: string;
   relaySecret: string;
   relayOrigin?: string;
+  timeoutMs?: number;
 }): Promise<{ name: string; sha: string | undefined }[]> {
-  const origin = (opts.relayOrigin ?? DEFAULT_RELAY_ORIGIN).replace(/\/+$/, "");
+  const origin = resolveRelayOrigin(opts.relayOrigin);
+  const timeoutMs = resolveRelayTimeout(opts.timeoutMs);
   const sig = createHmac("sha256", opts.relaySecret)
     .update(`branches:${opts.installationId}:${opts.owner}/${opts.repo}`, "utf8")
     .digest("hex");
@@ -140,7 +155,7 @@ export async function fetchBranchesFromRelay(opts: {
     {
       method: "GET",
       headers: { "Content-Type": "application/json" },
-      signal: AbortSignal.timeout(10_000),
+      signal: AbortSignal.timeout(timeoutMs),
     }
   );
 
@@ -151,5 +166,78 @@ export async function fetchBranchesFromRelay(opts: {
 
   const data = (await res.json()) as { branches?: { name: string; sha: string | undefined }[] };
   return data.branches ?? [];
+}
+
+export interface RelayProbeResult {
+  reachable: boolean;
+  status: number;
+  latencyMs: number;
+  origin: string;
+  endpoint: string;
+  error?: string;
+}
+
+/**
+ * Probes central relay reachability and measures round-trip latency.
+ * Tries /api/github/health first, then falls back to /api/github/repos probe.
+ */
+export async function probeRelayReachability(opts?: {
+  relayOrigin?: string;
+  timeoutMs?: number;
+}): Promise<RelayProbeResult> {
+  const origin = resolveRelayOrigin(opts?.relayOrigin);
+  const timeoutMs = resolveRelayTimeout(opts?.timeoutMs);
+  const start = Date.now();
+
+  try {
+    // Try health probe first
+    const healthRes = await fetch(`${origin}/api/github/health`, {
+      method: "GET",
+      headers: { "Content-Type": "application/json" },
+      signal: AbortSignal.timeout(Math.min(timeoutMs, 6000)),
+    });
+    const latencyMs = Date.now() - start;
+    if (healthRes.ok) {
+      return {
+        reachable: true,
+        status: healthRes.status,
+        latencyMs,
+        origin,
+        endpoint: "/api/github/health",
+      };
+    }
+  } catch {
+    // If health route not deployed on older relay, fallback to repos route
+  }
+
+  // Fallback probe: GET /api/github/repos (returns 400 Bad Request when healthy without params)
+  const probeStart = Date.now();
+  try {
+    const res = await fetch(`${origin}/api/github/repos`, {
+      method: "GET",
+      headers: { "Content-Type": "application/json" },
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+    const latencyMs = Date.now() - probeStart;
+    // 400, 200, 401 are valid responses from an active HTTP relay server
+    const reachable = res.status > 0 && res.status < 500;
+    return {
+      reachable,
+      status: res.status,
+      latencyMs,
+      origin,
+      endpoint: "/api/github/repos",
+    };
+  } catch (err) {
+    const latencyMs = Date.now() - probeStart;
+    return {
+      reachable: false,
+      status: 0,
+      latencyMs,
+      origin,
+      endpoint: "/api/github/repos",
+      error: err instanceof Error ? err.message : String(err),
+    };
+  }
 }
 

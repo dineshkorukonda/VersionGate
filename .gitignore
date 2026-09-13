@@ -33,3 +33,4 @@ coverage/
 .cursor/
 .entire/
 .gemini/
+.deepsec/
