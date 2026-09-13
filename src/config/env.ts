@@ -115,6 +115,10 @@ export const config = {
    * Timeout in milliseconds when communicating with the GitHub relay.
    */
   githubRelayTimeoutMs: Math.max(1000, parseInt(optionalEnv("GITHUB_RELAY_TIMEOUT_MS", "15000"), 10) || 15000),
+  /**
+   * Ports and port ranges to avoid when assigning deployment slots (e.g. "80,443,3000,5173,5432,6379,9090").
+   */
+  excludedPorts: optionalEnv("EXCLUDED_PORTS", "80,443,3000,5173,5432,6379,9090").trim(),
 } as const;
 
 /** Live values (updated when .env is patched at runtime). */
@@ -143,3 +147,8 @@ export function selfUpdateAutoApplyLive(): boolean {
 export function inProcessWorkerLive(): boolean {
   return parseTruthyEnv("IN_PROCESS_WORKER", config.inProcessWorker);
 }
+
+export function excludedPortsLive(): string {
+  return (process.env.EXCLUDED_PORTS ?? config.excludedPorts).trim();
+}
+

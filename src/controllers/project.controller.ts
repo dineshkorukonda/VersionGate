@@ -6,11 +6,12 @@ import { DeploymentRepository } from "../repositories/deployment.repository";
 import { EnvironmentRepository } from "../repositories/environment.repository";
 import { freeHostPort, removeContainer, stopContainer } from "../utils/docker";
 import { enqueueJob } from "../services/job-queue.service";
-import { config } from "../config/env";
+import { config, excludedPortsLive } from "../config/env";
 import { logger } from "../utils/logger";
 import { validateEnvObject } from "../utils/env";
 import { ProjectDomainService } from "../services/project-domain.service";
 import { projectAnalyticsService } from "../services/project-analytics.service";
+import { isProjectPortRangeSafe, parseExcludedPorts } from "../utils/port-manager";
 
 const projectRepo = new ProjectRepository();
 const deploymentRepo = new DeploymentRepository();
@@ -23,6 +24,7 @@ interface CreateProjectBody {
   branch?: string;
   buildContext?: string;
   appPort: number;
+  basePort?: number;
   healthPath?: string;
   env?: Record<string, string>;
 }
@@ -50,16 +52,32 @@ export async function createProjectHandler(
   req: FastifyRequest<{ Body: CreateProjectBody }>,
   reply: FastifyReply
 ): Promise<void> {
-  const { name, repoUrl, branch = "main", buildContext = ".", appPort, healthPath = "/health", env = {} } = req.body;
+  const { name, repoUrl, branch = "main", buildContext = ".", appPort, basePort: requestedBasePort, healthPath = "/health", env = {} } = req.body;
 
   const envError = validateEnvObject(env);
   if (envError) {
     return reply.code(400).send({ error: "ValidationError", message: envError });
   }
 
-  // Auto-assign basePort: each project needs 2 consecutive ports (blue/green).
-  // Never reuse a port range already claimed by another project.
-  const basePort = await projectRepo.getNextBasePort();
+  let basePort: number;
+  if (requestedBasePort !== undefined && Number.isInteger(requestedBasePort)) {
+    const candidate = Number(requestedBasePort);
+    const existing = await projectRepo.findAll();
+    const existingBasePorts = existing.map((p) => p.basePort);
+    const excluded = parseExcludedPorts(excludedPortsLive());
+    const check = await isProjectPortRangeSafe(candidate, excluded, existingBasePorts, true);
+    if (!check.safe) {
+      return reply.code(400).send({
+        error: "PortConflictError",
+        message: `Requested basePort ${candidate} cannot be used: ${check.reason || "conflict detected"}. Conflicting port: ${check.conflictingPort}`,
+        conflictingPort: check.conflictingPort,
+      });
+    }
+    basePort = candidate;
+  } else {
+    // Auto-assign conflict-free basePort: avoids EXCLUDED_PORTS, existing projects, and host listeners.
+    basePort = await projectRepo.getNextBasePort();
+  }
 
   // Unique secret for the GitHub webhook URL — acts as authentication token.
   const webhookSecret = randomBytes(24).toString("hex");

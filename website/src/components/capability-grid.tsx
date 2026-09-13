@@ -266,6 +266,17 @@ const CAPABILITIES: Capability[] = [
       "Runs automated diagnostic checks across PostgreSQL installation records, engine state HMAC secret configuration, central cloud relay network latency (versiongate.tech), and Octokit token repository access with instant troubleshooting advice.",
     badge: "Dashboard / Engine",
   },
+  {
+    id: "cap-port-exclusion",
+    category: "Networking",
+    title: "Reserved Port Exclusion & Conflict Avoidance",
+    command: "EXCLUDED_PORTS=80,443,3000,5173,5432,6379,9090",
+    description:
+      "Automated port exclusion lists and live TCP socket probes preventing deployment collisions with existing server services.",
+    details:
+      "Operators can specify individual ports and port ranges in settings or .env. When allocating Blue/Green slots across production, staging, and development, VersionGate verifies all 6 required ports against exclusion lists and active host listeners before binding.",
+    badge: "Engine / Settings",
+  },
 ];
 
 export function CapabilityGrid() {

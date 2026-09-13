@@ -294,6 +294,8 @@ export function Settings() {
   const [publicDomainDraft, setPublicDomainDraft] = useState("");
   const [publicBasePathDraft, setPublicBasePathDraft] = useState("/");
   const [certbotEmailDraft, setCertbotEmailDraft] = useState("");
+  const [excludedPortsDraft, setExcludedPortsDraft] = useState("");
+  const [savingExcludedPorts, setSavingExcludedPorts] = useState(false);
   const [publicUrlSaving, setPublicUrlSaving] = useState(false);
   const [nginxApplying, setNginxApplying] = useState(false);
   const [certbotRunning, setCertbotRunning] = useState(false);
@@ -312,6 +314,7 @@ export function Settings() {
         setPublicDomainDraft(i.publicDomain ?? "");
         setPublicBasePathDraft(i.publicBasePath ?? "/");
         setCertbotEmailDraft(i.certbotEmail ?? "");
+        setExcludedPortsDraft(i.excludedPorts ?? "80,443,3000,5173,5432,6379,9090");
 
         try {
           const su = await getSelfUpdateSettings();
@@ -613,6 +616,39 @@ export function Settings() {
     }
   };
 
+  const excludedPortsCount = useMemo(() => {
+    if (!excludedPortsDraft.trim()) return 0;
+    let count = 0;
+    const tokens = excludedPortsDraft.split(/[,;\s]+/).map((t) => t.trim()).filter(Boolean);
+    for (const token of tokens) {
+      if (token.includes("-")) {
+        const [start, end] = token.split("-").map((n) => parseInt(n, 10));
+        if (Number.isFinite(start) && Number.isFinite(end)) {
+          count += Math.max(0, Math.abs(end - start) + 1);
+        }
+      } else if (/^\d+$/.test(token)) {
+        count += 1;
+      }
+    }
+    return count;
+  }, [excludedPortsDraft]);
+
+  const onSaveExcludedPorts = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingExcludedPorts(true);
+    try {
+      const res = await patchInstanceEnv({ EXCLUDED_PORTS: excludedPortsDraft.trim() });
+      toast.success(res.message || "Reserved ports updated successfully");
+      const updatedInstance = await getInstanceSettings();
+      setInstance(updatedInstance);
+      setExcludedPortsDraft(updatedInstance.excludedPorts ?? "");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to save excluded ports");
+    } finally {
+      setSavingExcludedPorts(false);
+    }
+  };
+
   if (loading || !instance || !setup) {
     return (
       <div className="w-full max-w-4xl space-y-8">
@@ -773,6 +809,60 @@ export function Settings() {
                     onClick={() => void onRunCertbotSsl()}
                   >
                     {certbotRunning ? "Certbot…" : "Obtain SSL (certbot --nginx)"}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+
+          {/* Reserved & Excluded Host Ports Card */}
+          <Card className="border-border bg-card">
+            <CardHeader>
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <CardTitle className="text-base font-semibold">
+                      Reserved &amp; Excluded Host Ports
+                    </CardTitle>
+                    <Badge variant="outline" className="font-mono text-[10px] uppercase tracking-wider">
+                      [ PORT SAFETY ]
+                    </Badge>
+                  </div>
+                  <CardDescription className="text-xs">
+                    Prevent VersionGate from assigning ports already used by other services, containers, or host processes on this server.
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <form onSubmit={(e) => void onSaveExcludedPorts(e)} className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground font-mono">
+                    Excluded Ports &amp; Ranges (Comma-separated)
+                  </label>
+                  <Input
+                    placeholder="e.g. 80, 443, 3000, 5173, 5432, 6379, 8000-8080, 9090"
+                    value={excludedPortsDraft}
+                    onChange={(e) => setExcludedPortsDraft(e.target.value)}
+                    className="font-mono text-xs"
+                    disabled={savingExcludedPorts}
+                  />
+                  <p className="text-xs text-muted-foreground font-sans">
+                    Enter individual ports (e.g. <code className="font-mono text-foreground">3000</code>) or ranges (e.g. <code className="font-mono text-foreground">8000-8050</code>). VersionGate automatically checks and avoids these ports plus any active host listeners during deployment slot allocation.
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+                  <span className="text-[11px] font-mono text-muted-foreground">
+                    Active Protection: <strong className="text-foreground">{excludedPortsCount} ports excluded</strong>
+                  </span>
+                  <Button
+                    type="submit"
+                    size="sm"
+                    disabled={savingExcludedPorts || excludedPortsDraft === (instance.excludedPorts ?? "80,443,3000,5173,5432,6379,9090")}
+                    className="font-mono text-xs"
+                  >
+                    {savingExcludedPorts ? "Saving..." : "Save Excluded Ports"}
                   </Button>
                 </div>
               </form>
