@@ -5,7 +5,7 @@
  * - KEY="quoted value"
  * - KEY='single quoted'
  * - Exported vars: export KEY=value
- * - Multiline bulk paste
+ * - Multiline bulk paste of KEY=VAL lines
  */
 export function parseEnvText(text: string): Array<{ key: string; value: string }> {
   const lines = text.split(/\r?\n/);
@@ -21,10 +21,8 @@ export function parseEnvText(text: string): Array<{ key: string; value: string }
 
     const eqIdx = line.indexOf('=');
     if (eqIdx === -1) {
-      const k = line.trim();
-      if (k) {
-        result.push({ key: k, value: '' });
-      }
+      // Do NOT turn arbitrary text lines without '=' into KEY rows!
+      // Only keep if it's a valid environment variable name pattern (e.g. MY_VAR) and single line
       continue;
     }
 
@@ -49,11 +47,12 @@ export function parseEnvText(text: string): Array<{ key: string; value: string }
 /**
  * Handles paste event on key or value input:
  * - If pasted into the 'value' input:
- *   If the pasted text has multiple lines but NO '=' assignments (like a multi-line RSA private key or certificate),
- *   it preserves the multi-line text as the value (converting newlines to '\n' or keeping as single formatted string)
- *   instead of splitting it into separate key rows!
- * - If pasted into the 'key' input (or text contains '=' assignments):
- *   Parses into key=value pairs and splices them into envPairs at target index.
+ *   Always preserves the pasted text inside that row's VALUE field!
+ *   If it's multi-line (e.g. RSA private key), joins newlines cleanly as '\n'.
+ * - If pasted into the 'key' input:
+ *   If text contains '=' (like KEY=VAL or a full .env file), parses it into separate key/value rows.
+ *   If text contains NO '=' (like someone pasting a multi-line value by mistake, or an RSA key into KEY),
+ *   it will NOT split lines into dozens of empty key rows.
  * Returns true if handled (and caller should preventDefault), false otherwise.
  */
 export function handleEnvPaste(
@@ -62,13 +61,37 @@ export function handleEnvPaste(
   setPairs: (updater: (prev: Array<{ key: string; value: string }>) => Array<{ key: string; value: string }>) => void,
   targetField: "key" | "value" = "key"
 ): boolean {
-  if (!pastedText.includes("=") && !pastedText.includes("\n") && !pastedText.includes("\r")) {
+  // If pasted specifically into VALUE field:
+  if (targetField === "value") {
+    // If it has newlines, format newlines as literal \n so it stays single-line safe
+    if (pastedText.includes("\n") || pastedText.includes("\r")) {
+      const formattedVal = pastedText.trim().replace(/\r?\n/g, "\\n");
+      setPairs((prev) =>
+        prev.map((item, i) => (i === targetIdx ? { ...item, value: formattedVal } : item))
+      );
+      return true;
+    }
+    // Standard single line paste into value can use default browser paste
     return false;
   }
 
-  // If pasting specifically into VALUE field and there are NO '=' signs (e.g. RSA private key / cert):
-  if (targetField === "value" && !pastedText.includes("=")) {
-    // If it's a private key or multi-line cert, convert literal newlines to \n or keep trimmed
+  // If pasted into KEY field:
+  // Only intercept if the text actually has KEY=VAL pairs (contains '=')
+  if (pastedText.includes("=")) {
+    const parsed = parseEnvText(pastedText);
+    if (parsed.length > 0) {
+      setPairs((prev) => {
+        const next = [...prev];
+        next.splice(targetIdx, 1, ...parsed);
+        return next;
+      });
+      return true;
+    }
+  }
+
+  // If text has newlines but NO '=' (e.g. user accidentally pasted private key into KEY field):
+  // Don't shred it into 30 rows! Instead, put the multiline content into the VALUE of this row!
+  if (pastedText.includes("\n") || pastedText.includes("\r")) {
     const formattedVal = pastedText.trim().replace(/\r?\n/g, "\\n");
     setPairs((prev) =>
       prev.map((item, i) => (i === targetIdx ? { ...item, value: formattedVal } : item))
@@ -76,15 +99,5 @@ export function handleEnvPaste(
     return true;
   }
 
-  const parsed = parseEnvText(pastedText);
-  if (parsed.length === 0) return false;
-
-  setPairs((prev) => {
-    const next = [...prev];
-    // Replace the current row at targetIdx with parsed pairs
-    next.splice(targetIdx, 1, ...parsed);
-    return next;
-  });
-
-  return true;
+  return false;
 }
