@@ -685,6 +685,29 @@ export function getGithubRepos(installationId?: string): Promise<GithubReposResp
   return request("GET", `/github/repos${q}`, undefined, githubApiBase());
 }
 
+export interface DiagnosticCheckpoint {
+  id: "database" | "config" | "relay" | "repositories";
+  title: string;
+  status: "ok" | "fail" | "warn" | "skipped";
+  message: string;
+  latencyMs?: number;
+  details?: Record<string, unknown>;
+}
+
+export interface GithubDiagnosticsResponse {
+  healthy: boolean;
+  mode: "direct" | "relay";
+  timestamp: string;
+  installationId: string | null;
+  checkpoints: DiagnosticCheckpoint[];
+  recommendations: string[];
+}
+
+export function testGithubConnection(installationId?: string): Promise<GithubDiagnosticsResponse> {
+  const q = installationId ? `?installationId=${encodeURIComponent(installationId)}` : "";
+  return request("GET", `/github/test-connection${q}`, undefined, githubApiBase());
+}
+
 export function getGithubRepoBranches(
   owner: string,
   repo: string,

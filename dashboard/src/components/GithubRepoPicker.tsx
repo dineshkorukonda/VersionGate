@@ -109,12 +109,14 @@ export function GithubRepoPicker({
         >
           <p className="font-medium">Could not load repositories</p>
           <p className="mt-1 text-amber-900/90">{error}</p>
-          <Link
-            to="/dashboard/integrations"
-            className={cn(buttonVariants({ variant: "outline", size: "sm" }), "mt-3 inline-flex")}
-          >
-            Open Integrations
-          </Link>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Link
+              to="/dashboard/integrations"
+              className={cn(buttonVariants({ variant: "outline", size: "sm" }), "inline-flex font-mono text-xs")}
+            >
+              Open Integrations // Run Diagnostics
+            </Link>
+          </div>
         </div>
       ) : filtered.length === 0 ? (
         <div className="rounded-lg border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">

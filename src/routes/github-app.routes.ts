@@ -12,6 +12,7 @@ import {
   githubRepoBranchesHandler,
   githubReposHandler,
   githubDetectRepoHandler,
+  githubTestConnectionHandler,
 } from "../controllers/github-app.controller";
 
 export async function githubAppRoutes(app: FastifyInstance): Promise<void> {
@@ -23,6 +24,7 @@ export async function githubAppRoutes(app: FastifyInstance): Promise<void> {
   app.delete("/github/installation/:installationId", githubDeleteInstallationHandler);
   app.post("/github/installation/link", githubLinkInstallationHandler);
   app.get("/github/status", githubIntegrationStatusHandler);
+  app.get("/github/test-connection", githubTestConnectionHandler);
   app.get("/github/repos/:owner/:repo/branches", githubRepoBranchesHandler);
   app.get("/github/repos/detect", githubDetectRepoHandler);
   app.get("/github/repos", githubReposHandler);

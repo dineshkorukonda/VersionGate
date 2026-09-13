@@ -12,7 +12,9 @@ import {
   getGithubIntegrationStatus,
   linkGithubInstallation,
   deleteGithubInstallation,
+  testGithubConnection,
   type GithubInstallationSummary,
+  type GithubDiagnosticsResponse,
 } from "@/lib/api";
 import { Separator } from "@/components/ui/separator";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -38,6 +40,30 @@ export function Integrations() {
   const [manualId, setManualId] = useState("");
   const [linking, setLinking] = useState(false);
   const [checking, setChecking] = useState(false);
+
+  const [diagnostics, setDiagnostics] = useState<GithubDiagnosticsResponse | null>(null);
+  const [runningDiagnostics, setRunningDiagnostics] = useState(false);
+  const [diagnosticsError, setDiagnosticsError] = useState<string | null>(null);
+
+  const runDiagnostics = async (installationId?: string) => {
+    setRunningDiagnostics(true);
+    setDiagnosticsError(null);
+    try {
+      const res = await testGithubConnection(installationId ?? primaryInstallation?.installationId);
+      setDiagnostics(res);
+      if (res.healthy) {
+        toast.success("[ OK ] All GitHub integration checkpoints passed.");
+      } else {
+        toast.error("[ ATTENTION ] One or more integration checkpoints reported issues.");
+      }
+    } catch (err) {
+      const msg = err instanceof ApiError ? err.message : "Failed to run diagnostics probe.";
+      setDiagnosticsError(msg);
+      toast.error(msg);
+    } finally {
+      setRunningDiagnostics(false);
+    }
+  };
 
   const fetchStatus = async () => {
     setChecking(true);
@@ -366,6 +392,141 @@ export function Integrations() {
               </Button>
             </form>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* GitHub Connection Diagnostics & Checkpoints */}
+      <Card className="border-border bg-card">
+        <CardHeader>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <CardTitle className="text-base font-semibold">
+                  Integration Diagnostics // Connection Checkpoints
+                </CardTitle>
+                <Badge variant="outline" className="font-mono text-[10px] uppercase tracking-wider">
+                  {runningDiagnostics
+                    ? "[ PROBING... ]"
+                    : diagnostics
+                    ? diagnostics.healthy
+                      ? "[ HEALTHY ]"
+                      : "[ ATTENTION ]"
+                    : "[ READY ]"}
+                </Badge>
+              </div>
+              <CardDescription className="text-xs">
+                Real-time end-to-end status probe checking local database records, relay reachability, and GitHub API repository access.
+              </CardDescription>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <Button
+                type="button"
+                size="sm"
+                variant={diagnostics?.healthy === false ? "default" : "outline"}
+                disabled={runningDiagnostics}
+                onClick={() => void runDiagnostics()}
+                className="font-mono text-xs"
+              >
+                {runningDiagnostics ? "Running Probe..." : "Run Diagnostics"}
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {diagnosticsError ? (
+            <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs font-mono text-destructive">
+              [ FAIL ] {diagnosticsError}
+            </div>
+          ) : null}
+
+          {diagnostics ? (
+            <div className="space-y-4">
+              <div className="grid gap-2 font-mono text-xs">
+                {diagnostics.checkpoints.map((cp, idx) => {
+                  const stepNum = `0${idx + 1} //`;
+                  const isOk = cp.status === "ok";
+                  const isFail = cp.status === "fail";
+                  const isWarn = cp.status === "warn";
+
+                  const badgeClass = isOk
+                    ? "border-emerald-500/30 text-emerald-500 bg-emerald-500/10"
+                    : isFail
+                    ? "border-rose-500/30 text-rose-500 bg-rose-500/10"
+                    : isWarn
+                    ? "border-amber-500/30 text-amber-500 bg-amber-500/10"
+                    : "border-border text-muted-foreground bg-muted/30";
+
+                  const badgeText = isOk
+                    ? "[ OK ]"
+                    : isFail
+                    ? "[ FAIL ]"
+                    : isWarn
+                    ? "[ WARN ]"
+                    : "[ SKIP ]";
+
+                  return (
+                    <div
+                      key={cp.id}
+                      className="flex flex-col gap-2 rounded-md border border-border/80 bg-muted/20 p-3 sm:flex-row sm:items-start sm:justify-between"
+                    >
+                      <div className="flex items-start gap-2.5 min-w-0 flex-1">
+                        <span className="text-muted-foreground font-semibold shrink-0">{stepNum}</span>
+                        <div className="space-y-1 min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="font-semibold text-foreground">{cp.title}</span>
+                            {cp.latencyMs !== undefined ? (
+                              <span className="text-[10px] text-muted-foreground">({cp.latencyMs}ms)</span>
+                            ) : null}
+                          </div>
+                          <p className="text-xs text-muted-foreground break-words font-sans">{cp.message}</p>
+                        </div>
+                      </div>
+                      <div className="shrink-0 self-start sm:self-center">
+                        <span
+                          className={cn(
+                            "inline-flex items-center rounded border px-2 py-0.5 text-[11px] font-bold tracking-wider font-mono",
+                            badgeClass
+                          )}
+                        >
+                          {badgeText}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {diagnostics.recommendations.length > 0 ? (
+                <div className="rounded-md border border-amber-500/30 bg-amber-500/5 p-3.5 space-y-2">
+                  <p className="font-mono text-[11px] font-semibold uppercase tracking-wider text-amber-500">
+                    Remediation & Troubleshooting Advice
+                  </p>
+                  <ul className="space-y-1.5 text-xs text-muted-foreground list-disc pl-4 font-sans">
+                    {diagnostics.recommendations.map((rec, i) => (
+                      <li key={i} className="leading-relaxed">
+                        {rec}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+
+              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border/60 pt-3 text-[11px] font-mono text-muted-foreground">
+                <span>
+                  Mode: <strong className="text-foreground">{diagnostics.mode === "direct" ? "Direct GitHub App" : "Central Cloud Relay"}</strong>
+                </span>
+                <span>
+                  Last Probe: <strong className="text-foreground">{new Date(diagnostics.timestamp).toLocaleTimeString()}</strong>
+                </span>
+              </div>
+            </div>
+          ) : (
+            <div className="rounded-md border border-dashed border-border bg-muted/20 p-6 text-center">
+              <p className="text-xs text-muted-foreground font-sans">
+                Run diagnostics to verify local database mapping, relay reachability, and GitHub API repository access.
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
 

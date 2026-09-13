@@ -107,6 +107,14 @@ export const config = {
    * Shared with the versiongate.tech install relay — HMAC for GitHub `state` (same value as relay `RELAY_SECRET`).
    */
   githubStateSecret: optionalEnv("GITHUB_STATE_SECRET", "").trim(),
+  /**
+   * Central GitHub relay origin URL (default: https://versiongate.tech).
+   */
+  githubRelayOrigin: optionalEnv("GITHUB_RELAY_ORIGIN", "https://versiongate.tech").trim().replace(/\/+$/, ""),
+  /**
+   * Timeout in milliseconds when communicating with the GitHub relay.
+   */
+  githubRelayTimeoutMs: Math.max(1000, parseInt(optionalEnv("GITHUB_RELAY_TIMEOUT_MS", "15000"), 10) || 15000),
 } as const;
 
 /** Live values (updated when .env is patched at runtime). */
