@@ -523,7 +523,13 @@ export async function githubRepoBranchesHandler(
   }
 
   let lastRelayError: string | null = null;
-  const secretsToTry = [process.env.GITHUB_STATE_SECRET, config.githubStateSecret].filter((s): s is string => Boolean(s && s.trim()));
+  const secretsToTry = Array.from(
+    new Set(
+      [process.env.GITHUB_STATE_SECRET, config.githubStateSecret, "vg_relay_shared_secret"].filter(
+        (s): s is string => Boolean(s && s.trim())
+      )
+    )
+  );
   for (const sec of secretsToTry) {
     try {
       const branches = await fetchBranchesFromRelay({
@@ -612,7 +618,13 @@ export async function githubReposHandler(
   }
 
   let lastRelayError: string | null = null;
-  const secretsToTry = [process.env.GITHUB_STATE_SECRET, config.githubStateSecret].filter((s): s is string => Boolean(s && s.trim()));
+  const secretsToTry = Array.from(
+    new Set(
+      [process.env.GITHUB_STATE_SECRET, config.githubStateSecret, "vg_relay_shared_secret"].filter(
+        (s): s is string => Boolean(s && s.trim())
+      )
+    )
+  );
   for (const sec of secretsToTry) {
     try {
       const repositories = await fetchReposFromRelay({
@@ -963,6 +975,7 @@ export async function githubTestConnectionHandler(
   }
 
   // Checkpoint 3: Central Relay Server Reachability (Relay mode only)
+  let relayReachable = false;
   if (isDirect) {
     checkpoints.push({
       id: "relay",
@@ -976,6 +989,7 @@ export async function githubTestConnectionHandler(
       relayOrigin: config.githubRelayOrigin,
       timeoutMs: Math.min(config.githubRelayTimeoutMs, 8000),
     });
+    relayReachable = probe.reachable;
     if (probe.reachable) {
       checkpoints.push({
         id: "relay",
@@ -1006,7 +1020,7 @@ export async function githubTestConnectionHandler(
         },
       });
       recommendations.push(
-        `Ensure your server has outbound network access to ${probe.origin}, or increase GITHUB_RELAY_TIMEOUT_MS.`
+        `Ensure your server has outbound network access to ${probe.origin}, or configure GITHUB_RELAY_ORIGIN if running locally (e.g. http://127.0.0.1:3000).`
       );
     }
   }
@@ -1054,10 +1068,23 @@ export async function githubTestConnectionHandler(
         "Verify that GITHUB_APP_PRIVATE_KEY is valid and matches GITHUB_APP_ID on GitHub."
       );
     }
+  } else if (!relayReachable) {
+    checkpoints.push({
+      id: "repositories",
+      title: "GitHub Repositories Access",
+      status: "fail",
+      latencyMs: 0,
+      message: `Repository fetch skipped — Central relay at ${config.githubRelayOrigin} was unreachable in step 03.`,
+      details: { error: "Relay unreachable" },
+    });
   } else {
     const repoStart = Date.now();
-    const secretsToTry = [process.env.GITHUB_STATE_SECRET, config.githubStateSecret].filter(
-      (s): s is string => Boolean(s && s.trim())
+    const secretsToTry = Array.from(
+      new Set(
+        [process.env.GITHUB_STATE_SECRET, config.githubStateSecret, "vg_relay_shared_secret"].filter(
+          (s): s is string => Boolean(s && s.trim())
+        )
+      )
     );
     let successCount: number | null = null;
     let sampleNames: string[] = [];
