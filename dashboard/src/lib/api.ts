@@ -476,6 +476,7 @@ export interface InstanceSettings {
   selfUpdateGitBranch: string;
   selfUpdatePollMs: number;
   selfUpdateAutoApply: boolean;
+  excludedPorts?: string;
 }
 
 export interface SelfUpdateGitStatus {

@@ -91,6 +91,12 @@ const FALLBACK_RELEASES: ProcessedRelease[] = [
             command: "GET /api/github/test-connection",
           },
           {
+            title: "Reserved Port Exclusion & Dynamic Host Conflict Avoidance",
+            description:
+              "Configure excluded host ports and port ranges in Settings or .env to prevent deployment collisions with existing server services. VersionGate dynamically checks both exclusion lists and live TCP socket listeners when assigning Blue/Green slots.",
+            command: "EXCLUDED_PORTS=80,443,3000,5173,5432,6379,9090",
+          },
+          {
             title: "Per-Project Traffic & Response Telemetry",
             description:
               "Sliding 24-hour hit counters, response status code distributions (2xx, 3xx, 4xx, 5xx), and average latency telemetry per project.",

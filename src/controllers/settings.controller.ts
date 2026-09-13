@@ -11,6 +11,7 @@ import {
   selfUpdatePollMsLive,
   selfUpdateSecretLive,
   inProcessWorkerLive,
+  excludedPortsLive,
 } from "../config/env";
 import { envFilePath, projectRoot } from "../utils/paths";
 import { mergeIntoDotenv, writeEnvWithBackup } from "../utils/env-file";
@@ -21,6 +22,7 @@ import { isValidHostname, isValidIpv4Address } from "../utils/domain-validation"
 import { generateVersionGateNginxConf, normalizePublicBasePath } from "../utils/nginx-versiongate-site";
 import { CERTBOT_PATH_CANDIDATES, findCertbotExecutablePath } from "../utils/certbot-path";
 import { writeNginxConfigFile } from "../utils/nginx-writer";
+import { validateExcludedPortsString } from "../utils/port-manager";
 
 const DB_URL_REGEX = /^DATABASE_URL\s*=\s*"?([^"\n\r]+)"?\s*$/m;
 
@@ -121,6 +123,7 @@ export async function getInstanceSettingsHandler(
     selfUpdateGitBranch: selfUpdateBranchLive(),
     selfUpdatePollMs: selfUpdatePollMsLive(),
     selfUpdateAutoApply: selfUpdateAutoApplyLive(),
+    excludedPorts: excludedPortsLive(),
   });
 }
 
@@ -153,6 +156,7 @@ const PATCHABLE_ENV_KEYS = new Set([
   "GITHUB_APP_PRIVATE_KEY",
   "GITHUB_WEBHOOK_SECRET",
   "GITHUB_STATE_SECRET",
+  "EXCLUDED_PORTS",
 ]);
 
 interface PatchEnvBody {
@@ -289,6 +293,18 @@ export async function patchInstanceEnvHandler(
       });
     }
     updates.CERTBOT_EMAIL = em;
+  }
+
+  if (updates.EXCLUDED_PORTS !== undefined) {
+    const raw = updates.EXCLUDED_PORTS.trim();
+    const check = validateExcludedPortsString(raw);
+    if (!check.valid) {
+      return reply.code(400).send({
+        error: "ValidationError",
+        message: check.error || "Invalid EXCLUDED_PORTS format",
+      });
+    }
+    updates.EXCLUDED_PORTS = raw;
   }
 
   try {

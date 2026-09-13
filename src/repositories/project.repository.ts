@@ -1,8 +1,10 @@
-import { eq, desc, max } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 import { getDb } from "../db/client";
 import { projects, environments, ProjectSelect, ProjectInsert } from "../db/schema";
 import { encrypt } from "../utils/crypto";
 import { decryptProjectEnv, parseProjectEnv } from "../utils/env";
+import { excludedPortsLive } from "../config/env";
+import { findNextAvailableBasePort, parseExcludedPorts } from "../utils/port-manager";
 
 export const DEFAULT_ENVIRONMENT_NAME = "production";
 
@@ -94,9 +96,12 @@ export class ProjectRepository {
 
   async getNextBasePort(startPort = 3100): Promise<number> {
     const db = getDb();
-    const [res] = await db.select({ maxPort: max(projects.basePort) }).from(projects);
-    if (!res || res.maxPort === null || res.maxPort === undefined) return startPort;
-    return res.maxPort + 500;
+    const rows = await db.select({ basePort: projects.basePort }).from(projects);
+    const existingBasePorts = rows
+      .map((r) => r.basePort)
+      .filter((p): p is number => typeof p === "number");
+    const excluded = parseExcludedPorts(excludedPortsLive());
+    return findNextAvailableBasePort(startPort, excluded, existingBasePorts);
   }
 
   async delete(id: string): Promise<ProjectSelect> {
