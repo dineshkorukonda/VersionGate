@@ -48,16 +48,32 @@ export function parseEnvText(text: string): Array<{ key: string; value: string }
 
 /**
  * Handles paste event on key or value input:
- * If pasted text contains '=' or newline, parses into pairs and splices into envPairs at target index.
+ * - If pasted into the 'value' input:
+ *   If the pasted text has multiple lines but NO '=' assignments (like a multi-line RSA private key or certificate),
+ *   it preserves the multi-line text as the value (converting newlines to '\n' or keeping as single formatted string)
+ *   instead of splitting it into separate key rows!
+ * - If pasted into the 'key' input (or text contains '=' assignments):
+ *   Parses into key=value pairs and splices them into envPairs at target index.
  * Returns true if handled (and caller should preventDefault), false otherwise.
  */
 export function handleEnvPaste(
   pastedText: string,
   targetIdx: number,
-  setPairs: (updater: (prev: Array<{ key: string; value: string }>) => Array<{ key: string; value: string }>) => void
+  setPairs: (updater: (prev: Array<{ key: string; value: string }>) => Array<{ key: string; value: string }>) => void,
+  targetField: "key" | "value" = "key"
 ): boolean {
   if (!pastedText.includes("=") && !pastedText.includes("\n") && !pastedText.includes("\r")) {
     return false;
+  }
+
+  // If pasting specifically into VALUE field and there are NO '=' signs (e.g. RSA private key / cert):
+  if (targetField === "value" && !pastedText.includes("=")) {
+    // If it's a private key or multi-line cert, convert literal newlines to \n or keep trimmed
+    const formattedVal = pastedText.trim().replace(/\r?\n/g, "\\n");
+    setPairs((prev) =>
+      prev.map((item, i) => (i === targetIdx ? { ...item, value: formattedVal } : item))
+    );
+    return true;
   }
 
   const parsed = parseEnvText(pastedText);

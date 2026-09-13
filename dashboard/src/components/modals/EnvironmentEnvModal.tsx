@@ -130,7 +130,7 @@ export function EnvironmentEnvModal({
                 onChange={(e) => handlePairChange(idx, "value", e.target.value)}
                 onPaste={(e: ClipboardEvent<HTMLInputElement>) => {
                   const text = e.clipboardData.getData("text");
-                  if (handleEnvPaste(text, idx, setEnvPairs)) {
+                  if (handleEnvPaste(text, idx, setEnvPairs, "value")) {
                     e.preventDefault();
                   }
                 }}
