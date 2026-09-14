@@ -188,6 +188,12 @@ export function getProject(id: string): Promise<{ project: Project }> {
   return request("GET", `/projects/${id}`);
 }
 
+export function getProjectLogs(
+  id: string
+): Promise<{ lines: string[]; containerName: string | null }> {
+  return request("GET", `/projects/${id}/logs`);
+}
+
 export type ProjectDomainSslStatus = "pending_dns" | "http" | "issued" | "failed";
 
 export interface ProjectDomain {
@@ -880,6 +886,13 @@ export function linkManagedDatabase(
 
 export function unlinkManagedDatabase(databaseId: string): Promise<{ success: boolean }> {
   return request("POST", `/databases/${databaseId}/unlink`);
+}
+
+export function getDatabaseLogs(
+  databaseId: string,
+  tail = 200
+): Promise<{ lines: string[]; containerName: string }> {
+  return request("GET", `/databases/${databaseId}/logs?tail=${tail}`);
 }
 
 // ── Discovered Deployments & Adoption API ────────────────────────────────────

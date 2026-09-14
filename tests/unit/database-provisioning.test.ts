@@ -117,4 +117,30 @@ describe("Database Provisioning & Connection URI Generator", () => {
       expect(err.message).toBe("Database not found");
     }
   });
+
+  test("getLogs retrieves container logs for existing database", async () => {
+    const mockDbRepo = {
+      findById: async (id: string) => {
+        if (id === "db-123") {
+          return { id: "db-123", name: "test-db", containerName: "vg-db-test" } as any;
+        }
+        return null;
+      },
+    } as any;
+
+    const testService = new DatabaseProvisioningService({} as any, mockDbRepo);
+    const result = await testService.getLogs("db-123");
+
+    expect(result.containerName).toBe("vg-db-test");
+    expect(Array.isArray(result.lines)).toBe(true);
+  });
+
+  test("getLogs throws if database not found", async () => {
+    const mockDbRepo = {
+      findById: async () => null,
+    } as any;
+
+    const testService = new DatabaseProvisioningService({} as any, mockDbRepo);
+    expect(testService.getLogs("missing-id")).rejects.toThrow("Database not found");
+  });
 });
