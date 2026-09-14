@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 
-import { linkManagedDatabase, type ManagedDatabaseDetails, type Project } from "@/lib/api";
+import { getDatabaseLogs, linkManagedDatabase, type ManagedDatabaseDetails, type Project } from "@/lib/api";
+import { RuntimeLogsViewer } from "@/components/RuntimeLogsViewer";
 import { toast } from "sonner";
 
 interface Props {
@@ -17,6 +18,37 @@ export function DatabaseDetailsModal({ open, onOpenChange, database, projects, o
   const [showPassword, setShowPassword] = useState(false);
   const [selectedProjectId, setSelectedProjectId] = useState("");
   const [linking, setLinking] = useState(false);
+  const [logs, setLogs] = useState<string[]>([]);
+  const [logsLoading, setLogsLoading] = useState(false);
+  const [tail, setTail] = useState(200);
+  const [autoRefresh, setAutoRefresh] = useState(false);
+
+  const fetchLogs = useCallback(async () => {
+    if (!database) return;
+    setLogsLoading(true);
+    try {
+      const res = await getDatabaseLogs(database.id, tail);
+      setLogs(res.lines);
+    } catch {
+      // ignore
+    } finally {
+      setLogsLoading(false);
+    }
+  }, [database, tail]);
+
+  useEffect(() => {
+    if (open && database) {
+      void fetchLogs();
+    }
+  }, [open, database, fetchLogs]);
+
+  useEffect(() => {
+    if (!open || !autoRefresh || !database) return;
+    const interval = setInterval(() => {
+      void fetchLogs();
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [open, autoRefresh, database, fetchLogs]);
 
   if (!database) return null;
 
@@ -45,7 +77,7 @@ export function DatabaseDetailsModal({ open, onOpenChange, database, projects, o
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-xl border-neutral-800 bg-neutral-950 text-white">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto border-neutral-800 bg-neutral-950 text-white">
         <DialogHeader>
           <div className="flex items-center justify-between pr-6">
             <DialogTitle className="font-mono text-sm uppercase tracking-wider text-emerald-400">
@@ -225,6 +257,23 @@ export function DatabaseDetailsModal({ open, onOpenChange, database, projects, o
                 {linking ? "Linking..." : database.linkedProjectId ? "Change Link" : "Link Now"}
               </Button>
             </div>
+          </div>
+
+          {/* Database Container Logs */}
+          <div className="pt-2">
+            <RuntimeLogsViewer
+              title="Database Engine Logs"
+              containerName={database.containerName}
+              logs={logs}
+              loading={logsLoading}
+              onRefresh={() => void fetchLogs()}
+              autoRefresh={autoRefresh}
+              onToggleAutoRefresh={setAutoRefresh}
+              tail={tail}
+              onTailChange={(t) => setTail(t)}
+              emptyMessage={database.running ? "Database engine is running. No recent log lines emitted." : "Database container is stopped."}
+              maxHeightClass="max-h-56"
+            />
           </div>
         </div>
 

@@ -11,6 +11,8 @@ import {
   issueProjectDomainSsl,
   listProjectDomains,
   removeProjectDomain,
+  verifyProjectDomainDns,
+  type DomainDnsVerificationResult,
   type ProjectDomain,
   type ProjectDomainSslStatus,
 } from "@/lib/api";
@@ -183,6 +185,30 @@ export function ProjectCustomDomainCard({
     }
   };
 
+  const [verifyingDns, setVerifyingDns] = useState(false);
+  const [dnsResult, setDnsResult] = useState<DomainDnsVerificationResult | null>(null);
+
+  const onVerifyDns = async () => {
+    if (!primary) return;
+    setVerifyingDns(true);
+    try {
+      const res = await verifyProjectDomainDns(projectId, primary.id);
+      setDnsResult(res);
+      await load();
+      if (res.status === "MATCH") {
+        toast.success(res.message);
+      } else if (res.status === "MISMATCH") {
+        toast.warning(res.message);
+      } else {
+        toast.info(res.message);
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "DNS verification failed");
+    } finally {
+      setVerifyingDns(false);
+    }
+  };
+
   const copyValue = (text: string, label: string) => {
     if (onCopy) {
       onCopy(text, label);
@@ -315,6 +341,107 @@ export function ProjectCustomDomainCard({
 
         {primary ? (
           <div className="space-y-4">
+            <div className="rounded-xl border border-border/60 bg-muted/10 p-4 space-y-3">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h4 className="text-sm font-semibold tracking-wide text-foreground">DNS Record Configuration</h4>
+                  <p className="text-xs text-muted-foreground">
+                    Set up this record at your DNS provider (Cloudflare, Route53, GoDaddy, etc.) before running Certbot:
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={verifyingDns}
+                  onClick={() => void onVerifyDns()}
+                >
+                  {verifyingDns ? "Verifying DNS..." : "Verify DNS Record"}
+                </Button>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left font-mono text-xs">
+                  <thead>
+                    <tr className="border-b border-border/40 text-muted-foreground">
+                      <th className="pb-2 font-medium">TYPE</th>
+                      <th className="pb-2 font-medium">NAME / HOST</th>
+                      <th className="pb-2 font-medium">TARGET / VALUE</th>
+                      <th className="pb-2 font-medium">CURRENT RESOLVED</th>
+                      <th className="pb-2 font-medium text-right">STATUS</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/20">
+                    <tr>
+                      <td className="py-2.5 font-bold text-foreground">A</td>
+                      <td className="py-2.5 text-foreground">
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-semibold">{primary.hostname}</span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 px-1.5 text-[10px] font-mono"
+                            onClick={() => copyValue(primary.hostname, "Hostname")}
+                          >
+                            Copy
+                          </Button>
+                        </div>
+                      </td>
+                      <td className="py-2.5 text-foreground">
+                        {expectedIpv4 ? (
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-semibold">{expectedIpv4}</span>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 px-1.5 text-[10px] font-mono"
+                              onClick={() => copyValue(expectedIpv4, "Target IPv4")}
+                            >
+                              Copy
+                            </Button>
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground">Not set</span>
+                        )}
+                      </td>
+                      <td className="py-2.5 text-foreground">
+                        {primary.dnsA.length > 0 ? (
+                          primary.dnsA.join(", ")
+                        ) : dnsResult?.records.a.length ? (
+                          dnsResult.records.a.join(", ")
+                        ) : (
+                          <span className="text-muted-foreground">None resolved</span>
+                        )}
+                      </td>
+                      <td className="py-2.5 text-right">
+                        {primary.dnsOk ? (
+                          <Badge className="border-emerald-500/40 bg-emerald-600/15 text-emerald-700 dark:text-emerald-300 font-mono text-[11px]">
+                            [ MATCH ]
+                          </Badge>
+                        ) : primary.dnsA.length > 0 ? (
+                          <Badge className="border-amber-500/40 bg-amber-500/15 text-amber-700 dark:text-amber-300 font-mono text-[11px]">
+                            [ MISMATCH ]
+                          </Badge>
+                        ) : (
+                          <Badge className="border-border/60 bg-muted/30 text-muted-foreground font-mono text-[11px]">
+                            [ PENDING ]
+                          </Badge>
+                        )}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              {dnsResult ? (
+                <div className="border-t border-border/30 pt-2 text-xs font-mono text-muted-foreground">
+                  <span className="text-foreground font-semibold">Preflight Check:</span> {dnsResult.message}
+                </div>
+              ) : null}
+            </div>
+
             <div className="flex flex-col gap-4 rounded-xl border border-border/60 bg-background/40 p-5 sm:flex-row sm:items-center sm:justify-between">
               <div className="min-w-0 space-y-1">
                 <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Attached hostname</p>

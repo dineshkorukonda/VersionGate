@@ -131,3 +131,20 @@ export async function unlinkDatabaseHandler(
     return reply.status(400).send({ error: "Failed to unlink database", message: err?.message });
   }
 }
+
+export async function getDatabaseLogsHandler(
+  req: FastifyRequest<{ Params: { id: string }; Querystring: { tail?: string } }>,
+  reply: FastifyReply
+): Promise<void> {
+  try {
+    const tail = req.query.tail ? parseInt(req.query.tail, 10) : 200;
+    const result = await databaseProvisioningService.getLogs(req.params.id, isNaN(tail) ? 200 : tail);
+    return reply.status(200).send(result);
+  } catch (err: any) {
+    if (err?.message === "Database not found") {
+      return reply.status(404).send({ error: "Database not found" });
+    }
+    logger.error({ err }, "Failed to get database logs");
+    return reply.status(500).send({ error: "Failed to get database logs", message: err?.message });
+  }
+}

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DonutChart } from "@/components/charts/DonutChart";
 import { DeleteProjectDialog } from "@/components/modals/DeleteProjectDialog";
 import { EditProjectModal } from "@/components/modals/EditProjectModal";
@@ -8,6 +8,7 @@ import {
   getProject,
   getProjectAnalytics,
   getProjectEnvironments,
+  getProjectLogs,
   listProjectDomains,
   listProjectJobs,
   rollback,
@@ -19,6 +20,7 @@ import {
   type ProjectAnalytics,
   type ProjectDomain,
 } from "@/lib/api";
+import { RuntimeLogsViewer } from "@/components/RuntimeLogsViewer";
 import { EnvironmentChain } from "@/components/badges/EnvironmentChain";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -83,6 +85,37 @@ export function ProjectDetail() {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const previousStatusMapRef = useRef<Map<string, string>>(new Map());
+
+  const [runtimeLogs, setRuntimeLogs] = useState<string[]>([]);
+  const [runtimeContainerName, setRuntimeContainerName] = useState<string | null>(null);
+  const [runtimeLogsLoading, setRuntimeLogsLoading] = useState(false);
+  const [runtimeAutoRefresh, setRuntimeAutoRefresh] = useState(false);
+
+  const fetchRuntimeLogs = useCallback(async () => {
+    if (!id) return;
+    setRuntimeLogsLoading(true);
+    try {
+      const res = await getProjectLogs(id);
+      setRuntimeLogs(res.lines);
+      setRuntimeContainerName(res.containerName);
+    } catch {
+      // ignore
+    } finally {
+      setRuntimeLogsLoading(false);
+    }
+  }, [id]);
+
+  useEffect(() => {
+    void fetchRuntimeLogs();
+  }, [fetchRuntimeLogs]);
+
+  useEffect(() => {
+    if (!runtimeAutoRefresh || !id) return;
+    const interval = setInterval(() => {
+      void fetchRuntimeLogs();
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [runtimeAutoRefresh, id, fetchRuntimeLogs]);
 
   const load = async (isSilent = false) => {
     if (!id) {
@@ -643,9 +676,9 @@ export function ProjectDetail() {
                       <TableCell className="pr-6 text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger
-                            className={buttonVariants({ variant: "outline", size: "sm", className: "h-8 px-2" })}
+                            className={buttonVariants({ variant: "outline", size: "sm", className: "h-8 px-2 font-mono text-xs" })}
                           >
-                            ⋯
+                            ...
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             {matchedJobId ? (
@@ -693,6 +726,21 @@ export function ProjectDetail() {
           </Table>
         </CardContent>
       </Card>
+
+      <section className="space-y-2">
+        <h2 className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Runtime Container Logs</h2>
+        <RuntimeLogsViewer
+          title="Live Application Container Logs (stdout/stderr)"
+          containerName={runtimeContainerName}
+          logs={runtimeLogs}
+          loading={runtimeLogsLoading}
+          onRefresh={() => void fetchRuntimeLogs()}
+          autoRefresh={runtimeAutoRefresh}
+          onToggleAutoRefresh={setRuntimeAutoRefresh}
+          emptyMessage="No active container running or no container logs emitted yet."
+          maxHeightClass="max-h-80"
+        />
+      </section>
 
       <section className="space-y-2">
         <h2 className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Live Deployment Log</h2>

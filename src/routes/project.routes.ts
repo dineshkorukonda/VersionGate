@@ -2,6 +2,7 @@ import { FastifyInstance } from "fastify";
 import {
   createProjectHandler,
   listProjectsHandler,
+  listProjectsSummaryHandler,
   getProjectHandler,
   deleteProjectHandler,
   rollbackProjectHandler,
@@ -15,6 +16,7 @@ import {
   createProjectDomainHandler,
   deleteProjectDomainHandler,
   issueProjectDomainSslHandler,
+  verifyProjectDomainDnsHandler,
 } from "../controllers/project-domain.controller";
 import {
   listEnvironmentsHandler,
@@ -95,6 +97,10 @@ export async function projectRoutes(app: FastifyInstance): Promise<void> {
       },
     },
     handler: createProjectHandler,
+  });
+
+  app.get("/projects/summary", {
+    handler: listProjectsSummaryHandler,
   });
 
   app.get("/projects", {
@@ -289,5 +295,9 @@ export async function projectRoutes(app: FastifyInstance): Promise<void> {
 
   app.post("/projects/:id/domains/:domainId/ssl", {
     handler: issueProjectDomainSslHandler,
+  });
+
+  app.post("/projects/:id/domains/:domainId/verify-dns", {
+    handler: verifyProjectDomainDnsHandler,
   });
 }

@@ -3,10 +3,8 @@ import { Link, useNavigate } from "react-router-dom";
 import {
   getAllDeployments,
   getInstanceSettings,
-  getProjects,
+  getProjectsSummary,
   listAllJobs,
-  listProjectDomains,
-  listProjectJobs,
   triggerDeploy,
   type Deployment,
   type JobRecord,
@@ -75,7 +73,7 @@ export function Overview() {
     }
     try {
       const [p, d, allJobs, inst] = await Promise.all([
-        getProjects(),
+        getProjectsSummary(),
         getAllDeployments(),
         listAllJobs({ limit: 6 }),
         getInstanceSettings().catch(() => null),
@@ -85,29 +83,14 @@ export function Overview() {
       setRecentJobs(allJobs.jobs);
       setConfiguredPublicHost(inst?.publicDomain);
 
-      const domainEntries = await Promise.all(
-        p.projects.map(async (proj: Project) => {
-          try {
-            const r = await listProjectDomains(proj.id);
-            return [proj.id, r.domains] as const;
-          } catch {
-            return [proj.id, []] as const;
-          }
-        })
-      );
-      setDomainsByProject(Object.fromEntries(domainEntries));
-
-      const jobEntries = await Promise.all(
-        p.projects.map(async (proj: Project) => {
-          try {
-            const r = await listProjectJobs(proj.id, { limit: 1 });
-            return [proj.id, r.jobs[0]] as const;
-          } catch {
-            return [proj.id, undefined] as const;
-          }
-        })
-      );
-      setLatestJobs(Object.fromEntries(jobEntries));
+      const domainMap: Record<string, { hostname: string; sslStatus: string }[]> = {};
+      const jobMap: Record<string, JobRecord | undefined> = {};
+      for (const proj of p.projects) {
+        domainMap[proj.id] = (proj.domains as { hostname: string; sslStatus: string }[]) || [];
+        jobMap[proj.id] = (proj.latestJob as JobRecord) || undefined;
+      }
+      setDomainsByProject(domainMap);
+      setLatestJobs(jobMap);
     } catch (e) {
       if (!isSilent) {
         toast.error(e instanceof Error ? e.message : "Failed to load dashboard state");

@@ -1,6 +1,6 @@
 import { eq, desc } from "drizzle-orm";
 import { getDb } from "../db/client";
-import { projects, environments, ProjectSelect, ProjectInsert } from "../db/schema";
+import { projects, environments, projectDomains, jobs, ProjectSelect, ProjectInsert, JobSelect } from "../db/schema";
 import { encrypt } from "../utils/crypto";
 import { decryptProjectEnv, parseProjectEnv } from "../utils/env";
 import { excludedPortsLive } from "../config/env";
@@ -79,6 +79,43 @@ export class ProjectRepository {
     const db = getDb();
     const rows = await db.select().from(projects).orderBy(desc(projects.createdAt));
     return rows.map((p) => this.hydrateProject(p));
+  }
+
+  async getProjectsSummary(): Promise<Array<ProjectSelect & {
+    domains: Array<{ id: string; hostname: string; sslStatus: string; environmentName: string }>;
+    latestJob: JobSelect | null;
+  }>> {
+    const db = getDb();
+    const allProjects = await this.findAll();
+    if (allProjects.length === 0) return [];
+
+    const allDomains = await db.select().from(projectDomains);
+    const allJobs = await db.select().from(jobs).orderBy(desc(jobs.createdAt));
+
+    const domainsByProject = new Map<string, Array<{ id: string; hostname: string; sslStatus: string; environmentName: string }>>();
+    for (const d of allDomains) {
+      const list = domainsByProject.get(d.projectId) ?? [];
+      list.push({
+        id: d.id,
+        hostname: d.hostname,
+        sslStatus: d.sslStatus,
+        environmentName: d.environmentName,
+      });
+      domainsByProject.set(d.projectId, list);
+    }
+
+    const latestJobByProject = new Map<string, JobSelect>();
+    for (const j of allJobs) {
+      if (!latestJobByProject.has(j.projectId)) {
+        latestJobByProject.set(j.projectId, j);
+      }
+    }
+
+    return allProjects.map((p) => ({
+      ...p,
+      domains: domainsByProject.get(p.id) ?? [],
+      latestJob: latestJobByProject.get(p.id) ?? null,
+    }));
   }
 
   async update(id: string, data: Partial<ProjectInsert>): Promise<ProjectSelect> {

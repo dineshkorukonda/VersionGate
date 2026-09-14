@@ -8,12 +8,14 @@ import {
   deleteDatabaseHandler,
   linkDatabaseHandler,
   unlinkDatabaseHandler,
+  getDatabaseLogsHandler,
 } from "../controllers/database.controller";
 
 export async function databaseRoutes(app: FastifyInstance): Promise<void> {
   app.get("/databases", listDatabasesHandler);
   app.post("/databases", createDatabaseHandler);
   app.get("/databases/:id", getDatabaseHandler);
+  app.get("/databases/:id/logs", getDatabaseLogsHandler);
   app.post("/databases/:id/start", startDatabaseHandler);
   app.post("/databases/:id/stop", stopDatabaseHandler);
   app.delete("/databases/:id", deleteDatabaseHandler);

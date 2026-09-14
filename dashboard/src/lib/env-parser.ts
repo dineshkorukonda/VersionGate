@@ -88,3 +88,13 @@ export function handleEnvPaste(
 
   return true;
 }
+
+/**
+ * Formats an array of key-value pairs back into a standard dotenv string.
+ */
+export function formatEnvText(pairs: Array<{ key: string; value: string }>): string {
+  return pairs
+    .filter((p) => p.key.trim())
+    .map((p) => `${p.key.trim()}=${p.value}`)
+    .join("\n");
+}

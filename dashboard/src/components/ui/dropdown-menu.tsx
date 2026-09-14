@@ -169,8 +169,8 @@ function DropdownMenuCheckboxItem({
         data-slot="dropdown-menu-checkbox-item-indicator"
       >
         <MenuPrimitive.CheckboxItemIndicator>
-          <span className="text-xs font-semibold" aria-hidden>
-            ✓
+          <span className="font-mono text-[10px] font-semibold" aria-hidden>
+            [x]
           </span>
         </MenuPrimitive.CheckboxItemIndicator>
       </span>
@@ -211,8 +211,8 @@ function DropdownMenuRadioItem({
         data-slot="dropdown-menu-radio-item-indicator"
       >
         <MenuPrimitive.RadioItemIndicator>
-          <span className="text-xs font-semibold" aria-hidden>
-            ✓
+          <span className="font-mono text-xs font-semibold" aria-hidden>
+            *
           </span>
         </MenuPrimitive.RadioItemIndicator>
       </span>

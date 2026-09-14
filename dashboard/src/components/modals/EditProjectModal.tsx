@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ClipboardEvent, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Dialog,
@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { triggerDeploy, updateProject, listManagedDatabases, type Project, type ManagedDatabase } from "@/lib/api";
-import { handleEnvPaste } from "@/lib/env-parser";
+import { EnvVariablesEditor } from "@/components/EnvVariablesEditor";
 
 export function EditProjectModal({
   open,
@@ -95,20 +95,6 @@ export function EditProjectModal({
     } catch (err: any) {
       toast.error(err instanceof Error ? err.message : "Failed to load database connection URI");
     }
-  };
-
-  const addEnvPair = () => {
-    setEnvPairs((prev) => [...prev, { key: "", value: "" }]);
-  };
-
-  const removeEnvPair = (idx: number) => {
-    setEnvPairs((prev) => prev.filter((_, i) => i !== idx));
-  };
-
-  const updateEnvPair = (idx: number, field: "key" | "value", val: string) => {
-    setEnvPairs((prev) =>
-      prev.map((item, i) => (i === idx ? { ...item, [field]: val } : item))
-    );
   };
 
   const saveProjectSettings = async (): Promise<boolean> => {
@@ -367,76 +353,16 @@ export function EditProjectModal({
             ) : null}
           </div>
 
-          <div className="space-y-2 pt-2 border-t border-border/50">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <label className="text-sm font-medium">Project Environment Variables</label>
-              <div className="flex items-center gap-2">
-                {managedDbs.length > 0 && (
-                  <select
-                    value={selectedDbId}
-                    onChange={(e) => {
-                      const id = e.target.value;
-                      setSelectedDbId(id);
-                      if (id) void handleAttachDatabase(id);
-                    }}
-                    className="h-8 rounded border border-border bg-background px-2 font-mono text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
-                  >
-                    <option value="">+ Attach Managed DB...</option>
-                    {managedDbs.map((db) => (
-                      <option key={db.id} value={db.id}>
-                        {db.name} ({db.engine.toUpperCase()} :{db.hostPort})
-                      </option>
-                    ))}
-                  </select>
-                )}
-                <Button type="button" variant="outline" size="sm" onClick={addEnvPair} className="text-xs">
-                  + Add Variable
-                </Button>
-              </div>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Encrypted at rest with AES-256-GCM. Applied to all deployments unless overridden by environment stages.
-            </p>
-
-            <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-              {envPairs.map((p, idx) => (
-                <div key={idx} className="flex items-center gap-2">
-                  <Input
-                    placeholder="KEY"
-                    value={p.key}
-                    onChange={(e) => updateEnvPair(idx, "key", e.target.value)}
-                    onPaste={(e: ClipboardEvent<HTMLInputElement>) => {
-                      const text = e.clipboardData.getData("text");
-                      if (handleEnvPaste(text, idx, setEnvPairs)) {
-                        e.preventDefault();
-                      }
-                    }}
-                    className="font-mono text-xs uppercase"
-                  />
-                  <Input
-                    placeholder="VALUE"
-                    value={p.value}
-                    onChange={(e) => updateEnvPair(idx, "value", e.target.value)}
-                    onPaste={(e: ClipboardEvent<HTMLInputElement>) => {
-                      const text = e.clipboardData.getData("text");
-                      if (handleEnvPaste(text, idx, setEnvPairs, "value")) {
-                        e.preventDefault();
-                      }
-                    }}
-                    className="font-mono text-xs"
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => removeEnvPair(idx)}
-                    className="h-8 w-8 p-0 text-muted-foreground hover:text-rose-500"
-                  >
-                    ✕
-                  </Button>
-                </div>
-              ))}
-            </div>
+          <div className="pt-2 border-t border-border/50">
+            <EnvVariablesEditor
+              pairs={envPairs}
+              onChange={setEnvPairs}
+              managedDbs={managedDbs}
+              selectedDbId={selectedDbId}
+              onAttachDatabase={(id) => void handleAttachDatabase(id)}
+              title="Project Environment Variables"
+              description="Encrypted at rest with AES-256-GCM. Applied to all deployments unless overridden by environment stages."
+            />
           </div>
 
           <DialogFooter className="gap-2 pt-2 sm:justify-end">

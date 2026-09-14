@@ -171,12 +171,27 @@ export interface ServerStats {
   timestamp: string;
 }
 
+export interface ProjectSummaryItem extends Project {
+  domains?: Array<{ id: string; hostname: string; sslStatus: string; environmentName: string }>;
+  latestJob?: JobRecord | null;
+}
+
 export function getProjects(): Promise<{ projects: Project[] }> {
   return request("GET", "/projects");
 }
 
+export function getProjectsSummary(): Promise<{ projects: ProjectSummaryItem[] }> {
+  return request("GET", "/projects/summary");
+}
+
 export function getProject(id: string): Promise<{ project: Project }> {
   return request("GET", `/projects/${id}`);
+}
+
+export function getProjectLogs(
+  id: string
+): Promise<{ lines: string[]; containerName: string | null }> {
+  return request("GET", `/projects/${id}/logs`);
 }
 
 export type ProjectDomainSslStatus = "pending_dns" | "http" | "issued" | "failed";
@@ -212,11 +227,30 @@ export function removeProjectDomain(projectId: string, domainId: string): Promis
   return request("DELETE", `/projects/${projectId}/domains/${domainId}`);
 }
 
+export interface DomainDnsVerificationResult {
+  hostname: string;
+  expectedIpv4: string | null;
+  records: {
+    a: string[];
+    cname: string[];
+  };
+  status: "MATCH" | "MISMATCH" | "NOT_RESOLVED";
+  message: string;
+  canIssueSsl: boolean;
+}
+
 export function issueProjectDomainSsl(
   projectId: string,
   domainId: string
 ): Promise<{ ok: boolean; message: string; sslStatus: ProjectDomainSslStatus }> {
   return request("POST", `/projects/${projectId}/domains/${domainId}/ssl`);
+}
+
+export function verifyProjectDomainDns(
+  projectId: string,
+  domainId: string
+): Promise<DomainDnsVerificationResult> {
+  return request("POST", `/projects/${projectId}/domains/${domainId}/verify-dns`);
 }
 
 export function createProject(data: {
@@ -852,6 +886,13 @@ export function linkManagedDatabase(
 
 export function unlinkManagedDatabase(databaseId: string): Promise<{ success: boolean }> {
   return request("POST", `/databases/${databaseId}/unlink`);
+}
+
+export function getDatabaseLogs(
+  databaseId: string,
+  tail = 200
+): Promise<{ lines: string[]; containerName: string }> {
+  return request("GET", `/databases/${databaseId}/logs?tail=${tail}`);
 }
 
 // ── Discovered Deployments & Adoption API ────────────────────────────────────

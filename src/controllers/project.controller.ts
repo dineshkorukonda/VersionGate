@@ -144,10 +144,23 @@ export async function createProjectHandler(
 }
 
 export async function listProjectsHandler(
+  req: FastifyRequest<{ Querystring?: { summary?: string } }>,
+  reply: FastifyReply
+): Promise<void> {
+  const isSummary = req.query?.summary === "true";
+  if (isSummary) {
+    const projects = await projectRepo.getProjectsSummary();
+    return reply.code(200).send({ projects });
+  }
+  const projects = await projectRepo.findAll();
+  reply.code(200).send({ projects });
+}
+
+export async function listProjectsSummaryHandler(
   _req: FastifyRequest,
   reply: FastifyReply
 ): Promise<void> {
-  const projects = await projectRepo.findAll();
+  const projects = await projectRepo.getProjectsSummary();
   reply.code(200).send({ projects });
 }
 

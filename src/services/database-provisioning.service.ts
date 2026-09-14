@@ -7,7 +7,7 @@ import { isPortAvailableOnHost, parseExcludedPorts } from "../utils/port-manager
 import { databaseRepository } from "../repositories/database.repository";
 import { ProjectRepository } from "../repositories/project.repository";
 import { ManagedDatabaseSelect } from "../db/schema";
-import { inspectContainer, stopContainer, removeContainer } from "../utils/docker";
+import { inspectContainer, stopContainer, removeContainer, getContainerLogs } from "../utils/docker";
 
 export interface ProvisionDatabaseInput {
   name: string;
@@ -408,6 +408,15 @@ export class DatabaseProvisioningService {
     logger.info({ databaseId, previousProjectId: record.linkedProjectId }, "Unlinked database from project");
 
     return { success: true };
+  }
+
+  async getLogs(databaseId: string, tail = 200): Promise<{ lines: string[]; containerName: string }> {
+    const record = await this.dbRepo.findById(databaseId);
+    if (!record) {
+      throw new Error("Database not found");
+    }
+    const lines = await getContainerLogs(record.containerName, tail);
+    return { lines, containerName: record.containerName };
   }
 }
 

@@ -21,6 +21,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { ConfirmDialog } from "@/components/modals/ConfirmDialog";
 
 const MANAGE_APP_HREF = "https://github.com/apps/VersionGate-App/installations";
 const INSTALL_HREF = "/api/auth/github/install";
@@ -178,17 +179,23 @@ export function Integrations() {
     }
   };
 
-  const handleDisconnect = async (installationId?: string) => {
-    const label = installationId ? `installation #${installationId}` : "all connected GitHub installations";
-    if (!window.confirm(`Are you sure you want to disconnect ${label}?`)) {
-      return;
-    }
+  const [disconnectTarget, setDisconnectTarget] = useState<string | "ALL" | null>(null);
+  const [disconnecting, setDisconnecting] = useState(false);
+
+  const executeDisconnect = async () => {
+    if (!disconnectTarget) return;
+    setDisconnecting(true);
+    const targetId = disconnectTarget === "ALL" ? undefined : disconnectTarget;
+    const label = targetId ? `installation #${targetId}` : "all connected GitHub installations";
     try {
-      await deleteGithubInstallation(installationId);
+      await deleteGithubInstallation(targetId);
       toast.success(`[ OK ] Disconnected ${label}`);
+      setDisconnectTarget(null);
       await fetchStatus();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to disconnect installation");
+    } finally {
+      setDisconnecting(false);
     }
   };
 
@@ -304,7 +311,7 @@ export function Integrations() {
                     variant="ghost"
                     size="sm"
                     className="text-neutral-400 hover:text-rose-400 text-xs font-sans"
-                    onClick={() => void handleDisconnect()}
+                    onClick={() => setDisconnectTarget("ALL")}
                   >
                     Disconnect
                   </Button>
@@ -333,7 +340,7 @@ export function Integrations() {
                             variant="ghost"
                             size="sm"
                             className="h-7 text-xs text-neutral-400 hover:text-rose-400"
-                            onClick={() => void handleDisconnect(i.installationId)}
+                            onClick={() => setDisconnectTarget(i.installationId)}
                           >
                             Remove
                           </Button>
@@ -579,6 +586,23 @@ export function Integrations() {
         </Link>{" "}
         to pick a repository and branch.
       </p>
+
+      <ConfirmDialog
+        open={Boolean(disconnectTarget)}
+        onOpenChange={(open) => {
+          if (!open) setDisconnectTarget(null);
+        }}
+        title="Disconnect GitHub Installation?"
+        description={
+          disconnectTarget === "ALL"
+            ? "This will disconnect all linked GitHub organizations and accounts from VersionGate. Auto-deployment webhooks and repository pickers will no longer have access."
+            : `This will disconnect installation #${disconnectTarget} from VersionGate. Automatic deployment webhooks for repositories under this account will stop receiving events.`
+        }
+        confirmLabel="Disconnect"
+        variant="destructive"
+        busy={disconnecting}
+        onConfirm={executeDisconnect}
+      />
     </div>
   );
 }
