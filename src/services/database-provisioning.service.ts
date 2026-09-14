@@ -72,7 +72,16 @@ const DEFAULT_ENGINE_CONFIG: Record<
 };
 
 export class DatabaseProvisioningService {
-  private projectRepo = new ProjectRepository();
+  private projectRepo: ProjectRepository;
+  private dbRepo: typeof databaseRepository;
+
+  constructor(
+    projectRepo: ProjectRepository = new ProjectRepository(),
+    dbRepo: typeof databaseRepository = databaseRepository
+  ) {
+    this.projectRepo = projectRepo;
+    this.dbRepo = dbRepo;
+  }
 
   generatePassword(length = 24): string {
     const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -387,12 +396,12 @@ export class DatabaseProvisioningService {
   }
 
   async unlinkFromProject(databaseId: string): Promise<{ success: boolean }> {
-    const record = await databaseRepository.findById(databaseId);
+    const record = await this.dbRepo.findById(databaseId);
     if (!record) {
       throw new Error("Database not found");
     }
 
-    await databaseRepository.update(databaseId, {
+    await this.dbRepo.update(databaseId, {
       linkedProjectId: null,
     });
 
