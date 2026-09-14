@@ -171,8 +171,17 @@ export interface ServerStats {
   timestamp: string;
 }
 
+export interface ProjectSummaryItem extends Project {
+  domains?: Array<{ id: string; hostname: string; sslStatus: string; environmentName: string }>;
+  latestJob?: JobRecord | null;
+}
+
 export function getProjects(): Promise<{ projects: Project[] }> {
   return request("GET", "/projects");
+}
+
+export function getProjectsSummary(): Promise<{ projects: ProjectSummaryItem[] }> {
+  return request("GET", "/projects/summary");
 }
 
 export function getProject(id: string): Promise<{ project: Project }> {

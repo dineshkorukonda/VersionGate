@@ -2,6 +2,7 @@ import { FastifyInstance } from "fastify";
 import {
   createProjectHandler,
   listProjectsHandler,
+  listProjectsSummaryHandler,
   getProjectHandler,
   deleteProjectHandler,
   rollbackProjectHandler,
@@ -95,6 +96,10 @@ export async function projectRoutes(app: FastifyInstance): Promise<void> {
       },
     },
     handler: createProjectHandler,
+  });
+
+  app.get("/projects/summary", {
+    handler: listProjectsSummaryHandler,
   });
 
   app.get("/projects", {
