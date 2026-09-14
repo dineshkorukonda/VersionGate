@@ -39,6 +39,14 @@ export async function lookupDnsA(hostname: string): Promise<string[]> {
   }
 }
 
+export async function lookupDnsCname(hostname: string): Promise<string[]> {
+  try {
+    return await dns.resolveCname(hostname);
+  } catch {
+    return [];
+  }
+}
+
 export function inferExpectedServerIpv4(): string | null {
   const fromEnv = (process.env.SERVER_PUBLIC_IPV4 ?? "").trim();
   if (fromEnv && isValidIpv4Address(fromEnv)) return fromEnv;
@@ -50,8 +58,16 @@ export function inferExpectedServerIpv4(): string | null {
 }
 
 export class ProjectDomainService {
-  private readonly domainRepo = new ProjectDomainRepository();
-  private readonly projectRepo = new ProjectRepository();
+  private readonly domainRepo: ProjectDomainRepository;
+  private readonly projectRepo: ProjectRepository;
+
+  constructor(
+    domainRepo: ProjectDomainRepository = new ProjectDomainRepository(),
+    projectRepo: ProjectRepository = new ProjectRepository()
+  ) {
+    this.domainRepo = domainRepo;
+    this.projectRepo = projectRepo;
+  }
 
   async writeUpstreamForProject(projectName: string, port: number | null): Promise<void> {
     const path = appUpstreamConfPath(projectName);
@@ -207,6 +223,61 @@ export class ProjectDomainService {
       }
     }
     execFileSync("certbot", args, { stdio: "pipe", timeout: 240_000 });
+  }
+
+  async verifyDomainDns(domainId: string): Promise<{
+    hostname: string;
+    expectedIpv4: string | null;
+    records: {
+      a: string[];
+      cname: string[];
+    };
+    status: "MATCH" | "MISMATCH" | "NOT_RESOLVED";
+    message: string;
+    canIssueSsl: boolean;
+  }> {
+    const domain = await this.domainRepo.findById(domainId);
+    if (!domain) {
+      throw new NotFoundError(`Domain ${domainId}`);
+    }
+
+    const expectedIpv4 = inferExpectedServerIpv4();
+    const a = await lookupDnsA(domain.hostname);
+    const cname = await lookupDnsCname(domain.hostname);
+
+    let status: "MATCH" | "MISMATCH" | "NOT_RESOLVED" = "NOT_RESOLVED";
+    let message = `No DNS records found for ${domain.hostname}. Ensure your DNS provider has an A record pointing to ${expectedIpv4 || "this server"}.`;
+    let canIssueSsl = false;
+
+    if (a.length > 0) {
+      if (expectedIpv4) {
+        if (a.includes(expectedIpv4)) {
+          status = "MATCH";
+          message = `DNS record successfully points to this server (${expectedIpv4}). Ready for TLS certificate issuance.`;
+          canIssueSsl = true;
+        } else {
+          status = "MISMATCH";
+          message = `DNS points to ${a.join(", ")}, but expected server IPv4 is ${expectedIpv4}. Update your A record.`;
+          canIssueSsl = false;
+        }
+      } else {
+        status = "MATCH";
+        message = `DNS A record resolved to ${a.join(", ")}.`;
+        canIssueSsl = true;
+      }
+    } else if (cname.length > 0) {
+      status = "MISMATCH";
+      message = `CNAME points to ${cname.join(", ")}, but A record did not resolve directly to IPv4.`;
+    }
+
+    return {
+      hostname: domain.hostname,
+      expectedIpv4,
+      records: { a, cname },
+      status,
+      message,
+      canIssueSsl,
+    };
   }
 }
 

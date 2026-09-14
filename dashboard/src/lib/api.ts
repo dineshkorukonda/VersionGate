@@ -221,11 +221,30 @@ export function removeProjectDomain(projectId: string, domainId: string): Promis
   return request("DELETE", `/projects/${projectId}/domains/${domainId}`);
 }
 
+export interface DomainDnsVerificationResult {
+  hostname: string;
+  expectedIpv4: string | null;
+  records: {
+    a: string[];
+    cname: string[];
+  };
+  status: "MATCH" | "MISMATCH" | "NOT_RESOLVED";
+  message: string;
+  canIssueSsl: boolean;
+}
+
 export function issueProjectDomainSsl(
   projectId: string,
   domainId: string
 ): Promise<{ ok: boolean; message: string; sslStatus: ProjectDomainSslStatus }> {
   return request("POST", `/projects/${projectId}/domains/${domainId}/ssl`);
+}
+
+export function verifyProjectDomainDns(
+  projectId: string,
+  domainId: string
+): Promise<DomainDnsVerificationResult> {
+  return request("POST", `/projects/${projectId}/domains/${domainId}/verify-dns`);
 }
 
 export function createProject(data: {

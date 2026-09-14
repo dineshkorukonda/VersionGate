@@ -165,3 +165,24 @@ export async function issueProjectDomainSslHandler(
     });
   }
 }
+
+export async function verifyProjectDomainDnsHandler(
+  req: FastifyRequest<{ Params: DomainParams }>,
+  reply: FastifyReply
+): Promise<void> {
+  const project = await projectRepo.findById(req.params.id);
+  if (!project) {
+    return reply.code(404).send({ error: "NotFound", message: "Project not found" });
+  }
+
+  try {
+    const result = await domainService.verifyDomainDns(req.params.domainId);
+    reply.code(200).send(result);
+  } catch (err) {
+    if (err instanceof Error && "statusCode" in err) {
+      const code = (err as { statusCode: number }).statusCode;
+      return reply.code(code).send({ error: err.name, message: err.message });
+    }
+    throw err;
+  }
+}
