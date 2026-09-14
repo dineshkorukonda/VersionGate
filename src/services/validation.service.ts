@@ -1,4 +1,5 @@
 import { inspectContainer, getContainerRestartCount, getContainerLogs } from "../utils/docker";
+import { isPm2Running, getPm2Logs } from "../utils/pm2";
 import { config } from "../config/env";
 import { logger } from "../utils/logger";
 
@@ -42,16 +43,23 @@ export class ValidationService {
     let running = true;
     try {
       running = await inspectContainer(containerName);
-    } catch (err) {
-      logger.warn(
-        { err, containerName },
-        "Docker inspect failed during validation — continuing with HTTP health checks"
-      );
+    } catch {
+      running = false;
     }
+
     if (!running) {
-      const logs = await getContainerLogs(containerName, 30);
-      logger.error({ containerName, logs }, "Container is not running");
-      return { success: false, latency: 0, error: this.formatError("Container failed to start", logs) };
+      const pm2Online = await isPm2Running(containerName);
+      if (pm2Online) {
+        running = true;
+      }
+    }
+
+    if (!running) {
+      const containerLogs = await getContainerLogs(containerName, 30).catch(() => []);
+      const pm2Raw = await getPm2Logs(containerName, 30).catch(() => "");
+      const logs: string[] = containerLogs.length > 0 ? containerLogs : pm2Raw.split("\n").filter(Boolean);
+      logger.error({ containerName, logs }, "Instance (container/pm2) is not running");
+      return { success: false, latency: 0, error: this.formatError("Instance failed to start", logs) };
     }
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {

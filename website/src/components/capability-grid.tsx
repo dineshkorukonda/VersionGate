@@ -14,6 +14,17 @@ export interface Capability {
 
 const CAPABILITIES: Capability[] = [
   {
+    id: "cap-custom-pms-pm2",
+    category: "Deployment",
+    title: "Custom PMs & Host PM2 Engine",
+    command: 'POST /api/v1/projects  {"deploymentType":"pm2|docker","packageManager":"bun|pnpm|yarn|npm|uv|poetry|cargo|composer"}',
+    description:
+      "Deploy apps via Docker or bare-metal host PM2 with automatic support for bun, pnpm, yarn, npm, uv, poetry, pipenv, cargo, and composer.",
+    details:
+      "Engineers can choose between Docker containerization or direct host PM2 execution per project, customize install, build, and start commands, and let VersionGate auto-detect Rust (Cargo), Python (uv/poetry/pipenv), and PHP (Composer) workflows.",
+    badge: "NEW",
+  },
+  {
     id: "cap-singlecontainer",
     category: "Deployment",
     title: "Single-Container Deploys",

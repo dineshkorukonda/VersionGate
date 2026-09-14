@@ -7,6 +7,7 @@ import { getDb } from "../../db/client";
 import { jobs, JobSelect, ProjectSelect, EnvironmentSelect } from "../../db/schema";
 import { buildImage, runContainer, stopContainer, removeContainer, freeHostPort } from "../../utils/docker";
 import { ensureDockerfile } from "../../utils/dockerfile";
+import { buildAndStartPm2Deployment, stopPm2App } from "../../utils/pm2";
 import { DeploymentError } from "../../utils/errors";
 import { TrafficService } from "../../services/traffic.service";
 import { GitService } from "../../services/git.service";
@@ -82,7 +83,13 @@ export async function runDeployJob(
     const buildContextPath = await ensureDockerfile(
       git.buildContextPath(project),
       environment.appPort,
-      repoRoot
+      repoRoot,
+      {
+        packageManager: project.packageManager,
+        installCommand: project.installCommand,
+        buildCommand: project.buildCommand,
+        startCommand: project.startCommand,
+      }
     );
 
     await log(`Step 2: Determining blue/green target`);
@@ -111,14 +118,6 @@ export async function runDeployJob(
 
     await updateJobDeploymentId(jobId, deploymentId);
 
-    await log(`Step 4: Building Docker image`);
-    await buildImage(imageTag, buildContextPath);
-    await checkCancelled(deploymentId, log);
-
-    await log(`Step 5: Starting container`);
-    await stopContainer(containerName).catch(() => null);
-    await removeContainer(containerName).catch(() => null);
-    await freeHostPort(hostPort);
     const projectEnv = decryptProjectEnv(project.env);
     const stageEnv = decryptProjectEnv((environment as typeof environment & { env?: unknown }).env);
     const mergedEnv = { ...projectEnv, ...stageEnv };
@@ -126,15 +125,38 @@ export async function runDeployJob(
     if (envKeys.length > 0) {
       await log(`Injecting env keys: ${envKeys.join(", ")}`);
     }
-    await runContainer(
-      containerName,
-      imageTag,
-      hostPort,
-      environment.appPort,
-      config.dockerNetwork,
-      mergedEnv
-    );
-    await checkCancelled(deploymentId, log);
+
+    if (project.deploymentType === "pm2") {
+      await log(`Step 4: Deploying host application via PM2`);
+      await freeHostPort(hostPort);
+      await buildAndStartPm2Deployment({
+        project,
+        buildContextPath,
+        containerName,
+        hostPort,
+        env: mergedEnv,
+        log,
+      });
+      await checkCancelled(deploymentId, log);
+    } else {
+      await log(`Step 4: Building Docker image`);
+      await buildImage(imageTag, buildContextPath);
+      await checkCancelled(deploymentId, log);
+
+      await log(`Step 5: Starting container`);
+      await stopContainer(containerName).catch(() => null);
+      await removeContainer(containerName).catch(() => null);
+      await freeHostPort(hostPort);
+      await runContainer(
+        containerName,
+        imageTag,
+        hostPort,
+        environment.appPort,
+        config.dockerNetwork,
+        mergedEnv
+      );
+      await checkCancelled(deploymentId, log);
+    }
 
     await log(`Step 6: Health check http://localhost:${hostPort}${project.healthPath}`);
     const health = await validation.validate(
@@ -163,13 +185,20 @@ export async function runDeployJob(
     await repo.updateStatus(deployment.id, "ACTIVE");
 
     if (activeDeployment) {
-      await log(`Stopping old container: ${activeDeployment.containerName}`);
-      await stopContainer(activeDeployment.containerName).catch(async (err) => {
-        await log(`Warning: failed to stop old container: ${err instanceof Error ? err.message : String(err)}`);
-      });
-      await removeContainer(activeDeployment.containerName).catch(async (err) => {
-        await log(`Warning: failed to remove old container: ${err instanceof Error ? err.message : String(err)}`);
-      });
+      if (project.deploymentType === "pm2") {
+        await log(`Stopping old PM2 instance: ${activeDeployment.containerName}`);
+        await stopPm2App(activeDeployment.containerName).catch(async (err) => {
+          await log(`Warning: failed to stop old PM2 instance: ${err instanceof Error ? err.message : String(err)}`);
+        });
+      } else {
+        await log(`Stopping old container: ${activeDeployment.containerName}`);
+        await stopContainer(activeDeployment.containerName).catch(async (err) => {
+          await log(`Warning: failed to stop old container: ${err instanceof Error ? err.message : String(err)}`);
+        });
+        await removeContainer(activeDeployment.containerName).catch(async (err) => {
+          await log(`Warning: failed to remove old container: ${err instanceof Error ? err.message : String(err)}`);
+        });
+      }
       await repo.updateStatus(activeDeployment.id, "ROLLED_BACK");
     }
 

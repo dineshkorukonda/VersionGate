@@ -12,6 +12,7 @@ import { validateEnvObject } from "../utils/env";
 import { ProjectDomainService } from "../services/project-domain.service";
 import { projectAnalyticsService } from "../services/project-analytics.service";
 import { isProjectPortRangeSafe, parseExcludedPorts } from "../utils/port-manager";
+import { deletePm2App } from "../utils/pm2";
 
 const projectRepo = new ProjectRepository();
 const deploymentRepo = new DeploymentRepository();
@@ -26,6 +27,11 @@ interface CreateProjectBody {
   appPort: number;
   basePort?: number;
   healthPath?: string;
+  deploymentType?: string;
+  packageManager?: string;
+  installCommand?: string;
+  buildCommand?: string;
+  startCommand?: string;
   env?: Record<string, string>;
 }
 
@@ -45,6 +51,11 @@ interface UpdateProjectBody {
   appPort?: number;
   healthPath?: string;
   basePort?: number;
+  deploymentType?: string;
+  packageManager?: string;
+  installCommand?: string;
+  buildCommand?: string;
+  startCommand?: string;
   env?: Record<string, string>;
 }
 
@@ -52,7 +63,29 @@ export async function createProjectHandler(
   req: FastifyRequest<{ Body: CreateProjectBody }>,
   reply: FastifyReply
 ): Promise<void> {
-  const { name, repoUrl, branch = "main", buildContext = ".", appPort, basePort: requestedBasePort, healthPath = "/health", env = {} } = req.body;
+  const {
+    name,
+    repoUrl,
+    branch = "main",
+    buildContext = ".",
+    appPort,
+    basePort: requestedBasePort,
+    healthPath = "/health",
+    deploymentType = "docker",
+    packageManager = "auto",
+    installCommand,
+    buildCommand,
+    startCommand,
+    env = {},
+  } = req.body;
+
+  const validDeploymentTypes = ["docker", "pm2"];
+  if (deploymentType && !validDeploymentTypes.includes(deploymentType)) {
+    return reply.code(400).send({
+      error: "ValidationError",
+      message: `Invalid deploymentType "${deploymentType}". Supported: ${validDeploymentTypes.join(", ")}`,
+    });
+  }
 
   const envError = validateEnvObject(env);
   if (envError) {
@@ -93,6 +126,11 @@ export async function createProjectHandler(
     healthPath,
     basePort,
     webhookSecret,
+    deploymentType,
+    packageManager,
+    installCommand: installCommand?.trim() || null,
+    buildCommand: buildCommand?.trim() || null,
+    startCommand: startCommand?.trim() || null,
     localPath: "", // temporary; patched below
     env,
   });
@@ -101,7 +139,7 @@ export async function createProjectHandler(
   const localPath = path.join(config.projectsRootPath, project.id);
   const updated = await projectRepo.update(project.id, { localPath });
 
-  logger.info({ projectId: updated.id, name: updated.name }, "API: project created");
+  logger.info({ projectId: updated.id, name: updated.name, deploymentType }, "API: project created");
   reply.code(201).send({ project: updated });
 }
 
@@ -142,6 +180,9 @@ export async function deleteProjectHandler(
     await removeContainer(d.containerName).catch((err) => {
       logger.warn({ err, containerName: d.containerName }, "deleteProject: remove container");
     });
+    if (project.deploymentType === "pm2") {
+      await deletePm2App(d.containerName).catch(() => null);
+    }
   }
   await freeHostPort(project.basePort).catch(() => null);
   await freeHostPort(project.basePort + 1).catch(() => null);
@@ -177,6 +218,12 @@ export async function updateProjectHandler(
   const project = await projectRepo.findById(id);
   if (!project) {
     return reply.code(404).send({ error: "NotFound", message: "Project not found" });
+  }
+  if (req.body.deploymentType && !["docker", "pm2"].includes(req.body.deploymentType)) {
+    return reply.code(400).send({
+      error: "ValidationError",
+      message: `Invalid deploymentType "${req.body.deploymentType}". Supported: docker, pm2`,
+    });
   }
   if (req.body.env !== undefined) {
     const envError = validateEnvObject(req.body.env);

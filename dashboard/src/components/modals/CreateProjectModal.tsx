@@ -59,6 +59,12 @@ export function CreateProjectModal({
   const [buildContext, setBuildContext] = useState(".");
   const [appPort, setAppPort] = useState("3000");
   const [healthPath, setHealthPath] = useState("/health");
+  const [deploymentType, setDeploymentType] = useState<"docker" | "pm2">("docker");
+  const [packageManager, setPackageManager] = useState("auto");
+  const [installCommand, setInstallCommand] = useState("");
+  const [buildCommand, setBuildCommand] = useState("");
+  const [startCommand, setStartCommand] = useState("");
+  const [showAdvancedRuntime, setShowAdvancedRuntime] = useState(false);
 
   const [ghLoading, setGhLoading] = useState(false);
   const [ghConnected, setGhConnected] = useState(false);
@@ -79,6 +85,12 @@ export function CreateProjectModal({
     setBuildContext(".");
     setAppPort("3000");
     setHealthPath("/health");
+    setDeploymentType("docker");
+    setPackageManager("auto");
+    setInstallCommand("");
+    setBuildCommand("");
+    setStartCommand("");
+    setShowAdvancedRuntime(false);
     setGhLoading(false);
     setGhConnected(false);
     setGhInstallations([]);
@@ -288,6 +300,11 @@ export function CreateProjectModal({
         buildContext: buildContext.trim() || ".",
         appPort: port,
         healthPath: healthPath.trim() || "/health",
+        deploymentType,
+        packageManager,
+        installCommand: installCommand.trim() || undefined,
+        buildCommand: buildCommand.trim() || undefined,
+        startCommand: startCommand.trim() || undefined,
         env: Object.keys(envMap).length > 0 ? envMap : undefined,
       });
       toast.success("Project created");
@@ -545,6 +562,116 @@ export function CreateProjectModal({
                 placeholder="/healthz"
               />
             </div>
+          </div>
+
+          {/* Runtime & Framework Configuration */}
+          <div className="space-y-3 pt-2 border-t border-border/50">
+            <div className="flex items-center justify-between">
+              <div>
+                <label className="text-sm font-medium">Runtime &amp; Framework Settings</label>
+                <p className="text-xs text-muted-foreground">
+                  Select deployment runner engine, package manager, and optional custom build commands.
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="text-xs h-7 font-mono"
+                onClick={() => setShowAdvancedRuntime((prev) => !prev)}
+              >
+                {showAdvancedRuntime ? "[ HIDE COMMANDS ]" : "[ CUSTOM COMMANDS ]"}
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="grid gap-1.5">
+                <label htmlFor="cp-runtime-type" className="text-xs font-medium text-muted-foreground">
+                  Deployment Engine
+                </label>
+                <select
+                  id="cp-runtime-type"
+                  className={selectClass}
+                  value={deploymentType}
+                  onChange={(e) => setDeploymentType(e.target.value as "docker" | "pm2")}
+                >
+                  <option value="docker">Docker Container (Default)</option>
+                  <option value="pm2">Host PM2 Process (Bare-metal)</option>
+                </select>
+                <p className="text-[11px] text-muted-foreground">
+                  {deploymentType === "pm2"
+                    ? "Runs natively on host server under PM2 supervision."
+                    : "Runs inside an isolated zero-downtime container."}
+                </p>
+              </div>
+
+              <div className="grid gap-1.5">
+                <label htmlFor="cp-pkg-mgr" className="text-xs font-medium text-muted-foreground">
+                  Package Manager
+                </label>
+                <select
+                  id="cp-pkg-mgr"
+                  className={selectClass}
+                  value={packageManager}
+                  onChange={(e) => setPackageManager(e.target.value)}
+                >
+                  <option value="auto">Auto-detect from repo</option>
+                  <option value="bun">Bun</option>
+                  <option value="pnpm">pnpm</option>
+                  <option value="npm">npm</option>
+                  <option value="yarn">Yarn</option>
+                  <option value="uv">Python (uv)</option>
+                  <option value="poetry">Python (Poetry)</option>
+                  <option value="pip">Python (pip)</option>
+                  <option value="cargo">Rust (Cargo)</option>
+                  <option value="composer">PHP (Composer)</option>
+                </select>
+                <p className="text-[11px] text-muted-foreground">
+                  Tool used to install dependencies and run build scripts.
+                </p>
+              </div>
+            </div>
+
+            {showAdvancedRuntime ? (
+              <div className="space-y-3 rounded-lg border border-border/70 bg-muted/20 p-3">
+                <div className="grid gap-1.5">
+                  <label htmlFor="cp-install-cmd" className="text-xs font-mono font-medium text-muted-foreground">
+                    Custom Install Command (Optional)
+                  </label>
+                  <Input
+                    id="cp-install-cmd"
+                    value={installCommand}
+                    onChange={(e) => setInstallCommand(e.target.value)}
+                    placeholder="e.g. pnpm install --frozen-lockfile"
+                    className="font-mono text-xs"
+                  />
+                </div>
+                <div className="grid gap-1.5">
+                  <label htmlFor="cp-build-cmd" className="text-xs font-mono font-medium text-muted-foreground">
+                    Custom Build Command (Optional)
+                  </label>
+                  <Input
+                    id="cp-build-cmd"
+                    value={buildCommand}
+                    onChange={(e) => setBuildCommand(e.target.value)}
+                    placeholder="e.g. npm run build:prod or cargo build --release"
+                    className="font-mono text-xs"
+                  />
+                </div>
+                <div className="grid gap-1.5">
+                  <label htmlFor="cp-start-cmd" className="text-xs font-mono font-medium text-muted-foreground">
+                    Custom Start Command (Optional)
+                  </label>
+                  <Input
+                    id="cp-start-cmd"
+                    value={startCommand}
+                    onChange={(e) => setStartCommand(e.target.value)}
+                    placeholder="e.g. npm run start or uvicorn main:app --host 0.0.0.0 --port $PORT"
+                    className="font-mono text-xs"
+                  />
+                </div>
+              </div>
+            ) : null}
           </div>
 
           <div className="space-y-2 pt-2 border-t border-border/50">

@@ -33,6 +33,14 @@ export function EditProjectModal({
   const [buildContext, setBuildContext] = useState(project.buildContext);
   const [appPort, setAppPort] = useState(String(project.appPort));
   const [healthPath, setHealthPath] = useState(project.healthPath);
+  const [deploymentType, setDeploymentType] = useState<"docker" | "pm2">(project.deploymentType || "docker");
+  const [packageManager, setPackageManager] = useState(project.packageManager || "auto");
+  const [installCommand, setInstallCommand] = useState(project.installCommand || "");
+  const [buildCommand, setBuildCommand] = useState(project.buildCommand || "");
+  const [startCommand, setStartCommand] = useState(project.startCommand || "");
+  const [showAdvancedRuntime, setShowAdvancedRuntime] = useState(
+    Boolean(project.installCommand || project.buildCommand || project.startCommand)
+  );
   const [envPairs, setEnvPairs] = useState<{ key: string; value: string }[]>([]);
 
   const wasOpenRef = useRef(false);
@@ -44,6 +52,14 @@ export function EditProjectModal({
       setBuildContext(project.buildContext);
       setAppPort(String(project.appPort));
       setHealthPath(project.healthPath);
+      setDeploymentType(project.deploymentType || "docker");
+      setPackageManager(project.packageManager || "auto");
+      setInstallCommand(project.installCommand || "");
+      setBuildCommand(project.buildCommand || "");
+      setStartCommand(project.startCommand || "");
+      setShowAdvancedRuntime(
+        Boolean(project.installCommand || project.buildCommand || project.startCommand)
+      );
       const rawEnv = project.env || {};
       const pairs = Object.entries(rawEnv).map(([k, v]) => ({ key: k, value: String(v) }));
       setEnvPairs(pairs.length > 0 ? pairs : [{ key: "", value: "" }]);
@@ -86,6 +102,11 @@ export function EditProjectModal({
       buildContext: buildContext.trim() || ".",
       appPort: port,
       healthPath: healthPath.trim() || "/health",
+      deploymentType,
+      packageManager,
+      installCommand: installCommand.trim() || null,
+      buildCommand: buildCommand.trim() || null,
+      startCommand: startCommand.trim() || null,
       env: envMap,
     });
     return true;
@@ -206,7 +227,117 @@ export function EditProjectModal({
             </div>
           </div>
 
-          <div className="space-y-2 pt-2">
+          {/* Runtime & Framework Configuration */}
+          <div className="space-y-3 pt-2 border-t border-border/50">
+            <div className="flex items-center justify-between">
+              <div>
+                <label className="text-sm font-medium">Runtime &amp; Framework Settings</label>
+                <p className="text-xs text-muted-foreground">
+                  Switch deployment runner engine, package manager, or customize build commands.
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="text-xs h-7 font-mono"
+                onClick={() => setShowAdvancedRuntime((prev) => !prev)}
+              >
+                {showAdvancedRuntime ? "[ HIDE COMMANDS ]" : "[ CUSTOM COMMANDS ]"}
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="grid gap-1.5">
+                <label htmlFor="ep-runtime-type" className="text-xs font-medium text-muted-foreground">
+                  Deployment Engine
+                </label>
+                <select
+                  id="ep-runtime-type"
+                  className="h-8 w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/30"
+                  value={deploymentType}
+                  onChange={(e) => setDeploymentType(e.target.value as "docker" | "pm2")}
+                >
+                  <option value="docker">Docker Container (Default)</option>
+                  <option value="pm2">Host PM2 Process (Bare-metal)</option>
+                </select>
+                <p className="text-[11px] text-muted-foreground">
+                  {deploymentType === "pm2"
+                    ? "Runs natively on host server under PM2 supervision."
+                    : "Runs inside an isolated zero-downtime container."}
+                </p>
+              </div>
+
+              <div className="grid gap-1.5">
+                <label htmlFor="ep-pkg-mgr" className="text-xs font-medium text-muted-foreground">
+                  Package Manager
+                </label>
+                <select
+                  id="ep-pkg-mgr"
+                  className="h-8 w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/30"
+                  value={packageManager}
+                  onChange={(e) => setPackageManager(e.target.value)}
+                >
+                  <option value="auto">Auto-detect from repo</option>
+                  <option value="bun">Bun</option>
+                  <option value="pnpm">pnpm</option>
+                  <option value="npm">npm</option>
+                  <option value="yarn">Yarn</option>
+                  <option value="uv">Python (uv)</option>
+                  <option value="poetry">Python (Poetry)</option>
+                  <option value="pip">Python (pip)</option>
+                  <option value="cargo">Rust (Cargo)</option>
+                  <option value="composer">PHP (Composer)</option>
+                </select>
+                <p className="text-[11px] text-muted-foreground">
+                  Tool used to install dependencies and run build scripts.
+                </p>
+              </div>
+            </div>
+
+            {showAdvancedRuntime ? (
+              <div className="space-y-3 rounded-lg border border-border/70 bg-muted/20 p-3">
+                <div className="grid gap-1.5">
+                  <label htmlFor="ep-install-cmd" className="text-xs font-mono font-medium text-muted-foreground">
+                    Custom Install Command (Optional)
+                  </label>
+                  <Input
+                    id="ep-install-cmd"
+                    value={installCommand}
+                    onChange={(e) => setInstallCommand(e.target.value)}
+                    placeholder="e.g. pnpm install --frozen-lockfile"
+                    className="font-mono text-xs"
+                  />
+                </div>
+                <div className="grid gap-1.5">
+                  <label htmlFor="ep-build-cmd" className="text-xs font-mono font-medium text-muted-foreground">
+                    Custom Build Command (Optional)
+                  </label>
+                  <Input
+                    id="ep-build-cmd"
+                    value={buildCommand}
+                    onChange={(e) => setBuildCommand(e.target.value)}
+                    placeholder="e.g. npm run build:prod or cargo build --release"
+                    className="font-mono text-xs"
+                  />
+                </div>
+                <div className="grid gap-1.5">
+                  <label htmlFor="ep-start-cmd" className="text-xs font-mono font-medium text-muted-foreground">
+                    Custom Start Command (Optional)
+                  </label>
+                  <Input
+                    id="ep-start-cmd"
+                    value={startCommand}
+                    onChange={(e) => setStartCommand(e.target.value)}
+                    placeholder="e.g. npm run start or uvicorn main:app --host 0.0.0.0 --port $PORT"
+                    className="font-mono text-xs"
+                  />
+                </div>
+              </div>
+            ) : null}
+          </div>
+
+          <div className="space-y-2 pt-2 border-t border-border/50">
             <div className="flex items-center justify-between">
               <label className="text-sm font-medium">Project Environment Variables</label>
               <Button type="button" variant="outline" size="sm" onClick={addEnvPair} className="text-xs">

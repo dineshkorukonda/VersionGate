@@ -1,6 +1,7 @@
 import { DeploymentRepository } from "../repositories/deployment.repository";
 import { DeploymentSelect, ProjectSelect } from "../db/schema";
 import { inspectContainer } from "../utils/docker";
+import { isPm2Running } from "../utils/pm2";
 import { logger } from "../utils/logger";
 
 const INTERVAL_MS = 60_000;
@@ -74,11 +75,15 @@ export class ContainerMonitorService {
 
     let running: boolean;
     try {
-      running = await inspectContainer(containerName);
+      if (project.deploymentType === "pm2") {
+        running = await isPm2Running(containerName);
+      } else {
+        running = await inspectContainer(containerName);
+      }
     } catch (err) {
       logger.error(
         { err, containerName, projectName: project.name, deploymentId },
-        "ContainerMonitor: docker inspect threw — skipping this container"
+        "ContainerMonitor: inspect threw — skipping this deployment"
       );
       return;
     }

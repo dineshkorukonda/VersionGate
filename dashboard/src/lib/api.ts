@@ -72,6 +72,11 @@ export interface Project {
   healthPath: string;
   basePort: number;
   webhookSecret?: string | null;
+  deploymentType?: "docker" | "pm2";
+  packageManager?: string;
+  installCommand?: string | null;
+  buildCommand?: string | null;
+  startCommand?: string | null;
   env: Record<string, string>;
   createdAt: string;
   updatedAt: string;
@@ -220,7 +225,13 @@ export function createProject(data: {
   branch?: string;
   buildContext?: string;
   appPort: number;
+  basePort?: number;
   healthPath?: string;
+  deploymentType?: "docker" | "pm2";
+  packageManager?: string;
+  installCommand?: string | null;
+  buildCommand?: string | null;
+  startCommand?: string | null;
   env?: Record<string, string>;
 }): Promise<{ project: Project }> {
   return request("POST", "/projects", data);
@@ -236,6 +247,11 @@ export function updateProject(
     appPort?: number;
     healthPath?: string;
     basePort?: number;
+    deploymentType?: "docker" | "pm2";
+    packageManager?: string;
+    installCommand?: string | null;
+    buildCommand?: string | null;
+    startCommand?: string | null;
     env?: Record<string, string>;
   }
 ): Promise<{ project: Project }> {
