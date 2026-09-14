@@ -14,6 +14,28 @@ export interface Capability {
 
 const CAPABILITIES: Capability[] = [
   {
+    id: "cap-dns-verification",
+    category: "Networking",
+    title: "DNS Preflight Verification & Setup",
+    command: "POST /api/v1/projects/:id/domains/:domainId/verify-dns",
+    description:
+      "Preflight DNS propagation validation with expected server IPv4 checking before invoking Let's Encrypt TLS issuance.",
+    details:
+      "Performs direct DNS A and CNAME record lookups against expected server IPv4 addresses before executing Certbot, protecting production domains from Let's Encrypt rate-limit lockouts.",
+    badge: "NEW",
+  },
+  {
+    id: "cap-runtime-logs-env",
+    category: "Monitoring",
+    title: "Live Runtime Container Logs & Raw DotEnv",
+    command: "GET /api/v1/projects/:id/logs  |  GET /api/v1/databases/:id/logs",
+    description:
+      "Inspect stdout/stderr container logs for apps and managed databases, edit multi-line .env bulk files, and mask secrets.",
+    details:
+      "Real-time container stdout/stderr log viewer with auto-scroll and filtering, paired with dual-mode raw .env editing and sensitive value masking for project and stage environments.",
+    badge: "NEW",
+  },
+  {
     id: "cap-minimalist-ui",
     category: "Monitoring",
     title: "Minimalist Vercel-Grade Interface",

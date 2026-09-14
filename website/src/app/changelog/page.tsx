@@ -44,9 +44,58 @@ interface ProcessedRelease {
 
 const FALLBACK_RELEASES: ProcessedRelease[] = [
   {
-    version: "v2.9.2",
+    version: "v2.9.3",
     date: "September 14, 2026",
     isLatest: true,
+    summary:
+      "Core engine optimizations, DNS preflight verification, live container logs inspection, raw dotenv bulk editing, and custom confirmation modals.",
+    categories: [
+      {
+        title: "Infrastructure & Networking",
+        badge: "NEW",
+        items: [
+          {
+            title: "DNS Preflight Verification Setup",
+            description:
+              "Proactively test DNS A and CNAME record propagation against expected server IPv4 before triggering Let's Encrypt TLS certificate issuance, preventing Certbot rate-limit lockouts.",
+            command: "POST /api/v1/projects/:id/domains/:domainId/verify-dns",
+          },
+          {
+            title: "Aggregated Project Overview Endpoint",
+            description:
+              "Replaced N+1 dashboard polling requests across projects, custom domains, and deployment jobs with a single high-performance batch query endpoint.",
+            command: "GET /api/v1/projects/summary",
+          },
+        ],
+      },
+      {
+        title: "Developer Experience & Monitoring",
+        badge: "NEW",
+        items: [
+          {
+            title: "Live Runtime Container Logs Viewer",
+            description:
+              "Directly inspect stdout and stderr logs for both application containers and provisioned database engines with real-time polling, search filtering, and log export.",
+            command: "GET /api/v1/databases/:id/logs",
+          },
+          {
+            title: "Raw .env Bulk Editor & Secret Masking",
+            description:
+              "Dual-mode environment editor supporting standard key-value inputs alongside direct raw multiline dotenv editing, one-click clipboard export, and sensitive secret masking.",
+          },
+          {
+            title: "Accessible Themed ConfirmDialog Component",
+            description:
+              "Replaced all native browser window.confirm() dialogs with accessible, dark-themed confirmation modals featuring keyboard shortcuts, destructive variants, and volume drop checkboxes.",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    version: "v2.9.2",
+    date: "September 14, 2026",
+    isLatest: false,
     summary:
       "Post-creation managed database linking: attach, re-link, or unlink any provisioned database to any project post-creation, with inline environment variable attachment from project settings.",
     categories: [
