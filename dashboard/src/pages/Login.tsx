@@ -88,8 +88,7 @@ export function Login() {
     <div className="relative min-h-svh overflow-hidden bg-black flex flex-col items-center justify-center">
       <div className="relative mx-auto flex min-h-svh max-w-md flex-col justify-center px-4 py-12">
         <div className="mb-6 space-y-2 text-center">
-          <div className="inline-flex items-center gap-2 rounded-full border border-neutral-800 bg-neutral-900 px-3 py-1 text-xs font-mono text-neutral-300">
-            <span className="inline-block size-2 rounded-full bg-white" />
+          <div className="inline-flex items-center rounded border border-neutral-800 bg-neutral-900 px-3 py-1 text-xs font-mono text-neutral-300">
             <span>VERSIONGATE</span>
           </div>
           <h1 className="text-2xl font-semibold tracking-tight text-white pt-2">{title}</h1>

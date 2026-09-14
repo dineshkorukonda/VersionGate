@@ -14,6 +14,17 @@ export interface Capability {
 
 const CAPABILITIES: Capability[] = [
   {
+    id: "cap-minimalist-ui",
+    category: "Monitoring",
+    title: "Minimalist Vercel-Grade Interface",
+    command: "GET /api/v1/self-update/check",
+    description:
+      "High-density monospace badges, clean hairline borders, update refresh requirement notices, and zero decorative icon bloat.",
+    details:
+      "Precision-tuned interface inspired by Vercel and hyper-focused developer tooling. Explicit reload prompts ensure new client assets apply seamlessly post-update, and status indicators display as pure monospace text badges.",
+    badge: "NEW",
+  },
+  {
     id: "cap-adopt-deployments",
     category: "Deployment",
     title: "Server Deployment Auto-Adoption",

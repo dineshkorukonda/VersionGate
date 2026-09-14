@@ -44,9 +44,42 @@ interface ProcessedRelease {
 
 const FALLBACK_RELEASES: ProcessedRelease[] = [
   {
-    version: "v2.9.0",
+    version: "v2.9.1",
     date: "September 14, 2026",
     isLatest: true,
+    summary:
+      "Vercel-inspired UI refinement: explicit browser refresh notification and one-click reload button upon update completion, removal of decorative dots and logo boxes in favor of clean monospace badges and hairline minimalism.",
+    categories: [
+      {
+        title: "User Experience & Minimalist UI",
+        badge: "IMPROVEMENT",
+        items: [
+          {
+            title: "Update Refresh Requirement Notification & 1-Click Reload",
+            description:
+              "Displays clear [ NOTE ] indicating browser page reload is required after system update completes, accompanied by a direct 1-click [ Refresh Page ] button.",
+            prNumber: 215,
+          },
+          {
+            title: "Header & Sidebar Icon Cleanup",
+            description:
+              "Removed decorative dot icons and 'V' logo boxes from the top platform header and sidebar in accordance with Vercel design language and strict text badge standards.",
+            prNumber: 215,
+          },
+          {
+            title: "Monospace Status Indicators",
+            description:
+              "Replaced pulsing circular indicators across headers, overview cards, and deployment status pills with clean, high-density text badges ([ OPERATIONAL ], [ LIVE ], [ OK ]).",
+            prNumber: 215,
+          },
+        ],
+      },
+    ],
+  },
+  {
+    version: "v2.9.0",
+    date: "September 14, 2026",
+    isLatest: false,
     summary:
       "Host deployment auto-discovery and one-click adoption: scan running PM2 processes and external Docker containers across the server and bring them into zero-downtime VersionGate management.",
     categories: [

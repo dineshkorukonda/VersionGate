@@ -17,18 +17,13 @@ export function StatusPill({ status, className }: { status: PillStatus; classNam
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 border px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider",
+        "inline-flex items-center border px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider",
         s.bg,
         isCritical ? "text-background" : s.text,
         className
       )}
     >
-      {status === "DEPLOYING" ? (
-        <span className="size-1.5 animate-pulse rounded-full bg-sky-400" />
-      ) : (
-        <span className={cn("size-1.5 rounded-full", isCritical ? "bg-red-500" : s.dot)} />
-      )}
-      {status}
+      [{status}]
     </span>
   );
 }

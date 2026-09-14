@@ -167,45 +167,63 @@ export function SystemUpdateModal({
           </div>
         </div>
 
-        <div className="flex items-center justify-between border-t border-border/40 pt-4">
-          <div className="font-mono text-xs text-muted-foreground">
-            {isRunning && <span>Executing pipeline steps in background...</span>}
-            {isDone && <span className="text-emerald-500 font-medium">All steps completed successfully</span>}
-            {isFailed && <span className="text-red-500">Update halted with errors</span>}
-          </div>
+        <div className="flex flex-col gap-3 border-t border-border/40 pt-4">
+          {isDone && (
+            <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 font-mono text-xs text-emerald-400">
+              <span className="font-semibold">[ NOTE ]</span> Update applied successfully. A browser refresh is required to load updated dashboard assets and schema changes.
+            </div>
+          )}
 
-          <div className="flex items-center gap-2">
-            {!isRunning && !isDone && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => onOpenChange(false)}
-                className="font-mono text-xs"
-              >
-                Cancel
-              </Button>
-            )}
+          <div className="flex items-center justify-between">
+            <div className="font-mono text-xs text-muted-foreground">
+              {isRunning && <span>Executing pipeline steps in background...</span>}
+              {isDone && <span className="text-emerald-500 font-medium">Pipeline completed</span>}
+              {isFailed && <span className="text-red-500">Update halted with errors</span>}
+            </div>
 
-            {!isDone && (
-              <Button
-                size="sm"
-                disabled={isRunning}
-                onClick={() => void handleStartUpdate()}
-                className="font-mono text-xs"
-              >
-                {isRunning ? "Updating..." : "Apply Update"}
-              </Button>
-            )}
+            <div className="flex items-center gap-2">
+              {!isRunning && !isDone && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onOpenChange(false)}
+                  className="font-mono text-xs"
+                >
+                  Cancel
+                </Button>
+              )}
 
-            {isDone && (
-              <Button
-                size="sm"
-                onClick={() => onOpenChange(false)}
-                className="font-mono text-xs"
-              >
-                Close
-              </Button>
-            )}
+              {!isDone && (
+                <Button
+                  size="sm"
+                  disabled={isRunning}
+                  onClick={() => void handleStartUpdate()}
+                  className="font-mono text-xs"
+                >
+                  {isRunning ? "Updating..." : "Apply Update"}
+                </Button>
+              )}
+
+              {isDone && (
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onOpenChange(false)}
+                    className="font-mono text-xs"
+                  >
+                    Close
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => window.location.reload()}
+                    className="bg-white font-mono text-xs font-semibold text-black hover:bg-neutral-200"
+                  >
+                    Refresh Page
+                  </Button>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </DialogContent>

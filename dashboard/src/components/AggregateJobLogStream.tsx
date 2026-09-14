@@ -51,9 +51,12 @@ export function AggregateJobLogStream({
     <div className={cn("overflow-hidden rounded-xl border border-neutral-800 bg-[#050505] shadow-sm", className)}>
       <div className="flex items-center justify-between border-b border-neutral-800 px-4 py-2.5 bg-[#0a0a0a]">
         <span className="text-xs font-mono font-medium text-neutral-300">{title}</span>
-        <span className="flex items-center gap-1.5 text-[10px] font-mono text-neutral-400">
-          <span className={cn("size-1.5 rounded-full", pollOk ? "bg-emerald-400" : "bg-amber-400")} />
-          {pollOk ? "POLLING" : "DEGRADED"}
+        <span className="flex items-center text-[10px] font-mono text-neutral-400">
+          {pollOk ? (
+            <span className="border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0.5 text-emerald-400">[ POLLING ]</span>
+          ) : (
+            <span className="border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-amber-400">[ DEGRADED ]</span>
+          )}
         </span>
       </div>
       <pre
