@@ -14,6 +14,17 @@ export interface Capability {
 
 const CAPABILITIES: Capability[] = [
   {
+    id: "cap-managed-databases",
+    category: "Deployment",
+    title: "Server Database Provisioning",
+    command: 'POST /api/v1/databases  {"engine":"postgres|redis|mysql|mongodb","name":"app-db"}',
+    description:
+      "Provision dedicated PostgreSQL, Redis, MySQL, or MongoDB containers on the server with automated credential generation and project auto-linking.",
+    details:
+      "One-click server database provisioning with persistent Docker volumes, encrypted credentials at rest, conflict-free port allocation, and automated injection of DATABASE_URL or REDIS_URL directly into project environments.",
+    badge: "NEW",
+  },
+  {
     id: "cap-custom-pms-pm2",
     category: "Deployment",
     title: "Custom PMs & Host PM2 Engine",

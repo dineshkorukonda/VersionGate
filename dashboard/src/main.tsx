@@ -14,6 +14,7 @@ const Setup = lazy(() => import("@/pages/Setup").then((m) => ({ default: m.Setup
 const Activity = lazy(() => import("@/pages/Activity").then((m) => ({ default: m.Activity })));
 const Login = lazy(() => import("@/pages/Login").then((m) => ({ default: m.Login })));
 const Settings = lazy(() => import("@/pages/Settings").then((m) => ({ default: m.Settings })));
+const Databases = lazy(() => import("@/pages/Databases").then((m) => ({ default: m.Databases })));
 
 const PageLoader = () => (
   <div className="flex h-64 w-full items-center justify-center">
@@ -31,6 +32,7 @@ createRoot(document.getElementById("root")!).render(
           <Route element={<Layout />}>
             <Route path="/" element={<Overview />} />
             <Route path="/projects" element={<Projects />} />
+            <Route path="/databases" element={<Databases />} />
             <Route path="/activity" element={<Activity />} />
             <Route path="/projects/:id" element={<ProjectDetail />} />
             <Route path="/projects/:id/deploy/:jobId" element={<DeployLog />} />

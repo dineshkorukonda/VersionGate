@@ -33,6 +33,20 @@ export const projectDomainSslStatusEnum = pgEnum("ProjectDomainSslStatus", [
   "failed",
 ]);
 
+export const managedDatabaseEngineEnum = pgEnum("ManagedDatabaseEngine", [
+  "postgres",
+  "mysql",
+  "redis",
+  "mongodb",
+]);
+
+export const managedDatabaseStatusEnum = pgEnum("ManagedDatabaseStatus", [
+  "PROVISIONING",
+  "RUNNING",
+  "STOPPED",
+  "FAILED",
+]);
+
 // Users
 export const users = pgTable("User", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
@@ -225,6 +239,33 @@ export const deployments = pgTable(
   ]
 );
 
+// Managed Host Databases
+export const managedDatabases = pgTable(
+  "ManagedDatabase",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    name: text("name").notNull().unique(),
+    engine: managedDatabaseEngineEnum("engine").notNull(),
+    version: text("version").notNull(),
+    containerName: text("containerName").notNull().unique(),
+    hostPort: integer("hostPort").notNull().unique(),
+    internalPort: integer("internalPort").notNull(),
+    databaseName: text("databaseName"),
+    username: text("username"),
+    passwordEncrypted: text("passwordEncrypted").notNull(),
+    status: managedDatabaseStatusEnum("status").default("PROVISIONING").notNull(),
+    volumeName: text("volumeName").notNull(),
+    linkedProjectId: text("linkedProjectId").references(() => projects.id, { onDelete: "set null" }),
+    createdAt: timestamp("createdAt", { mode: "date" }).defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt", { mode: "date" }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("ManagedDatabase_name_idx").on(table.name),
+    index("ManagedDatabase_engine_idx").on(table.engine),
+    index("ManagedDatabase_linkedProjectId_idx").on(table.linkedProjectId),
+  ]
+);
+
 // Drizzle Relations
 export const usersRelations = relations(users, ({ many }) => ({
   sessions: many(sessions),
@@ -260,6 +301,14 @@ export const projectsRelations = relations(projects, ({ many }) => ({
   environments: many(environments),
   jobs: many(jobs),
   domains: many(projectDomains),
+  databases: many(managedDatabases),
+}));
+
+export const managedDatabasesRelations = relations(managedDatabases, ({ one }) => ({
+  project: one(projects, {
+    fields: [managedDatabases.linkedProjectId],
+    references: [projects.id],
+  }),
 }));
 
 export const projectDomainsRelations = relations(projectDomains, ({ one }) => ({
@@ -320,3 +369,5 @@ export type JobSelect = typeof jobs.$inferSelect;
 export type JobInsert = typeof jobs.$inferInsert;
 export type DeploymentSelect = typeof deployments.$inferSelect;
 export type DeploymentInsert = typeof deployments.$inferInsert;
+export type ManagedDatabaseSelect = typeof managedDatabases.$inferSelect;
+export type ManagedDatabaseInsert = typeof managedDatabases.$inferInsert;

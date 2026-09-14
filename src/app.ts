@@ -19,6 +19,7 @@ import { requireApiAuth } from "./middleware/require-api-auth";
 import { authRoutes } from "./routes/auth.routes";
 import { githubAppRoutes } from "./routes/github-app.routes";
 import { proxyRoutes } from "./routes/proxy.routes";
+import { databaseRoutes } from "./routes/database.routes";
 
 export async function buildApp(): Promise<FastifyInstance> {
   const app = Fastify({
@@ -144,6 +145,10 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(async (instance) => {
     await instance.register(dbRoutes);
     await projectRoutes(instance);
+  }, { prefix: "/api/v1" });
+  await app.register(async (instance) => {
+    await instance.register(dbRoutes);
+    await databaseRoutes(instance);
   }, { prefix: "/api/v1" });
   await app.register(systemRoutes, { prefix: "/api/v1" });
   await app.register(async (instance) => {
