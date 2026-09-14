@@ -850,6 +850,10 @@ export function linkManagedDatabase(
   return request("POST", `/databases/${databaseId}/link`, { projectId, envKey });
 }
 
+export function unlinkManagedDatabase(databaseId: string): Promise<{ success: boolean }> {
+  return request("POST", `/databases/${databaseId}/unlink`);
+}
+
 // ── Discovered Deployments & Adoption API ────────────────────────────────────
 
 export interface DiscoveredDeployment {

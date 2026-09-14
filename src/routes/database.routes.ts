@@ -7,6 +7,7 @@ import {
   stopDatabaseHandler,
   deleteDatabaseHandler,
   linkDatabaseHandler,
+  unlinkDatabaseHandler,
 } from "../controllers/database.controller";
 
 export async function databaseRoutes(app: FastifyInstance): Promise<void> {
@@ -17,4 +18,5 @@ export async function databaseRoutes(app: FastifyInstance): Promise<void> {
   app.post("/databases/:id/stop", stopDatabaseHandler);
   app.delete("/databases/:id", deleteDatabaseHandler);
   app.post("/databases/:id/link", linkDatabaseHandler);
+  app.post("/databases/:id/unlink", unlinkDatabaseHandler);
 }

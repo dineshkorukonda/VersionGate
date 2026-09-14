@@ -44,9 +44,44 @@ interface ProcessedRelease {
 
 const FALLBACK_RELEASES: ProcessedRelease[] = [
   {
-    version: "v2.9.1",
+    version: "v2.9.2",
     date: "September 14, 2026",
     isLatest: true,
+    summary:
+      "Post-creation managed database linking: attach, re-link, or unlink any provisioned database to any project post-creation, with inline environment variable attachment from project settings.",
+    categories: [
+      {
+        title: "Managed Databases & Project Integration",
+        badge: "NEW",
+        items: [
+          {
+            title: "1-Click Post-Creation Database Linking",
+            description:
+              "Link or re-link any provisioned database directly from the Databases console with target project selection and environment variable key customization.",
+            command: "POST /api/v1/databases/:id/link",
+            prNumber: 217,
+          },
+          {
+            title: "Database Unlinking & Re-binding Endpoint",
+            description:
+              "Unlink provisioned databases from projects cleanly without deleting data volumes or interrupting running container slots.",
+            command: "POST /api/v1/databases/:id/unlink",
+            prNumber: 217,
+          },
+          {
+            title: "Project Environment DB Attacher",
+            description:
+              "Attach existing server databases directly inside the Project Settings environment variables panel with automatic Docker vs PM2 connection string resolution.",
+            prNumber: 217,
+          },
+        ],
+      },
+    ],
+  },
+  {
+    version: "v2.9.1",
+    date: "September 14, 2026",
+    isLatest: false,
     summary:
       "Vercel-inspired UI refinement: explicit browser refresh notification and one-click reload button upon update completion, removal of decorative dots and logo boxes in favor of clean monospace badges and hairline minimalism.",
     categories: [

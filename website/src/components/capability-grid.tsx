@@ -38,12 +38,12 @@ const CAPABILITIES: Capability[] = [
   {
     id: "cap-managed-databases",
     category: "Deployment",
-    title: "Server Database Provisioning",
-    command: 'POST /api/v1/databases  {"engine":"postgres|redis|mysql|mongodb","name":"app-db"}',
+    title: "Server Database Provisioning & Linking",
+    command: 'POST /api/v1/databases/:id/link  {"projectId":"...","envKey":"DATABASE_URL"}',
     description:
-      "Provision dedicated PostgreSQL, Redis, MySQL, or MongoDB containers on the server with automated credential generation and project auto-linking.",
+      "Provision dedicated PostgreSQL, Redis, MySQL, or MongoDB containers on the server with 1-click project linking anytime post-creation.",
     details:
-      "One-click server database provisioning with persistent Docker volumes, encrypted credentials at rest, conflict-free port allocation, and automated injection of DATABASE_URL or REDIS_URL directly into project environments.",
+      "One-click server database provisioning with persistent Docker volumes, encrypted credentials at rest, conflict-free port allocation, and flexible post-creation project linking/unlinking directly from the database console or project settings.",
     badge: "NEW",
   },
   {

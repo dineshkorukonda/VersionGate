@@ -76,4 +76,45 @@ describe("Database Provisioning & Connection URI Generator", () => {
       "mongodb://admin:mongopass@host.docker.internal:27018/analytics?authSource=admin"
     );
   });
+
+  test("unlinkFromProject unlinks database successfully", async () => {
+    let updatedId: string | null = null;
+    let updatePayload: any = null;
+
+    const mockDbRepo = {
+      findById: async (id: string) => {
+        if (id === "db-123") {
+          return { id: "db-123", name: "test-db", linkedProjectId: "proj-abc" } as any;
+        }
+        return null;
+      },
+      update: async (id: string, data: any) => {
+        updatedId = id;
+        updatePayload = data;
+        return { id, ...data } as any;
+      },
+    } as any;
+
+    const testService = new DatabaseProvisioningService({} as any, mockDbRepo);
+    const result = await testService.unlinkFromProject("db-123");
+
+    expect(result.success).toBe(true);
+    expect(updatedId).toBe("db-123");
+    expect(updatePayload).toEqual({ linkedProjectId: null });
+  });
+
+  test("unlinkFromProject throws if database not found", async () => {
+    const mockDbRepo = {
+      findById: async () => null,
+      update: async () => {},
+    } as any;
+
+    const testService = new DatabaseProvisioningService({} as any, mockDbRepo);
+    try {
+      await testService.unlinkFromProject("non-existent-db-id");
+      expect(true).toBe(false);
+    } catch (err: any) {
+      expect(err.message).toBe("Database not found");
+    }
+  });
 });

@@ -15,6 +15,7 @@ import {
 } from "@/lib/api";
 import { CreateDatabaseModal } from "@/components/modals/CreateDatabaseModal";
 import { DatabaseDetailsModal } from "@/components/modals/DatabaseDetailsModal";
+import { LinkDatabaseModal } from "@/components/modals/LinkDatabaseModal";
 import { toast } from "sonner";
 
 export function Databases() {
@@ -24,6 +25,8 @@ export function Databases() {
   const [createOpen, setCreateOpen] = useState(false);
   const [inspectDb, setInspectDb] = useState<ManagedDatabaseDetails | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [linkModalOpen, setLinkModalOpen] = useState(false);
+  const [linkingDb, setLinkingDb] = useState<ManagedDatabase | null>(null);
   const [actionInProgress, setActionInProgress] = useState<string | null>(null);
 
   const load = async () => {
@@ -252,8 +255,18 @@ export function Databases() {
                           <div className="flex items-center justify-end gap-2">
                             <button
                               type="button"
-                              onClick={() => void handleInspect(db.id)}
+                              onClick={() => {
+                                setLinkingDb(db);
+                                setLinkModalOpen(true);
+                              }}
                               className="text-emerald-400 hover:underline"
+                            >
+                              {db.linkedProjectId ? "[ Re-link ]" : "[ Link Project ]"}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => void handleInspect(db.id)}
+                              className="text-neutral-300 hover:underline"
                             >
                               [ Details ]
                             </button>
@@ -302,6 +315,14 @@ export function Databases() {
           void load();
           if (inspectDb) void handleInspect(inspectDb.id);
         }}
+      />
+
+      <LinkDatabaseModal
+        open={linkModalOpen}
+        onOpenChange={setLinkModalOpen}
+        database={linkingDb}
+        projects={projects}
+        onLinked={() => void load()}
       />
     </div>
   );
