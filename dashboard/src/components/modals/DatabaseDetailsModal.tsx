@@ -171,9 +171,35 @@ export function DatabaseDetailsModal({ open, onOpenChange, database, projects, o
 
           {/* Auto-Link To Project Section */}
           <div className="border border-neutral-800 bg-neutral-900/40 p-3 space-y-2">
-            <span className="block font-mono text-xs uppercase tracking-wider text-neutral-300 font-semibold">
-              Auto-Link To Project Environment
-            </span>
+            <div className="flex items-center justify-between">
+              <span className="block font-mono text-xs uppercase tracking-wider text-neutral-300 font-semibold">
+                Auto-Link To Project Environment
+              </span>
+              {database.linkedProjectId && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={linking}
+                  onClick={async () => {
+                    setLinking(true);
+                    try {
+                      const { unlinkManagedDatabase } = await import("@/lib/api");
+                      await unlinkManagedDatabase(database.id);
+                      toast.success("[ OK ] Unlinked database from project");
+                      onUpdated();
+                    } catch (err: any) {
+                      toast.error(err instanceof Error ? err.message : "Failed to unlink");
+                    } finally {
+                      setLinking(false);
+                    }
+                  }}
+                  className="h-6 border-neutral-800 font-mono text-[10px] text-neutral-400 hover:text-red-400"
+                >
+                  [ Unlink ]
+                </Button>
+              )}
+            </div>
             <p className="text-[11px] text-neutral-500">
               Injects the connection URI directly into the target project's encrypted environment variables.
             </p>
@@ -196,7 +222,7 @@ export function DatabaseDetailsModal({ open, onOpenChange, database, projects, o
                 onClick={handleLink}
                 className="bg-emerald-500 font-mono text-xs font-semibold text-black hover:bg-emerald-400"
               >
-                {linking ? "Linking..." : "Link Now"}
+                {linking ? "Linking..." : database.linkedProjectId ? "Change Link" : "Link Now"}
               </Button>
             </div>
           </div>

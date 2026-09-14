@@ -118,3 +118,16 @@ export async function linkDatabaseHandler(
     return reply.status(400).send({ error: "Failed to link database", message: err?.message });
   }
 }
+
+export async function unlinkDatabaseHandler(
+  req: FastifyRequest<{ Params: { id: string } }>,
+  reply: FastifyReply
+): Promise<void> {
+  try {
+    const result = await databaseProvisioningService.unlinkFromProject(req.params.id);
+    return reply.status(200).send(result);
+  } catch (err: any) {
+    logger.error({ err }, "Failed to unlink database from project");
+    return reply.status(400).send({ error: "Failed to unlink database", message: err?.message });
+  }
+}

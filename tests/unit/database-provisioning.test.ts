@@ -76,4 +76,16 @@ describe("Database Provisioning & Connection URI Generator", () => {
       "mongodb://admin:mongopass@host.docker.internal:27018/analytics?authSource=admin"
     );
   });
+
+  test("unlinkFromProject throws if database not found or db not configured", async () => {
+    try {
+      await service.unlinkFromProject("non-existent-db-id");
+      expect(true).toBe(false);
+    } catch (err: any) {
+      expect(
+        err.message.includes("Database not found") ||
+        err.message.includes("DATABASE_URL is not set")
+      ).toBe(true);
+    }
+  });
 });

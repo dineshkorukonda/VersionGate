@@ -11,7 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { triggerDeploy, updateProject, type Project } from "@/lib/api";
+import { triggerDeploy, updateProject, listManagedDatabases, type Project, type ManagedDatabase } from "@/lib/api";
 import { handleEnvPaste } from "@/lib/env-parser";
 
 export function EditProjectModal({
@@ -28,6 +28,8 @@ export function EditProjectModal({
   const navigate = useNavigate();
   const [submitting, setSubmitting] = useState(false);
   const [redeploying, setRedeploying] = useState(false);
+  const [managedDbs, setManagedDbs] = useState<ManagedDatabase[]>([]);
+  const [selectedDbId, setSelectedDbId] = useState<string>("");
   const [repoUrl, setRepoUrl] = useState(project.repoUrl);
   const [branch, setBranch] = useState(project.branch);
   const [buildContext, setBuildContext] = useState(project.buildContext);
@@ -63,9 +65,37 @@ export function EditProjectModal({
       const rawEnv = project.env || {};
       const pairs = Object.entries(rawEnv).map(([k, v]) => ({ key: k, value: String(v) }));
       setEnvPairs(pairs.length > 0 ? pairs : [{ key: "", value: "" }]);
+
+      void listManagedDatabases()
+        .then((res) => setManagedDbs(res.databases))
+        .catch(() => setManagedDbs([]));
     }
     wasOpenRef.current = open;
   }, [open, project]);
+
+  const handleAttachDatabase = async (dbId: string) => {
+    if (!dbId) return;
+    try {
+      const { getManagedDatabase } = await import("@/lib/api");
+      const res = await getManagedDatabase(dbId);
+      const db = res.database;
+      const key = db.engine === "redis" ? "REDIS_URL" : db.engine === "mongodb" ? "MONGODB_URI" : "DATABASE_URL";
+      const uri = deploymentType === "docker" ? db.connectionUriDocker : db.connectionUriLocal;
+
+      setEnvPairs((prev) => {
+        const existingIdx = prev.findIndex((p) => p.key.trim() === key);
+        if (existingIdx >= 0) {
+          return prev.map((p, idx) => (idx === existingIdx ? { key, value: uri } : p));
+        }
+        const filtered = prev.filter((p) => p.key.trim() || p.value.trim());
+        return [...filtered, { key, value: uri }];
+      });
+      toast.success(`[ OK ] Attached ${db.name} as ${key}`);
+      setSelectedDbId("");
+    } catch (err: any) {
+      toast.error(err instanceof Error ? err.message : "Failed to load database connection URI");
+    }
+  };
 
   const addEnvPair = () => {
     setEnvPairs((prev) => [...prev, { key: "", value: "" }]);
@@ -338,11 +368,31 @@ export function EditProjectModal({
           </div>
 
           <div className="space-y-2 pt-2 border-t border-border/50">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <label className="text-sm font-medium">Project Environment Variables</label>
-              <Button type="button" variant="outline" size="sm" onClick={addEnvPair} className="text-xs">
-                + Add Variable
-              </Button>
+              <div className="flex items-center gap-2">
+                {managedDbs.length > 0 && (
+                  <select
+                    value={selectedDbId}
+                    onChange={(e) => {
+                      const id = e.target.value;
+                      setSelectedDbId(id);
+                      if (id) void handleAttachDatabase(id);
+                    }}
+                    className="h-8 rounded border border-border bg-background px-2 font-mono text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                  >
+                    <option value="">+ Attach Managed DB...</option>
+                    {managedDbs.map((db) => (
+                      <option key={db.id} value={db.id}>
+                        {db.name} ({db.engine.toUpperCase()} :{db.hostPort})
+                      </option>
+                    ))}
+                  </select>
+                )}
+                <Button type="button" variant="outline" size="sm" onClick={addEnvPair} className="text-xs">
+                  + Add Variable
+                </Button>
+              </div>
             </div>
             <p className="text-xs text-muted-foreground">
               Encrypted at rest with AES-256-GCM. Applied to all deployments unless overridden by environment stages.

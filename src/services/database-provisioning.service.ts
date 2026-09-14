@@ -385,6 +385,21 @@ export class DatabaseProvisioningService {
       uri: targetUri,
     };
   }
+
+  async unlinkFromProject(databaseId: string): Promise<{ success: boolean }> {
+    const record = await databaseRepository.findById(databaseId);
+    if (!record) {
+      throw new Error("Database not found");
+    }
+
+    await databaseRepository.update(databaseId, {
+      linkedProjectId: null,
+    });
+
+    logger.info({ databaseId, previousProjectId: record.linkedProjectId }, "Unlinked database from project");
+
+    return { success: true };
+  }
 }
 
 export const databaseProvisioningService = new DatabaseProvisioningService();
