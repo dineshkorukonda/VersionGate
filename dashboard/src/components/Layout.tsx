@@ -35,10 +35,11 @@ import {
 const nav = [
   { to: "/", label: "Overview", end: true, tag: "01" },
   { to: "/projects", label: "Projects", end: true, tag: "02" },
-  { to: "/activity", label: "Activity", end: false, tag: "03" },
-  { to: "/dashboard/integrations", label: "Integrations", end: false, tag: "04" },
-  { to: "/system", label: "System health", end: false, tag: "05" },
-  { to: "/settings", label: "Settings", end: false, tag: "06" },
+  { to: "/databases", label: "Databases", end: false, tag: "03" },
+  { to: "/activity", label: "Activity", end: false, tag: "04" },
+  { to: "/dashboard/integrations", label: "Integrations", end: false, tag: "05" },
+  { to: "/system", label: "System health", end: false, tag: "06" },
+  { to: "/settings", label: "Settings", end: false, tag: "07" },
 ] as const;
 
 const navBtn =

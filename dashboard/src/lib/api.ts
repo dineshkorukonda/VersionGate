@@ -781,3 +781,72 @@ export function createWebSocket(jobId: string): WebSocket {
   }
   return new WebSocket(`ws://localhost:9090/api/v1/logs/${jobId}`);
 }
+
+// ── Managed Databases API ───────────────────────────────────────────────────
+
+export interface ManagedDatabase {
+  id: string;
+  name: string;
+  engine: "postgres" | "mysql" | "redis" | "mongodb";
+  version: string;
+  containerName: string;
+  hostPort: number;
+  internalPort: number;
+  databaseName?: string | null;
+  username?: string | null;
+  status: "PROVISIONING" | "RUNNING" | "STOPPED" | "FAILED";
+  volumeName: string;
+  linkedProjectId?: string | null;
+  running?: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ManagedDatabaseDetails extends ManagedDatabase {
+  passwordDecrypted: string;
+  connectionUriLocal: string;
+  connectionUriDocker: string;
+}
+
+export interface CreateManagedDatabaseInput {
+  name: string;
+  engine: "postgres" | "mysql" | "redis" | "mongodb";
+  version?: string;
+  databaseName?: string;
+  username?: string;
+  password?: string;
+  linkedProjectId?: string;
+}
+
+export function listManagedDatabases(): Promise<{ databases: ManagedDatabase[] }> {
+  return request("GET", "/databases");
+}
+
+export function getManagedDatabase(id: string): Promise<{ database: ManagedDatabaseDetails }> {
+  return request("GET", `/databases/${id}`);
+}
+
+export function createManagedDatabase(input: CreateManagedDatabaseInput): Promise<{ database: ManagedDatabase }> {
+  return request("POST", "/databases", input);
+}
+
+export function startManagedDatabase(id: string): Promise<{ status: string }> {
+  return request("POST", `/databases/${id}/start`);
+}
+
+export function stopManagedDatabase(id: string): Promise<{ status: string }> {
+  return request("POST", `/databases/${id}/stop`);
+}
+
+export function deleteManagedDatabase(id: string, dropVolume = false): Promise<{ status: string }> {
+  return request("DELETE", `/databases/${id}${dropVolume ? "?dropVolume=true" : ""}`);
+}
+
+export function linkManagedDatabase(
+  databaseId: string,
+  projectId: string,
+  envKey?: string
+): Promise<{ success: boolean; envKey: string; uri: string }> {
+  return request("POST", `/databases/${databaseId}/link`, { projectId, envKey });
+}
+

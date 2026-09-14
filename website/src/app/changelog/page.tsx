@@ -44,9 +44,44 @@ interface ProcessedRelease {
 
 const FALLBACK_RELEASES: ProcessedRelease[] = [
   {
-    version: "v2.7.0",
+    version: "v2.8.0",
     date: "September 14, 2026",
     isLatest: true,
+    summary:
+      "Integrated server database provisioning (PostgreSQL, Redis, MySQL, MongoDB), encrypted credential management, dedicated database manager console, and one-click environment variable auto-linking.",
+    categories: [
+      {
+        title: "Managed Databases & Storage",
+        badge: "NEW",
+        items: [
+          {
+            title: "Host Database Provisioning Engine",
+            description:
+              "Deploy isolated containerized database instances (PostgreSQL, Redis, MySQL, MongoDB) on the server with automated port conflict avoidance and persistent Docker volumes.",
+            command: "POST /api/v1/databases  {\"engine\":\"postgres\",\"name\":\"auth-db\"}",
+            prNumber: 211,
+          },
+          {
+            title: "Project Environment Auto-Linking",
+            description:
+              "Auto-inject DATABASE_URL or REDIS_URL directly into project or environment encrypted variables, resolving local loopback vs container internal gateway hosts automatically.",
+            command: "POST /api/v1/databases/:id/link  {\"projectId\":\"...\"}",
+            prNumber: 211,
+          },
+          {
+            title: "Dashboard Database Manager Console",
+            description:
+              "Dedicated Databases view to inspect connection URIs, reveal/copy credentials, toggle start/stop status, and manage persistent volumes.",
+            prNumber: 211,
+          },
+        ],
+      },
+    ],
+  },
+  {
+    version: "v2.7.0",
+    date: "September 14, 2026",
+    isLatest: false,
     summary:
       "Custom package managers and command overrides (bun, pnpm, yarn, npm, uv, poetry, pipenv, cargo, composer), modern framework auto-detection for Rust and Python, and dual execution engines (Docker containers vs bare-metal host PM2).",
     categories: [
