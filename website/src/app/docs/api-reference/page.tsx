@@ -41,6 +41,30 @@ export default function ApiReference() {
         ]}
       />
 
+      <H2>Managed databases</H2>
+      <Table
+        head={["Method", "Path", "Description"]}
+        rows={[
+          ["POST", "/api/v1/databases", "Provision isolated database { engine, name, username?, password? }"],
+          ["GET", "/api/v1/databases", "List all provisioned databases and container run states"],
+          ["GET", "/api/v1/databases/:id", "Inspect database credentials and local/docker connection URIs"],
+          ["POST", "/api/v1/databases/:id/start", "Start stopped database container"],
+          ["POST", "/api/v1/databases/:id/stop", "Stop running database container"],
+          ["DELETE", "/api/v1/databases/:id", "Delete database container and optionally drop volume (?dropVolume=true)"],
+          ["POST", "/api/v1/databases/:id/link", "Auto-link connection URI to project env vars { projectId, envKey? }"],
+          ["POST", "/api/v1/databases/:id/unlink", "Unlink database from project without deleting data volume"],
+        ]}
+      />
+
+      <H2>Service discovery &amp; adoption</H2>
+      <Table
+        head={["Method", "Path", "Description"]}
+        rows={[
+          ["GET", "/api/v1/system/discover-deployments", "Scan host for unmanaged PM2 apps and Docker containers"],
+          ["POST", "/api/v1/projects/adopt", "Adopt discovered external service into zero-downtime VersionGate control"],
+        ]}
+      />
+
       <H2>GitHub integration</H2>
       <Table
         head={["Method", "Path", "Description"]}

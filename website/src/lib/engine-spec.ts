@@ -77,6 +77,22 @@ export const SPEC_SECTIONS: SpecSection[] = [
         source: "services/deployment.service.ts",
         limit: "Default (production) env only; does not cancel PENDING queue jobs.",
       },
+      {
+        id: "managed-databases",
+        name: "Server database provisioning",
+        summary: "Provision PostgreSQL, Redis, MySQL, or MongoDB containers with persistent volumes.",
+        mechanism: "database-provisioning.service allocates conflict-free host ports, starts isolated containers, generates secure credentials, and supports 1-click project env linking.",
+        api: "POST /api/v1/databases · POST /api/v1/databases/:id/link · POST .../unlink",
+        source: "services/database-provisioning.service.ts",
+      },
+      {
+        id: "adoption",
+        name: "Server service auto-adoption",
+        summary: "Discover unmanaged external PM2 processes and Docker containers across the host.",
+        mechanism: "service-discovery.service scans host PM2 instances and Docker containers for listening TCP ports and Git metadata for instant 1-click project onboarding.",
+        api: "GET /api/v1/system/discover-deployments · POST /api/v1/projects/adopt",
+        source: "services/service-discovery.service.ts",
+      },
     ],
   },
   {
@@ -379,6 +395,17 @@ export const API_GROUPS = [
       "GET|PATCH|DELETE /api/v1/projects/:id",
       "PATCH /api/v1/projects/:id/env",
       "POST /api/v1/projects/:id/generate-pipeline",
+    ],
+  },
+  {
+    group: "Managed Databases & Discovery",
+    routes: [
+      "POST|GET /api/v1/databases",
+      "GET|DELETE /api/v1/databases/:id",
+      "POST /api/v1/databases/:id/start · /stop",
+      "POST /api/v1/databases/:id/link · /unlink",
+      "GET /api/v1/system/discover-deployments",
+      "POST /api/v1/projects/adopt",
     ],
   },
   {
