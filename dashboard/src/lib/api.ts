@@ -850,3 +850,43 @@ export function linkManagedDatabase(
   return request("POST", `/databases/${databaseId}/link`, { projectId, envKey });
 }
 
+// ── Discovered Deployments & Adoption API ────────────────────────────────────
+
+export interface DiscoveredDeployment {
+  id: string;
+  name: string;
+  serviceType: "pm2" | "docker";
+  status: "online" | "running" | "stopped";
+  port?: number;
+  containerName?: string;
+  imageTag?: string;
+  pm2Name?: string;
+  localPath?: string;
+  repoUrl?: string;
+  branch?: string;
+  alreadyAdopted: boolean;
+}
+
+export interface AdoptDeploymentInput {
+  name: string;
+  serviceType: "pm2" | "docker";
+  port: number;
+  repoUrl?: string;
+  branch?: string;
+  localPath?: string;
+  containerName?: string;
+  pm2Name?: string;
+  imageTag?: string;
+}
+
+export function discoverServerDeployments(): Promise<{ candidates: DiscoveredDeployment[] }> {
+  return request("GET", "/system/discover-deployments");
+}
+
+export function adoptServerDeployment(
+  input: AdoptDeploymentInput
+): Promise<{ project: Project; deployment: Deployment }> {
+  return request("POST", "/projects/adopt", input);
+}
+
+

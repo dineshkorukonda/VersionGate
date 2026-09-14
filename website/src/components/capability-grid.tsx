@@ -14,6 +14,17 @@ export interface Capability {
 
 const CAPABILITIES: Capability[] = [
   {
+    id: "cap-adopt-deployments",
+    category: "Deployment",
+    title: "Server Deployment Auto-Adoption",
+    command: "GET /api/v1/system/discover-deployments",
+    description:
+      "Automatically scan the host server for unmanaged PM2 processes and external Docker containers, with 1-click adoption into VersionGate control.",
+    details:
+      "Discovers live processes, listening ports, and Git metadata across the server. Adopting instantly creates a managed Project, sets up zero-downtime environments, reloads Nginx reverse proxy routes, and tracks health.",
+    badge: "NEW",
+  },
+  {
     id: "cap-managed-databases",
     category: "Deployment",
     title: "Server Database Provisioning",

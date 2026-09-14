@@ -1,6 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { getAllDeployments, getInstanceSettings, getProjects, listAllJobs, listProjectDomains, type Deployment, type JobRecord, type Project } from "@/lib/api";
+import {
+  getAllDeployments,
+  getInstanceSettings,
+  getProjects,
+  listAllJobs,
+  listProjectDomains,
+  discoverServerDeployments,
+  type Deployment,
+  type JobRecord,
+  type Project,
+  type DiscoveredDeployment,
+} from "@/lib/api";
 import { projectDeploymentStatus } from "@/lib/project-deployment-status";
 import { getActiveDeployment, getDisplayDeployment, guessEnvironmentLabel, publicProjectLiveUrl, setConfiguredPublicHost } from "@/lib/deployment-display";
 import { StatusBadge } from "@/components/badges/StatusBadge";
@@ -8,6 +19,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DeleteProjectDialog } from "@/components/modals/DeleteProjectDialog";
+import { AdoptServiceModal } from "@/components/modals/AdoptServiceModal";
 import { toast } from "sonner";
 import { useLaunchCreateProject } from "@/create-project-launch";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -34,9 +46,25 @@ export function Projects() {
   const [loading, setLoading] = useState(true);
   const [deleteTarget, setDeleteTarget] = useState<Project | null>(null);
   const [page, setPage] = useState(0);
+  const [adoptOpen, setAdoptOpen] = useState(false);
+  const [discoveredCandidates, setDiscoveredCandidates] = useState<DiscoveredDeployment[]>([]);
+  const [discovering, setDiscovering] = useState(false);
+
+  const scanDiscoveries = async () => {
+    setDiscovering(true);
+    try {
+      const res = await discoverServerDeployments();
+      setDiscoveredCandidates(res.candidates);
+    } catch {
+      // ignore
+    } finally {
+      setDiscovering(false);
+    }
+  };
 
   const load = async () => {
     setLoading(true);
+    void scanDiscoveries();
     try {
       const [p, d, jobs, inst] = await Promise.all([
         getProjects(),
@@ -100,6 +128,8 @@ export function Projects() {
     if (page > pageCount - 1) setPage(Math.max(0, pageCount - 1));
   }, [page, pageCount]);
 
+  const unadoptedCount = discoveredCandidates.filter((c) => !c.alreadyAdopted).length;
+
   return (
     <div className="w-full space-y-8 font-sans">
       {/* Header & Controls */}
@@ -111,6 +141,17 @@ export function Projects() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            disabled={discovering}
+            onClick={() => setAdoptOpen(true)}
+            className="border-neutral-800 text-neutral-300 hover:text-white text-xs font-mono"
+          >
+            {discovering
+              ? "[ Scanning Server... ]"
+              : `[ Adopt Existing Service ${unadoptedCount > 0 ? `(${unadoptedCount})` : ""} ]`}
+          </Button>
           <Button type="button" onClick={() => launchCreate()} className="bg-white text-black font-semibold hover:bg-neutral-200 text-xs">
             + Deploy Project
           </Button>
@@ -286,6 +327,14 @@ export function Projects() {
           onDeleted={() => void load()}
         />
       ) : null}
+
+      <AdoptServiceModal
+        open={adoptOpen}
+        onOpenChange={setAdoptOpen}
+        candidates={discoveredCandidates}
+        onAdopted={() => void load()}
+        onRefresh={() => void scanDiscoveries()}
+      />
     </div>
   );
 }
