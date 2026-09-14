@@ -44,9 +44,44 @@ interface ProcessedRelease {
 
 const FALLBACK_RELEASES: ProcessedRelease[] = [
   {
-    version: "v2.8.0",
+    version: "v2.9.0",
     date: "September 14, 2026",
     isLatest: true,
+    summary:
+      "Host deployment auto-discovery and one-click adoption: scan running PM2 processes and external Docker containers across the server and bring them into zero-downtime VersionGate management.",
+    categories: [
+      {
+        title: "Adoption & Infrastructure Discovery",
+        badge: "NEW",
+        items: [
+          {
+            title: "Server Deployment Discovery Engine",
+            description:
+              "Inspects the host machine for active PM2 applications and Docker containers with listening TCP ports and Git metadata.",
+            command: "GET /api/v1/system/discover-deployments",
+            prNumber: 213,
+          },
+          {
+            title: "1-Click Service Adoption",
+            description:
+              "Brings unmanaged external apps under VersionGate control: creates Project, multi-stage Environments, routes production traffic via Nginx, and enables blue/green zero-downtime updates.",
+            command: "POST /api/v1/projects/adopt",
+            prNumber: 213,
+          },
+          {
+            title: "Projects Console Adoption Drawer",
+            description:
+              "Interactive service adoption modal on the Projects view indicating unadopted instances, port bindings, and directory paths.",
+            prNumber: 213,
+          },
+        ],
+      },
+    ],
+  },
+  {
+    version: "v2.8.0",
+    date: "September 14, 2026",
+    isLatest: false,
     summary:
       "Integrated server database provisioning (PostgreSQL, Redis, MySQL, MongoDB), encrypted credential management, dedicated database manager console, and one-click environment variable auto-linking.",
     categories: [
