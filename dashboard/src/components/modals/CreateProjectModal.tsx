@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState, type ClipboardEvent, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { handleEnvPaste } from "@/lib/env-parser";
+import { EnvVariablesEditor } from "@/components/EnvVariablesEditor";
 import {
   ApiError,
   createProject,
@@ -102,20 +102,6 @@ export function CreateProjectModal({
     setStackDetecting(false);
     setDetectedStack(null);
     setEnvPairs([]);
-  };
-
-  const addEnvPair = () => {
-    setEnvPairs((prev) => [...prev, { key: "", value: "" }]);
-  };
-
-  const removeEnvPair = (idx: number) => {
-    setEnvPairs((prev) => prev.filter((_, i) => i !== idx));
-  };
-
-  const updateEnvPair = (idx: number, field: "key" | "value", val: string) => {
-    setEnvPairs((prev) =>
-      prev.map((item, i) => (i === idx ? { ...item, [field]: val } : item))
-    );
   };
 
   const handleOpenChange = (next: boolean) => {
@@ -674,60 +660,14 @@ export function CreateProjectModal({
             ) : null}
           </div>
 
-          <div className="space-y-2 pt-2 border-t border-border/50">
-            <div className="flex items-center justify-between">
-              <div>
-                <label className="text-sm font-medium">Environment Variables (Optional)</label>
-                <p className="text-xs text-muted-foreground">
-                  Encrypted at rest with AES-256-GCM. Injected into the container runtime.
-                </p>
-              </div>
-              <Button type="button" variant="outline" size="sm" onClick={addEnvPair} className="text-xs h-7">
-                + Add Variable
-              </Button>
-            </div>
-
-            {envPairs.length > 0 ? (
-              <div className="space-y-2 max-h-36 overflow-y-auto pr-1">
-                {envPairs.map((p, idx) => (
-                  <div key={idx} className="flex items-center gap-2">
-                    <Input
-                      placeholder="KEY (e.g. DATABASE_URL)"
-                      value={p.key}
-                      onChange={(e) => updateEnvPair(idx, "key", e.target.value)}
-                      onPaste={(e: ClipboardEvent<HTMLInputElement>) => {
-                        const text = e.clipboardData.getData("text");
-                        if (handleEnvPaste(text, idx, setEnvPairs)) {
-                          e.preventDefault();
-                        }
-                      }}
-                      className="font-mono text-xs uppercase"
-                    />
-                    <Input
-                      placeholder="VALUE"
-                      value={p.value}
-                      onChange={(e) => updateEnvPair(idx, "value", e.target.value)}
-                      onPaste={(e: ClipboardEvent<HTMLInputElement>) => {
-                        const text = e.clipboardData.getData("text");
-                        if (handleEnvPaste(text, idx, setEnvPairs, "value")) {
-                          e.preventDefault();
-                        }
-                      }}
-                      className="font-mono text-xs"
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeEnvPair(idx)}
-                      className="h-8 w-8 p-0 font-mono text-xs text-muted-foreground hover:text-rose-500"
-                    >
-                      [x]
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            ) : null}
+          <div className="pt-2 border-t border-border/50">
+            <EnvVariablesEditor
+              pairs={envPairs.length > 0 ? envPairs : [{ key: "", value: "" }]}
+              onChange={setEnvPairs}
+              title="Environment Variables (Optional)"
+              description="Encrypted at rest with AES-256-GCM. Injected into the container runtime."
+              maxHeightClass="max-h-36"
+            />
           </div>
           <DialogFooter className="gap-2 pt-2 sm:justify-end">
             <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>

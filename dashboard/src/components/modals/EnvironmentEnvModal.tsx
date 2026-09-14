@@ -1,11 +1,10 @@
-import { useEffect, useRef, useState, type ClipboardEvent } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { patchEnvironmentEnv, triggerDeploy, type EnvironmentSummary } from "@/lib/api";
+import { EnvVariablesEditor } from "@/components/EnvVariablesEditor";
 import { toast } from "sonner";
-import { handleEnvPaste } from "@/lib/env-parser";
 
 interface EnvironmentEnvModalProps {
   projectId: string;
@@ -38,20 +37,6 @@ export function EnvironmentEnvModal({
   }, [open, environment]);
 
   if (!environment) return null;
-
-  const handleAddPair = () => {
-    setEnvPairs([...envPairs, { key: "", value: "" }]);
-  };
-
-  const handleRemovePair = (index: number) => {
-    setEnvPairs(envPairs.filter((_, i) => i !== index));
-  };
-
-  const handlePairChange = (index: number, field: "key" | "value", val: string) => {
-    const next = [...envPairs];
-    next[index][field] = val;
-    setEnvPairs(next);
-  };
 
   const saveEnvVars = async (): Promise<boolean> => {
     const obj: Record<string, string> = {};
@@ -109,48 +94,14 @@ export function EnvironmentEnvModal({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-3 py-2 max-h-[300px] overflow-y-auto pr-1">
-          {envPairs.map((pair, idx) => (
-            <div key={idx} className="flex items-center gap-2">
-              <Input
-                placeholder="KEY (e.g. NODE_ENV)"
-                value={pair.key}
-                onChange={(e) => handlePairChange(idx, "key", e.target.value)}
-                onPaste={(e: ClipboardEvent<HTMLInputElement>) => {
-                  const text = e.clipboardData.getData("text");
-                  if (handleEnvPaste(text, idx, setEnvPairs)) {
-                    e.preventDefault();
-                  }
-                }}
-                className="font-mono text-xs uppercase"
-              />
-              <Input
-                placeholder="VALUE (e.g. staging)"
-                value={pair.value}
-                onChange={(e) => handlePairChange(idx, "value", e.target.value)}
-                onPaste={(e: ClipboardEvent<HTMLInputElement>) => {
-                  const text = e.clipboardData.getData("text");
-                  if (handleEnvPaste(text, idx, setEnvPairs, "value")) {
-                    e.preventDefault();
-                  }
-                }}
-                className="font-mono text-xs"
-              />
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="h-9 px-2 font-mono text-xs text-destructive hover:bg-destructive/10"
-                onClick={() => handleRemovePair(idx)}
-              >
-                [x]
-              </Button>
-            </div>
-          ))}
-
-          <Button type="button" variant="outline" size="sm" onClick={handleAddPair} className="w-full text-xs">
-            + Add Variable
-          </Button>
+        <div className="py-2">
+          <EnvVariablesEditor
+            pairs={envPairs}
+            onChange={setEnvPairs}
+            title="Stage Variables"
+            description="Overrides project-level environment variables for this stage."
+            maxHeightClass="max-h-[300px]"
+          />
         </div>
 
         <DialogFooter className="gap-2 sm:justify-end">
