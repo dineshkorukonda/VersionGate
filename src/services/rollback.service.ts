@@ -68,26 +68,39 @@ export class RollbackService {
     const stageEnv = decryptProjectEnv((envRow as typeof envRow & { env?: unknown }).env);
     const mergedEnv = { ...projectEnv, ...stageEnv };
 
-    const { inspectContainer } = await import("../utils/docker");
-    let isAlreadyRunning = false;
-    try {
-      isAlreadyRunning = await inspectContainer(previous.containerName);
-    } catch {
-      isAlreadyRunning = false;
-    }
+    if (project.deploymentType === "pm2") {
+      const { isPm2Running, restartPm2App } = await import("../utils/pm2");
+      let isAlreadyRunning = false;
+      try {
+        isAlreadyRunning = await isPm2Running(previous.containerName);
+      } catch {
+        isAlreadyRunning = false;
+      }
+      if (!isAlreadyRunning) {
+        await restartPm2App(previous.containerName, previous.port, mergedEnv);
+      }
+    } else {
+      const { inspectContainer } = await import("../utils/docker");
+      let isAlreadyRunning = false;
+      try {
+        isAlreadyRunning = await inspectContainer(previous.containerName);
+      } catch {
+        isAlreadyRunning = false;
+      }
 
-    if (!isAlreadyRunning) {
-      await stopContainer(previous.containerName).catch(() => null);
-      await removeContainer(previous.containerName).catch(() => null);
+      if (!isAlreadyRunning) {
+        await stopContainer(previous.containerName).catch(() => null);
+        await removeContainer(previous.containerName).catch(() => null);
 
-      await runContainer(
-        previous.containerName,
-        previous.imageTag,
-        previous.port,
-        envRow.appPort,
-        config.dockerNetwork,
-        mergedEnv
-      );
+        await runContainer(
+          previous.containerName,
+          previous.imageTag,
+          previous.port,
+          envRow.appPort,
+          config.dockerNetwork,
+          mergedEnv
+        );
+      }
     }
 
     const result = await this.validation.validate(
@@ -97,10 +110,15 @@ export class RollbackService {
     );
 
     if (!result.success) {
-      await stopContainer(previous.containerName).catch(() => null);
-      await removeContainer(previous.containerName).catch(() => null);
+      if (project.deploymentType === "pm2") {
+        const { stopPm2App } = await import("../utils/pm2");
+        await stopPm2App(previous.containerName).catch(() => null);
+      } else {
+        await stopContainer(previous.containerName).catch(() => null);
+        await removeContainer(previous.containerName).catch(() => null);
+      }
       throw new DeploymentError(
-        `Rollback failed — previous container unhealthy: ${result.error ?? "unknown error"}`
+        `Rollback failed — previous instance unhealthy: ${result.error ?? "unknown error"}`
       );
     }
 
@@ -110,12 +128,19 @@ export class RollbackService {
       await syncCustomDomainUpstream(project.name, previous.port);
     }
 
-    await stopContainer(current.containerName).catch((err) => {
-      logger.warn({ err, containerName: current.containerName }, "Failed to stop current container during rollback");
-    });
-    await removeContainer(current.containerName).catch((err) => {
-      logger.warn({ err, containerName: current.containerName }, "Failed to remove current container during rollback");
-    });
+    if (project.deploymentType === "pm2") {
+      const { stopPm2App } = await import("../utils/pm2");
+      await stopPm2App(current.containerName).catch((err) => {
+        logger.warn({ err, containerName: current.containerName }, "Failed to stop current PM2 app during rollback");
+      });
+    } else {
+      await stopContainer(current.containerName).catch((err) => {
+        logger.warn({ err, containerName: current.containerName }, "Failed to stop current container during rollback");
+      });
+      await removeContainer(current.containerName).catch((err) => {
+        logger.warn({ err, containerName: current.containerName }, "Failed to remove current container during rollback");
+      });
+    }
 
     await this.repo.updateStatus(current.id, "ROLLED_BACK");
     await this.repo.updateStatus(previous.id, "ACTIVE");

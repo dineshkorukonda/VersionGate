@@ -44,9 +44,44 @@ interface ProcessedRelease {
 
 const FALLBACK_RELEASES: ProcessedRelease[] = [
   {
+    version: "v2.7.0",
+    date: "September 14, 2026",
+    isLatest: true,
+    summary:
+      "Custom package managers and command overrides (bun, pnpm, yarn, npm, uv, poetry, pipenv, cargo, composer), modern framework auto-detection for Rust and Python, and dual execution engines (Docker containers vs bare-metal host PM2).",
+    categories: [
+      {
+        title: "Deployment Engines & Runtimes",
+        badge: "NEW",
+        items: [
+          {
+            title: "Host PM2 Bare-Metal Process Execution",
+            description:
+              "Run applications directly on the host using PM2 process management with zero-downtime blue/green port allocation, automated health validation, and rolling warm-swap rollbacks alongside Docker.",
+            command: "POST /api/v1/projects  {\"deploymentType\":\"pm2\"}",
+            prNumber: 210,
+          },
+          {
+            title: "Universal Package Manager Overrides",
+            description:
+              "Explicitly select npm, pnpm, yarn, bun, uv, poetry, pipenv, cargo, or composer per project with custom install, build, and start command execution.",
+            command: "POST /api/v1/projects  {\"packageManager\":\"pnpm\"}",
+            prNumber: 210,
+          },
+          {
+            title: "Extended Framework Auto-Detection",
+            description:
+              "Automatic repository pre-scanning and Dockerfile synthesis for Rust (Cargo.toml), modern Python (uv.lock, poetry.lock, Pipfile), and PHP (composer.json).",
+            prNumber: 210,
+          },
+        ],
+      },
+    ],
+  },
+  {
     version: "v2.6.0",
     date: "September 13, 2026",
-    isLatest: true,
+    isLatest: false,
     summary:
       "Enterprise project configuration editor, per-project live traffic telemetry, global deployment activity stream, GitHub App installation management, and Vercel-style stage preview URLs.",
     categories: [

@@ -253,6 +253,42 @@ export class StackDetectorService {
           suggestions,
         };
       }
+      if (fileMap.has("uv.lock") || content.includes("[tool.uv]")) {
+        return {
+          detected: true,
+          stack: "python-uv",
+          label: "Python (uv)",
+          recommendedPort: 8000,
+          recommendedHealthPath: content.includes("fastapi") ? "/docs" : "/health",
+          recommendedBuildContext: ".",
+          confidence: "high",
+          suggestions,
+        };
+      }
+      if (fileMap.has("poetry.lock") || content.includes("[tool.poetry]")) {
+        return {
+          detected: true,
+          stack: "python-poetry",
+          label: "Python (Poetry)",
+          recommendedPort: 8000,
+          recommendedHealthPath: content.includes("fastapi") ? "/docs" : "/health",
+          recommendedBuildContext: ".",
+          confidence: "high",
+          suggestions,
+        };
+      }
+      if (fileMap.has("pipfile") || fileMap.has("pipfile.lock")) {
+        return {
+          detected: true,
+          stack: "python-pipenv",
+          label: "Python (Pipenv)",
+          recommendedPort: 8000,
+          recommendedHealthPath: content.includes("fastapi") ? "/docs" : "/health",
+          recommendedBuildContext: ".",
+          confidence: "high",
+          suggestions,
+        };
+      }
       return {
         detected: true,
         stack: "python",
@@ -265,7 +301,21 @@ export class StackDetectorService {
       };
     }
 
-    // 4. Go (go.mod)
+    // 4. PHP (composer.json, index.php)
+    if (fileMap.has("composer.json") || fileMap.has("index.php")) {
+      return {
+        detected: true,
+        stack: "php",
+        label: "PHP",
+        recommendedPort: 8080,
+        recommendedHealthPath: "/",
+        recommendedBuildContext: ".",
+        confidence: "high",
+        suggestions,
+      };
+    }
+
+    // 5. Go (go.mod)
     if (fileMap.has("go.mod")) {
       return {
         detected: true,
