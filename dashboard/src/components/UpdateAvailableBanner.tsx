@@ -57,7 +57,9 @@ export function UpdateAvailableBanner() {
     <>
       <div className="flex items-center justify-between border-b border-border bg-card/90 px-4 py-2 text-xs font-mono">
         <div className="flex items-center gap-3">
-          <span className="inline-block h-2 w-2 rounded-full bg-primary animate-pulse" />
+          <span className="rounded border border-primary/40 bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
+            [ UPDATE ]
+          </span>
           <span className="text-muted-foreground">
             New updates available on <span className="font-semibold text-foreground">origin/{branch}</span>
           </span>

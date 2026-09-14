@@ -160,8 +160,7 @@ export function Layout() {
           <Sidebar collapsible="icon" className="border-r border-neutral-800 bg-[#0a0a0a]">
             <SidebarHeader className="gap-3 border-b border-neutral-800 px-3 py-4">
               <div className="flex items-center gap-2">
-                <span className="inline-block size-3 rounded-full bg-white" />
-                <span className="text-sm font-semibold tracking-tight text-white">VersionGate</span>
+                <span className="text-sm font-semibold tracking-tight text-white font-mono">VersionGate</span>
               </div>
             </SidebarHeader>
             <SidebarContent className="gap-0 px-2 py-3">
@@ -236,8 +235,7 @@ export function Layout() {
               <div className="flex items-center gap-3">
                 <SidebarTrigger className="md:hidden" />
                 <div className="flex items-center gap-2 font-sans text-xs">
-                  <span className="flex size-6 items-center justify-center rounded-md bg-white font-mono text-xs font-bold text-black">V</span>
-                  <span className="font-semibold text-white tracking-tight text-sm font-sans">VersionGate</span>
+                  <span className="font-semibold text-white tracking-tight text-sm font-mono">VersionGate</span>
                 </div>
               </div>
 
@@ -255,9 +253,8 @@ export function Layout() {
               </div>
 
               <div className="flex items-center gap-2 sm:gap-3">
-                <div className="hidden items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-sans font-medium text-emerald-400 sm:flex">
-                  <span className="size-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  Systems Operational
+                <div className="hidden items-center gap-1.5 border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-mono font-medium text-emerald-400 sm:flex">
+                  [ OPERATIONAL ]
                 </div>
 
                 <Button type="button" size="sm" className="gap-1.5 bg-white font-sans text-xs font-semibold text-black hover:bg-neutral-200" onClick={() => setCreateProjectOpen(true)}>
@@ -299,7 +296,9 @@ export function Layout() {
                 className="flex items-center justify-center gap-3 border-b border-amber-500/30 bg-amber-500/5 px-4 py-2.5 text-sm"
                 role="status"
               >
-                <span className="inline-block size-2 rounded-full bg-amber-500" />
+                <span className="border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-amber-400">
+                  [ RESTART PENDING ]
+                </span>
                 <span className="text-amber-400 font-sans text-xs">
                   Configuration change detected — engine will apply automatically on next job cycle.
                 </span>

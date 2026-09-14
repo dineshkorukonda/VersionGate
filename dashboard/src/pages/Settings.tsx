@@ -930,7 +930,7 @@ export function Settings() {
                     <p className="text-sm text-muted-foreground">Run “Check for updates” to compare with origin.</p>
                   )}
 
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <Button type="button" variant="outline" size="sm" disabled={suBusy !== null} onClick={() => void onCheckSelfUpdate()}>
                       {suBusy === "check" ? "Checking…" : "Check for updates"}
                     </Button>
@@ -944,6 +944,9 @@ export function Settings() {
                     >
                       {suBusy === "apply" ? "Updating…" : "Update and restart PM2"}
                     </Button>
+                    <span className="font-mono text-[11px] text-muted-foreground">
+                      [ NOTE: Browser page refresh required after update finishes to load new assets ]
+                    </span>
                   </div>
 
                   <Separator className="bg-border/50" />

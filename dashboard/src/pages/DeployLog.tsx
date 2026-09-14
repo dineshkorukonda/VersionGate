@@ -266,8 +266,11 @@ export function DeployLog() {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <span className="flex items-center gap-1.5 border border-border bg-muted px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-            <span className={cn("size-1.5 rounded-full", wsConnected ? "bg-emerald-500" : "bg-amber-500")} />
-            {wsConnected ? "WS connected" : "WS reconnecting…"}
+            {wsConnected ? (
+              <span className="text-emerald-400 font-semibold">[ WS LIVE ]</span>
+            ) : (
+              <span className="text-amber-400 font-semibold">[ WS RECONNECTING ]</span>
+            )}
           </span>
           <Badge variant={badgeVariant} className={cn("shrink-0 font-mono text-xs", statusColor)}>
             {jobStatus}
