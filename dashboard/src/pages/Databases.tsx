@@ -16,6 +16,7 @@ import {
 import { CreateDatabaseModal } from "@/components/modals/CreateDatabaseModal";
 import { DatabaseDetailsModal } from "@/components/modals/DatabaseDetailsModal";
 import { LinkDatabaseModal } from "@/components/modals/LinkDatabaseModal";
+import { ConfirmDialog } from "@/components/modals/ConfirmDialog";
 import { toast } from "sonner";
 
 export function Databases() {
@@ -28,6 +29,8 @@ export function Databases() {
   const [linkModalOpen, setLinkModalOpen] = useState(false);
   const [linkingDb, setLinkingDb] = useState<ManagedDatabase | null>(null);
   const [actionInProgress, setActionInProgress] = useState<string | null>(null);
+  const [deleteTargetDb, setDeleteTargetDb] = useState<ManagedDatabase | null>(null);
+  const [dropVolumeChecked, setDropVolumeChecked] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -77,20 +80,19 @@ export function Databases() {
     }
   };
 
-  const handleDelete = async (db: ManagedDatabase) => {
-    const confirmDelete = window.confirm(
-      `Are you sure you want to delete database "${db.name}"? This will stop and remove container ${db.containerName}.`
-    );
-    if (!confirmDelete) return;
+  const requestDelete = (db: ManagedDatabase) => {
+    setDeleteTargetDb(db);
+    setDropVolumeChecked(false);
+  };
 
-    const dropVolume = window.confirm(
-      `Do you also want to permanently delete persistent data volume "${db.volumeName}"? (Click OK to drop data, or Cancel to preserve volume)`
-    );
-
+  const executeDelete = async () => {
+    if (!deleteTargetDb) return;
+    const db = deleteTargetDb;
     setActionInProgress(db.id);
     try {
-      await deleteManagedDatabase(db.id, dropVolume);
+      await deleteManagedDatabase(db.id, dropVolumeChecked);
       toast.success(`[ OK ] Database ${db.name} deleted`);
+      setDeleteTargetDb(null);
       await load();
     } catch (err: any) {
       toast.error(err instanceof Error ? err.message : "Failed to delete database");
@@ -281,7 +283,7 @@ export function Databases() {
                             <button
                               type="button"
                               disabled={actionInProgress === db.id}
-                              onClick={() => void handleDelete(db)}
+                              onClick={() => requestDelete(db)}
                               className="text-red-400 hover:underline"
                             >
                               [ Delete ]
@@ -323,6 +325,26 @@ export function Databases() {
         database={linkingDb}
         projects={projects}
         onLinked={() => void load()}
+      />
+
+      <ConfirmDialog
+        open={Boolean(deleteTargetDb)}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTargetDb(null);
+        }}
+        title={`Delete database "${deleteTargetDb?.name}"?`}
+        description={`This will stop and remove container ${deleteTargetDb?.containerName}. Any running projects connected to this database will lose connection.`}
+        checkboxLabel={
+          deleteTargetDb
+            ? `Permanently delete data volume "${deleteTargetDb.volumeName}" (all stored data will be destroyed)`
+            : undefined
+        }
+        checkboxChecked={dropVolumeChecked}
+        onCheckboxChange={setDropVolumeChecked}
+        confirmLabel="Delete Database"
+        variant="destructive"
+        busy={actionInProgress === deleteTargetDb?.id}
+        onConfirm={executeDelete}
       />
     </div>
   );

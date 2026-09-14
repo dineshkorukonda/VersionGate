@@ -140,10 +140,10 @@ export function EnvironmentEnvModal({
                 type="button"
                 variant="ghost"
                 size="sm"
-                className="h-9 px-2 text-destructive"
+                className="h-9 px-2 font-mono text-xs text-destructive hover:bg-destructive/10"
                 onClick={() => handleRemovePair(idx)}
               >
-                ✕
+                [x]
               </Button>
             </div>
           ))}

@@ -29,6 +29,7 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { SystemUpdateModal } from "@/components/modals/SystemUpdateModal";
+import { ConfirmDialog } from "@/components/modals/ConfirmDialog";
 import { DonutChart } from "@/components/charts/DonutChart";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { formatPublicDashboardUrl, looksLikeIpv4, normalizePublicBasePath } from "@/lib/public-url";
@@ -188,14 +189,21 @@ function ApiTokensCard() {
     }
   };
 
-  const handleRevoke = async (id: string, tokenName: string) => {
-    if (!confirm(`Revoke API token "${tokenName}"?`)) return;
+  const [revokeTarget, setRevokeTarget] = useState<ApiTokenItem | null>(null);
+  const [revoking, setRevoking] = useState(false);
+
+  const executeRevoke = async () => {
+    if (!revokeTarget) return;
+    setRevoking(true);
     try {
-      await revokeApiToken(id);
+      await revokeApiToken(revokeTarget.id);
       toast.success("API token revoked");
+      setRevokeTarget(null);
       await loadTokens();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to revoke token");
+    } finally {
+      setRevoking(false);
     }
   };
 
@@ -267,7 +275,7 @@ function ApiTokensCard() {
                     size="sm"
                     variant="outline"
                     className="h-7 text-xs text-destructive hover:bg-destructive/10 border-destructive/40"
-                    onClick={() => void handleRevoke(t.id, t.name)}
+                    onClick={() => setRevokeTarget(t)}
                   >
                     Revoke
                   </Button>
@@ -276,6 +284,19 @@ function ApiTokensCard() {
             ))}
           </div>
         )}
+
+        <ConfirmDialog
+          open={Boolean(revokeTarget)}
+          onOpenChange={(open) => {
+            if (!open) setRevokeTarget(null);
+          }}
+          title={`Revoke API token "${revokeTarget?.name}"?`}
+          description={`This will permanently revoke ${revokeTarget?.tokenPrefix}... Any external CI/CD pipelines or scripts using this token will fail immediately with 401 Unauthorized.`}
+          confirmLabel="Revoke Token"
+          variant="destructive"
+          busy={revoking}
+          onConfirm={executeRevoke}
+        />
       </CardContent>
     </Card>
   );

@@ -430,9 +430,9 @@ export function EditProjectModal({
                     variant="ghost"
                     size="sm"
                     onClick={() => removeEnvPair(idx)}
-                    className="h-8 w-8 p-0 text-muted-foreground hover:text-rose-500"
+                    className="h-8 w-8 p-0 font-mono text-xs text-muted-foreground hover:text-rose-500"
                   >
-                    ✕
+                    [x]
                   </Button>
                 </div>
               ))}
