@@ -18,6 +18,7 @@ import { useEffect, useState } from "react";
 import { authLogout, getAuthStatus, getInstanceSettings, getProjects, getSetupStatus, type Project } from "@/lib/api";
 import { setConfiguredPublicHost } from "@/lib/deployment-display";
 import { cn } from "@/lib/utils";
+import { SidebarBreadcrumbs } from "@/components/SidebarBreadcrumbs";
 import { GlobalSearchDialog } from "@/components/modals/GlobalSearchDialog";
 import { CreateProjectModal } from "@/components/modals/CreateProjectModal";
 import { CreateProjectLaunchContext } from "@/create-project-launch";
@@ -233,10 +234,9 @@ export function Layout() {
             {/* Top Clean Platform Header Bar */}
             <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center justify-between border-b border-neutral-800 bg-black/90 backdrop-blur-md px-4 md:px-6">
               <div className="flex items-center gap-3">
-                <SidebarTrigger className="md:hidden" />
-                <div className="flex items-center gap-2 font-sans text-xs">
-                  <span className="font-semibold text-white tracking-tight text-sm font-mono">VersionGate</span>
-                </div>
+                <SidebarTrigger />
+                <div className="hidden sm:block h-4 w-[1px] bg-neutral-800" />
+                <SidebarBreadcrumbs />
               </div>
 
               <div className="hidden max-w-sm flex-1 px-4 md:block">
@@ -246,7 +246,8 @@ export function Layout() {
                   className="flex w-full items-center justify-between rounded-lg border border-neutral-800 bg-[#0a0a0a] px-3 py-1.5 font-sans text-xs text-neutral-400 transition-colors hover:border-neutral-700 hover:text-white"
                 >
                   <span className="flex items-center gap-2">
-                    <span className="text-neutral-500">Search projects, logs, settings...</span>
+                    <span className="font-mono text-[10px] text-neutral-500 font-semibold">[CMD]</span>
+                    <span className="text-neutral-500">Search projects, actions, settings...</span>
                   </span>
                   <kbd className="rounded border border-neutral-800 bg-black px-1.5 py-0.5 font-mono text-[10px] text-neutral-400">⌘K</kbd>
                 </button>
@@ -325,7 +326,11 @@ export function Layout() {
                   });
               }}
             />
-            <GlobalSearchDialog open={searchOpen} onOpenChange={setSearchOpen} />
+            <GlobalSearchDialog
+              open={searchOpen}
+              onOpenChange={setSearchOpen}
+              onLaunchCreate={() => setCreateProjectOpen(true)}
+            />
           </SidebarInset>
         </SidebarProvider>
       </CreateProjectLaunchContext.Provider>

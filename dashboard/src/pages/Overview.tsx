@@ -13,7 +13,6 @@ import {
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { StatusBadge } from "@/components/badges/StatusBadge";
-import { SlotBadge } from "@/components/badges/SlotBadge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -48,12 +47,6 @@ function timeAgo(date: string): string {
   if (hours < 24) return `${hours}h ago`;
   const days = Math.floor(hours / 24);
   return `${days}d ago`;
-}
-
-function regionLabel(p: Project): string {
-  const r = p.env?.AWS_REGION ?? p.env?.REGION ?? p.env?.FLY_REGION;
-  if (typeof r === "string" && r.trim()) return r.trim();
-  return typeof window !== "undefined" && window.location.hostname ? window.location.hostname : "local";
 }
 
 export function Overview() {
@@ -298,30 +291,43 @@ export function Overview() {
                 return (
                   <Card
                     key={p.id}
-                    className="border border-neutral-800 bg-[#0a0a0a] rounded-xl shadow-sm transition-all hover:border-neutral-700"
+                    className="border border-neutral-800 bg-[#0a0a0a] rounded-xl shadow-sm transition-all hover:border-neutral-700 flex flex-col justify-between"
                   >
                     <CardHeader className="pb-3">
                       <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0 flex-1">
-                          <CardTitle className="truncate font-mono text-sm font-semibold transition-colors hover:text-primary">
-                            <Link to={`/projects/${p.id}`}>{p.name}</Link>
-                          </CardTitle>
-                          <CardDescription className="mt-1 space-y-0.5 font-mono text-[11px]">
-                            <div className="truncate text-muted-foreground">Branch: {p.branch}</div>
-                            <div className="truncate text-muted-foreground/70">Host: {regionLabel(p)}</div>
-                          </CardDescription>
+                        <div className="min-w-0 flex-1 space-y-1">
+                          <div className="flex items-center gap-2">
+                            <CardTitle className="truncate font-sans text-sm font-semibold transition-colors hover:text-neutral-200">
+                              <Link to={`/projects/${p.id}`}>{p.name}</Link>
+                            </CardTitle>
+                            <span className="rounded border border-neutral-800 bg-neutral-900 px-1.5 py-0.5 font-mono text-[10px] text-neutral-400">
+                              {p.branch}
+                            </span>
+                          </div>
+                          <div className="truncate font-mono text-[11px] text-neutral-500">
+                            <a
+                              href={/^https?:\/\//i.test(p.repoUrl) ? p.repoUrl : `https://${p.repoUrl}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="hover:text-neutral-300 hover:underline"
+                            >
+                              {p.repoUrl.replace(/^https?:\/\/(www\.)?/, "")}
+                            </a>
+                          </div>
                         </div>
-                        <div className="flex shrink-0 items-center gap-2">
+
+                        <div className="flex shrink-0 items-center gap-1.5">
                           <StatusBadge status={st} />
                           <DropdownMenu>
                             <DropdownMenuTrigger
-                              className="relative z-20 inline-flex size-7 items-center justify-center rounded-md border border-border/60 bg-card/90 font-mono text-muted-foreground hover:bg-muted hover:text-foreground"
+                              className="relative z-20 inline-flex size-7 items-center justify-center rounded-md border border-neutral-800 bg-neutral-900/80 font-mono text-neutral-400 hover:bg-neutral-800 hover:text-white"
                               onPointerDown={(e) => e.stopPropagation()}
                             >
                               <span className="sr-only">Project actions</span>
                               <span className="text-xs leading-none">...</span>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="z-50 w-44 font-mono text-xs">
+                            <DropdownMenuContent align="end" className="z-50 w-44 font-mono text-xs border-neutral-800 bg-[#0a0a0a] text-white">
                               <DropdownMenuItem
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -345,128 +351,115 @@ export function Overview() {
                       </div>
                     </CardHeader>
 
-                    <CardContent className="space-y-3 pb-3">
+                    <CardContent className="space-y-3.5 pb-4 flex-1 flex flex-col justify-between">
                       {st === "DEPLOYING" && (
-                        <div className="relative z-20 space-y-1">
+                        <div className="space-y-1 rounded border border-sky-500/20 bg-sky-500/5 p-2">
                           <p className="font-mono text-[10px] uppercase text-sky-400">
-                            Pipeline Active · Deploying container...
+                            [ PIPELINE ACTIVE ] Warm-swapping container...
                           </p>
-                          <div className="h-1 w-full overflow-hidden rounded-full bg-muted">
+                          <div className="h-1 w-full overflow-hidden rounded-full bg-neutral-900">
                             <div className="h-full w-2/5 animate-pulse rounded-full bg-sky-500" />
                           </div>
                         </div>
                       )}
 
-                      <div className="font-mono text-xs text-muted-foreground truncate">
-                        <a
-                          href={/^https?:\/\//i.test(p.repoUrl) ? p.repoUrl : `https://${p.repoUrl}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          onClick={(e) => e.stopPropagation()}
-                          className="hover:text-primary hover:underline"
-                        >
-                          {p.repoUrl.replace(/^https?:\/\/(www\.)?/, "")}
-                        </a>
-                      </div>
-
-                      {/* Blue / Green Slots */}
-                      <div className="space-y-2">
-                        <div className="flex flex-wrap items-center gap-2">
-                          {row && <SlotBadge color={row.color} />}
+                      {/* Live deployment preview box */}
+                      <div className="rounded-lg border border-neutral-800 bg-neutral-950/60 p-2.5">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="font-mono text-[10px] uppercase tracking-wider text-neutral-500">
+                            Production Domain
+                          </span>
                           {hostUrl ? (
                             <a
                               href={hostUrl}
                               target="_blank"
                               rel="noreferrer"
-                              className={cn(
-                                buttonVariants({ variant: "default", size: "xs" }),
-                                "bg-emerald-600 hover:bg-emerald-700 text-white font-mono text-[10px]"
-                              )}
+                              className="font-mono text-[10px] text-emerald-400 hover:underline"
                             >
-                              Open Live App
+                              [ VISIT APP ]
                             </a>
                           ) : (
-                            <span className="font-mono text-xs text-muted-foreground/60">Not deployed</span>
+                            <span className="font-mono text-[10px] text-neutral-600">Pending deploy</span>
                           )}
                         </div>
+                        <p className="mt-1 truncate font-mono text-xs text-neutral-300">
+                          {hostUrl ? hostUrl.replace(/^https?:\/\//, "") : `Port :${p.appPort} (awaiting deployment)`}
+                        </p>
+                      </div>
 
-                        <div className="grid grid-cols-2 gap-2 text-[10px] leading-tight">
-                          {(["BLUE", "GREEN"] as const).map((c) => {
-                            const port = c === "BLUE" ? bluePort : greenPort;
-                            const u = publicServiceUrl(port);
-                            const isLive = active?.color === c;
-                            const isDeploy = deploying?.color === c;
-                            const latest = c === "BLUE" ? blueLatest : greenLatest;
-                            return (
-                              <div
-                                key={c}
-                                className={`rounded-md border p-2 font-mono ${
-                                  c === "BLUE"
-                                    ? "border-sky-500/25 bg-sky-500/[0.05]"
-                                    : "border-emerald-500/25 bg-emerald-500/[0.05]"
-                                }`}
-                              >
-                                <div className="flex items-center justify-between gap-1">
-                                  <span className="font-semibold text-foreground">
-                                    {c === "BLUE" ? "Slot A" : "Slot B"}
+                      {/* Blue / Green Slots Grid */}
+                      <div className="grid grid-cols-2 gap-2 text-[10px] leading-tight">
+                        {(["BLUE", "GREEN"] as const).map((c) => {
+                          const port = c === "BLUE" ? bluePort : greenPort;
+                          const u = publicServiceUrl(port);
+                          const isLive = active?.color === c;
+                          const isDeploy = deploying?.color === c;
+                          const latest = c === "BLUE" ? blueLatest : greenLatest;
+                          return (
+                            <div
+                              key={c}
+                              className={`rounded-lg border p-2 font-mono ${
+                                isLive
+                                  ? "border-emerald-500/30 bg-emerald-500/5"
+                                  : "border-neutral-800 bg-neutral-950/40"
+                              }`}
+                            >
+                              <div className="flex items-center justify-between gap-1">
+                                <span className="font-semibold text-neutral-300">
+                                  {c === "BLUE" ? "Slot Blue" : "Slot Green"}
+                                </span>
+                                {isLive ? (
+                                  <span className="border border-emerald-500/40 bg-emerald-500/10 px-1 py-0.2 text-[8px] font-bold text-emerald-400">
+                                    LIVE
                                   </span>
-                                  {isLive ? (
-                                    <Badge className="h-4 bg-emerald-600 px-1 py-0 text-[8px] font-bold text-white">
-                                      LIVE
-                                    </Badge>
-                                  ) : isDeploy ? (
-                                    <Badge variant="outline" className="h-4 border-amber-500/40 px-1 py-0 text-[8px] text-amber-300">
-                                      DEPLOY
-                                    </Badge>
-                                  ) : (
-                                    <span className="text-muted-foreground/60">idle</span>
-                                  )}
-                                </div>
-                                <a
-                                  href={u}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  onClick={(e) => e.stopPropagation()}
-                                  className="relative z-20 mt-1 block truncate font-mono text-muted-foreground hover:text-primary hover:underline"
-                                >
-                                  :{port}
-                                </a>
-                                {latest ? (
-                                  <p className="mt-0.5 truncate text-muted-foreground" title={latest.containerName}>
-                                    v{latest.version} ({latest.status.toLowerCase()})
-                                  </p>
+                                ) : isDeploy ? (
+                                  <span className="border border-amber-500/40 bg-amber-500/10 px-1 py-0.2 text-[8px] text-amber-400">
+                                    BUILD
+                                  </span>
                                 ) : (
-                                  <p className="mt-0.5 text-muted-foreground/50">—</p>
+                                  <span className="text-neutral-600">idle</span>
                                 )}
                               </div>
-                            );
-                          })}
-                        </div>
+                              <a
+                                href={u}
+                                target="_blank"
+                                rel="noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                                className="mt-1 block truncate font-mono text-neutral-500 hover:text-neutral-300 hover:underline"
+                              >
+                                :{port}
+                              </a>
+                              {latest ? (
+                                <p className="mt-0.5 truncate text-neutral-500" title={latest.containerName}>
+                                  v{latest.version} ({latest.status.toLowerCase()})
+                                </p>
+                              ) : (
+                                <p className="mt-0.5 text-neutral-600">—</p>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
 
                       {/* Footer Actions */}
-                      <div className="flex items-center gap-3 border-t border-border/30 pt-3 font-mono text-[11px] text-muted-foreground">
-                        <span>Port {p.appPort}</span>
-                        {lastDeploy && <span>{timeAgo(lastDeploy.createdAt)}</span>}
-                        <div className="ml-auto flex items-center gap-2">
+                      <div className="flex items-center justify-between border-t border-neutral-800/80 pt-3 font-mono text-[11px] text-neutral-500">
+                        <span>{lastDeploy ? timeAgo(lastDeploy.createdAt) : "No deploys yet"}</span>
+                        <div className="flex items-center gap-2">
                           {job && (
                             <Link
                               to={`/projects/${p.id}/deploy/${job.id}`}
                               onClick={(e) => e.stopPropagation()}
                               className="relative z-20"
                             >
-                              <Badge
-                                variant={job.status === "FAILED" ? "destructive" : "secondary"}
-                                className="font-mono text-[10px]"
-                              >
+                              <span className="border border-neutral-800 bg-neutral-900 px-1.5 py-0.5 font-mono text-[10px] text-neutral-400 hover:text-white">
                                 {job.status}
-                              </Badge>
+                              </span>
                             </Link>
                           )}
                           <Button
                             size="sm"
-                            variant="ghost"
-                            className="relative z-20 h-7 px-2 font-mono text-xs"
+                            variant="outline"
+                            className="h-6 border-neutral-800 bg-neutral-900 px-2 font-mono text-[11px] text-neutral-300 hover:bg-neutral-800 hover:text-white"
                             onClick={(e) => {
                               e.stopPropagation();
                               e.preventDefault();

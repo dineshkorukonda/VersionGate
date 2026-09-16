@@ -23,6 +23,7 @@ import {
 import { RuntimeLogsViewer } from "@/components/RuntimeLogsViewer";
 import { EnvironmentChain } from "@/components/badges/EnvironmentChain";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -384,436 +385,498 @@ export function ProjectDetail() {
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_300px]">
-        <div className="space-y-6 min-w-0">
-      <Card className="border-border bg-card">
-        <CardHeader>
-          <CardTitle className="font-mono text-sm uppercase tracking-wider">Environments</CardTitle>
-          <CardDescription>
-            Deploy on development, then promote to staging and production.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {environmentsError ? (
-            <div className="rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm">
-              <p className="font-medium text-destructive">Could not list environments</p>
-              <p className="mt-1 text-muted-foreground">{environmentsError}</p>
-              <Button className="mt-3" variant="outline" size="sm" type="button" onClick={() => void load()}>
-                Retry
-              </Button>
-            </div>
-          ) : null}
-          {!environmentsError && environments.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              No environments yet. Create a new project to get development → staging → production.
-            </p>
-          ) : null}
-          {!environmentsError && environments.length === 1 && environments[0]?.name === "production" ? (
-            <p className="text-xs text-muted-foreground">
-              Only production exists on this project (legacy). New projects include the full chain.
-            </p>
-          ) : null}
-          {!environmentsError && environments.length > 0 ? (
-            <EnvironmentChain
-              projectId={project.id}
-              projectName={project.name}
-              environments={environments}
-              onRefresh={async () => {
-                await load();
-              }}
-              onDeployToEnvironment={onDeployToEnvironment}
-            />
-          ) : null}
-        </CardContent>
-      </Card>
+      <Tabs defaultValue="overview" className="w-full space-y-6">
+        <TabsList variant="line" className="gap-2 border-b border-neutral-800 bg-transparent p-0 w-full justify-start rounded-none">
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="deployments">Deployments ({productionDeployments.length})</TabsTrigger>
+          <TabsTrigger value="domains">Domains &amp; Networking ({customDomains.length})</TabsTrigger>
+          <TabsTrigger value="logs">Runtime Logs</TabsTrigger>
+          <TabsTrigger value="settings">Settings</TabsTrigger>
+        </TabsList>
 
-      {deployments.length > 0 || jobs.length > 0 ? (
-        <div className="grid gap-4 md:grid-cols-2">
-          <Card className="border-border bg-card">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base">Deployments by status</CardTitle>
-              <CardDescription>Version history for this project.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <DonutChart data={deploymentPie} emptyLabel="No deployments" />
-            </CardContent>
-          </Card>
-          <Card className="border-border bg-card">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base">Jobs by status</CardTitle>
-              <CardDescription>Recent runs (up to 25 loaded).</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {jobs.length > 0 ? (
-                <DonutChart data={jobsByStatus} emptyLabel="No jobs" />
-              ) : (
-                <div className="flex h-52 items-center justify-center rounded-lg border border-dashed border-border/50 text-sm text-muted-foreground">
-                  No jobs yet
+        {/* 01 // OVERVIEW TAB */}
+        <TabsContent value="overview" className="space-y-6">
+          <div className="grid gap-6 lg:grid-cols-[1fr_300px]">
+            <div className="space-y-6 min-w-0">
+              <BlueGreenTrafficCard
+                project={project}
+                deployments={productionDeployments}
+                active={active}
+                deploying={deploying}
+                liveHostPort={liveHostPort}
+                liveUrl={liveUrl}
+                onCopy={copyText}
+              />
+
+              <Card className="border-neutral-800 bg-[#0a0a0a]">
+                <CardHeader>
+                  <CardTitle className="font-mono text-sm uppercase tracking-wider text-neutral-300">
+                    Environments Chain
+                  </CardTitle>
+                  <CardDescription className="font-sans text-xs text-neutral-400">
+                    Deploy on development, then promote to staging and production.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {environmentsError ? (
+                    <div className="rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm">
+                      <p className="font-medium text-destructive">Could not list environments</p>
+                      <p className="mt-1 text-muted-foreground">{environmentsError}</p>
+                      <Button className="mt-3" variant="outline" size="sm" type="button" onClick={() => void load()}>
+                        Retry
+                      </Button>
+                    </div>
+                  ) : null}
+                  {!environmentsError && environments.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">
+                      No environments yet. Create a new project to get development → staging → production.
+                    </p>
+                  ) : null}
+                  {!environmentsError && environments.length === 1 && environments[0]?.name === "production" ? (
+                    <p className="text-xs text-muted-foreground">
+                      Only production exists on this project (legacy). New projects include the full chain.
+                    </p>
+                  ) : null}
+                  {!environmentsError && environments.length > 0 ? (
+                    <EnvironmentChain
+                      projectId={project.id}
+                      projectName={project.name}
+                      environments={environments}
+                      onRefresh={async () => {
+                        await load();
+                      }}
+                      onDeployToEnvironment={onDeployToEnvironment}
+                    />
+                  ) : null}
+                </CardContent>
+              </Card>
+
+              <Card className="border-neutral-800 bg-[#0a0a0a]">
+                <CardHeader className="pb-2">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-sm font-semibold text-white">Project Traffic &amp; Telemetry</CardTitle>
+                    <span className="font-mono text-xs text-neutral-500">Rolling 24h</span>
+                  </div>
+                  <CardDescription className="text-xs text-neutral-400">
+                    Live traffic metrics and reverse proxy response distributions.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid gap-4 sm:grid-cols-4">
+                    <div className="rounded-lg border border-neutral-800 bg-neutral-950 p-3">
+                      <span className="font-mono text-[10px] uppercase tracking-wider text-neutral-500">Total Requests</span>
+                      <p className="mt-1 font-mono text-xl font-bold text-white">{analytics?.totalHits ?? 0}</p>
+                    </div>
+                    <div className="rounded-lg border border-neutral-800 bg-neutral-950 p-3">
+                      <span className="font-mono text-[10px] uppercase tracking-wider text-emerald-400">Success (2xx)</span>
+                      <p className="mt-1 font-mono text-xl font-bold text-emerald-400">{analytics?.status2xx ?? 0}</p>
+                    </div>
+                    <div className="rounded-lg border border-neutral-800 bg-neutral-950 p-3">
+                      <span className="font-mono text-[10px] uppercase tracking-wider text-amber-400">Client Err (4xx)</span>
+                      <p className="mt-1 font-mono text-xl font-bold text-amber-400">{analytics?.status4xx ?? 0}</p>
+                    </div>
+                    <div className="rounded-lg border border-neutral-800 bg-neutral-950 p-3">
+                      <span className="font-mono text-[10px] uppercase tracking-wider text-rose-400">Server Err (5xx)</span>
+                      <p className="mt-1 font-mono text-xl font-bold text-rose-400">{analytics?.status5xx ?? 0}</p>
+                    </div>
+                  </div>
+                  {analytics && analytics.avgLatencyMs > 0 ? (
+                    <div className="mt-3 flex items-center justify-between text-xs text-neutral-400">
+                      <span>Avg upstream proxy latency:</span>
+                      <span className="font-mono font-medium text-white">{analytics.avgLatencyMs} ms</span>
+                    </div>
+                  ) : null}
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Quick Reference Aside */}
+            <aside className="space-y-4">
+              <Card className="border-neutral-800 bg-[#0a0a0a]">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-semibold text-white">Project Resources</CardTitle>
+                  <CardDescription className="text-xs text-neutral-400">Quick reference for this deployment.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4 text-xs">
+                  <div>
+                    <p className="font-mono text-[10px] uppercase tracking-wide text-neutral-500">Live URL</p>
+                    {liveUrl ? (
+                      <a
+                        href={liveUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="mt-1 block break-all font-mono text-xs text-emerald-400 hover:underline"
+                      >
+                        {liveUrl.replace(/^https?:\/\//, "")}
+                      </a>
+                    ) : (
+                      <span className="mt-1 block text-neutral-500 font-mono text-xs">Not deployed</span>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <p className="font-mono text-[10px] uppercase tracking-wide text-neutral-500">App Port</p>
+                      <p className="mt-1 font-mono text-neutral-200">{project.appPort}</p>
+                    </div>
+                    <div>
+                      <p className="font-mono text-[10px] uppercase tracking-wide text-neutral-500">Host Ports</p>
+                      <p className="mt-1 font-mono text-neutral-200">{project.basePort}–{project.basePort + 1}</p>
+                    </div>
+                  </div>
+                  <div>
+                    <p className="font-mono text-[10px] uppercase tracking-wide text-neutral-500">Branch</p>
+                    <p className="mt-1 font-mono text-neutral-200">{project.branch}</p>
+                  </div>
+                  <div>
+                    <p className="font-mono text-[10px] uppercase tracking-wide text-neutral-500">Health Path</p>
+                    <p className="mt-1 font-mono text-neutral-200">{project.healthPath}</p>
+                  </div>
+                  <div>
+                    <p className="font-mono text-[10px] uppercase tracking-wide text-neutral-500">Total Deploys</p>
+                    <p className="mt-1 font-mono text-neutral-200">{totalDeploys}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </aside>
+          </div>
+        </TabsContent>
+
+        {/* 02 // DEPLOYMENTS TAB */}
+        <TabsContent value="deployments" className="space-y-6">
+          <Card className="border-neutral-800 bg-[#0a0a0a]">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-base font-semibold text-white">Deployments</CardTitle>
+                  <CardDescription className="text-xs text-neutral-400">
+                    Each row represents a container release with its host port, container name, and status.
+                  </CardDescription>
                 </div>
-              )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-rose-900/50 text-rose-400 hover:bg-rose-950/40 text-xs font-sans"
+                  onClick={() => void onRollback()}
+                >
+                  Quick Rollback
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="overflow-x-auto px-0">
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-neutral-800 hover:bg-transparent text-neutral-400 font-mono text-[11px] uppercase">
+                    <TableHead className="pl-6">Ver</TableHead>
+                    <TableHead>Environment</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Slot</TableHead>
+                    <TableHead>Host port</TableHead>
+                    <TableHead>App port</TableHead>
+                    <TableHead>Container</TableHead>
+                    <TableHead>When</TableHead>
+                    <TableHead className="pr-6 text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {deployments.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={9} className="py-10 text-center text-neutral-500 font-mono text-xs">
+                        No deployments yet. Trigger a deploy to create your first release.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    deployments.map((d) => {
+                      const hp = d.port;
+                      const u = publicServiceUrl(hp);
+                      const matchedJobId = d.jobId ?? jobs.find((j) => j.deploymentId === d.id)?.id;
+                      return (
+                        <TableRow key={d.id} className="border-neutral-800/60 font-sans text-xs hover:bg-neutral-900/40">
+                          <TableCell className="pl-6 font-mono font-semibold text-white">v{d.version}</TableCell>
+                          <TableCell className="text-xs text-neutral-400 capitalize">
+                            {d.environmentId ? environmentNameById.get(d.environmentId) ?? "—" : "—"}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex flex-col gap-1">
+                              <StatusBadge status={d.status} />
+                              {d.errorMessage ? (
+                                <span className="max-w-[200px] truncate text-xs text-red-400" title={d.errorMessage ?? ""}>
+                                  {d.errorMessage}
+                                </span>
+                              ) : null}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <SlotBadge color={d.color} />
+                          </TableCell>
+                          <TableCell className="font-mono text-xs">
+                            <a href={u} target="_blank" rel="noreferrer" className="text-sky-400 hover:underline">
+                              :{hp}
+                            </a>
+                          </TableCell>
+                          <TableCell className="font-mono text-xs tabular-nums text-neutral-400">{project.appPort}</TableCell>
+                          <TableCell className="max-w-[180px] truncate font-mono text-xs text-neutral-400">{d.containerName}</TableCell>
+                          <TableCell className="text-xs text-neutral-400">{timeAgo(d.createdAt)}</TableCell>
+                          <TableCell className="pr-6 text-right">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger
+                                className={buttonVariants({ variant: "outline", size: "sm", className: "h-7 px-2 font-mono text-xs border-neutral-800 bg-neutral-900 text-neutral-300" })}
+                              >
+                                ...
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="border-neutral-800 bg-[#0a0a0a] text-white font-sans text-xs">
+                                {matchedJobId ? (
+                                  <DropdownMenuItem onSelect={() => navigate(`/projects/${project.id}/deploy/${matchedJobId}`)}>
+                                    View logs
+                                  </DropdownMenuItem>
+                                ) : null}
+                                <DropdownMenuItem
+                                  onClick={() => {
+                                    const stageUrl = publicEnvironmentUrl(
+                                      project ? { name: project.name, basePort: project.basePort } : undefined,
+                                      d.environmentId ? environmentNameById.get(d.environmentId) : undefined,
+                                      d.port
+                                    );
+                                    void navigator.clipboard.writeText(stageUrl);
+                                    toast.success("Copied deployment preview URL");
+                                  }}
+                                >
+                                  Copy preview URL
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onSelect={() => {
+                                    if (d.environmentId) {
+                                      void onDeployToEnvironment(d.environmentId);
+                                    } else {
+                                      void onDeploy();
+                                    }
+                                  }}
+                                >
+                                  Redeploy
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => void copyText(d.containerName, "Container name")}
+                                >
+                                  Copy container
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  )}
+                </TableBody>
+              </Table>
             </CardContent>
           </Card>
-        </div>
-      ) : null}
 
-      <Card className="border-border bg-card">
-        <CardHeader className="pb-2">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-base">Project Traffic & Telemetry</CardTitle>
-            <span className="font-mono text-xs text-muted-foreground">Rolling 24h</span>
-          </div>
-          <CardDescription>Live traffic metrics and reverse proxy response distributions.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 sm:grid-cols-4">
-            <div className="rounded-lg border border-border/60 bg-muted/20 p-3">
-              <span className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">Total Requests</span>
-              <p className="mt-1 font-mono text-2xl font-bold text-foreground">{analytics?.totalHits ?? 0}</p>
-            </div>
-            <div className="rounded-lg border border-border/60 bg-muted/20 p-3">
-              <span className="font-mono text-[11px] uppercase tracking-wider text-emerald-400">Success (2xx)</span>
-              <p className="mt-1 font-mono text-2xl font-bold text-emerald-400">{analytics?.status2xx ?? 0}</p>
-            </div>
-            <div className="rounded-lg border border-border/60 bg-muted/20 p-3">
-              <span className="font-mono text-[11px] uppercase tracking-wider text-amber-400">Client Err (4xx)</span>
-              <p className="mt-1 font-mono text-2xl font-bold text-amber-400">{analytics?.status4xx ?? 0}</p>
-            </div>
-            <div className="rounded-lg border border-border/60 bg-muted/20 p-3">
-              <span className="font-mono text-[11px] uppercase tracking-wider text-rose-400">Server Err (5xx)</span>
-              <p className="mt-1 font-mono text-2xl font-bold text-rose-400">{analytics?.status5xx ?? 0}</p>
-            </div>
-          </div>
-          {analytics && analytics.avgLatencyMs > 0 ? (
-            <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
-              <span>Avg upstream proxy latency:</span>
-              <span className="font-mono font-medium text-foreground">{analytics.avgLatencyMs} ms</span>
+          <Card className="border-neutral-800 bg-[#0a0a0a]">
+            <CardHeader>
+              <CardTitle className="text-base font-semibold text-white">Deployment Jobs Audit</CardTitle>
+              <CardDescription className="text-xs text-neutral-400">Build and rollback execution logs and durations.</CardDescription>
+            </CardHeader>
+            <CardContent className="px-0">
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-neutral-800 hover:bg-transparent text-neutral-400 font-mono text-[11px] uppercase">
+                    <TableHead className="pl-6">Job</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Environment</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Artifact</TableHead>
+                    <TableHead>Duration</TableHead>
+                    <TableHead className="pr-6 text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {jobs.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="py-8 text-center text-neutral-500 font-mono text-xs">
+                        No jobs recorded yet.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    jobs.map((job) => {
+                      const dep = job.deploymentId ? deployments.find((d) => d.id === job.deploymentId) : undefined;
+                      const envName =
+                        dep?.environmentId != null ? environmentNameById.get(dep.environmentId) ?? "—" : "—";
+                      return (
+                        <TableRow key={job.id} className="border-neutral-800/60 font-sans text-xs hover:bg-neutral-900/40">
+                          <TableCell className="pl-6 font-mono text-xs text-neutral-300">#{job.id.slice(0, 8)}</TableCell>
+                          <TableCell className="font-mono text-xs font-medium text-white">{job.type}</TableCell>
+                          <TableCell className="text-xs text-neutral-400">{envName}</TableCell>
+                          <TableCell>
+                            <span className={`px-1.5 py-0.5 font-mono text-[10px] font-semibold border ${
+                              job.status === "COMPLETE"
+                                ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
+                                : job.status === "FAILED"
+                                  ? "border-red-500/30 bg-red-500/10 text-red-400"
+                                  : "border-sky-500/30 bg-sky-500/10 text-sky-400"
+                            }`}>
+                              {job.status}
+                            </span>
+                          </TableCell>
+                          <TableCell className="font-mono text-xs text-neutral-400">{jobArtifactLabel(job)}</TableCell>
+                          <TableCell className="text-xs text-neutral-400">{jobDurationLabel(job)}</TableCell>
+                          <TableCell className="pr-6 text-right">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger
+                                className={buttonVariants({ variant: "outline", size: "sm", className: "h-7 px-2 font-mono text-xs border-neutral-800 bg-neutral-900 text-neutral-300" })}
+                              >
+                                ...
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="border-neutral-800 bg-[#0a0a0a] text-white font-sans text-xs">
+                                <DropdownMenuItem onSelect={() => navigate(`/projects/${project.id}/deploy/${job.id}`)}>
+                                  View log
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => void copyText(job.id, "Job id")}
+                                >
+                                  Copy job id
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+
+          {deployments.length > 0 || jobs.length > 0 ? (
+            <div className="grid gap-4 md:grid-cols-2">
+              <Card className="border-neutral-800 bg-[#0a0a0a]">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-semibold text-white">Deployments by status</CardTitle>
+                  <CardDescription className="text-xs text-neutral-400">Release health distributions.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <DonutChart data={deploymentPie} emptyLabel="No deployments" />
+                </CardContent>
+              </Card>
+              <Card className="border-neutral-800 bg-[#0a0a0a]">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-semibold text-white">Jobs by status</CardTitle>
+                  <CardDescription className="text-xs text-neutral-400">Execution audit breakdown.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {jobs.length > 0 ? (
+                    <DonutChart data={jobsByStatus} emptyLabel="No jobs" />
+                  ) : (
+                    <div className="flex h-52 items-center justify-center rounded-lg border border-dashed border-neutral-800 text-xs text-neutral-500 font-mono">
+                      No jobs yet
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
             </div>
           ) : null}
-        </CardContent>
-      </Card>
+        </TabsContent>
 
-      <BlueGreenTrafficCard
-        project={project}
-        deployments={productionDeployments}
-        active={active}
-        deploying={deploying}
-        liveHostPort={liveHostPort}
-        liveUrl={liveUrl}
-        onCopy={copyText}
-      />
+        {/* 03 // DOMAINS & NETWORKING TAB */}
+        <TabsContent value="domains" className="space-y-6">
+          <ProjectCustomDomainCard
+            projectId={project.id}
+            liveUrl={liveUrl}
+            onCopy={copyText}
+            onUpdated={() => {
+              void load(true);
+            }}
+          />
 
-      <ProjectCustomDomainCard
-        projectId={project.id}
-        liveUrl={liveUrl}
-        onCopy={copyText}
-        onUpdated={() => {
-          void load(true);
-        }}
-      />
-
-      <Card className="border-border bg-card">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-          <CardTitle className="text-base">Configuration</CardTitle>
-          <Button variant="outline" size="sm" className="h-7 text-xs font-sans" onClick={() => setEditOpen(true)}>
-            Edit
-          </Button>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 sm:grid-cols-3">
-            <div>
-              <span className="text-xs text-muted-foreground">Health path</span>
-              <p className="mt-0.5 font-mono text-sm">
-                <code className="rounded bg-muted/50 px-1.5 py-0.5">{project.healthPath}</code>
-              </p>
-            </div>
-            <div>
-              <span className="text-xs text-muted-foreground">Build context</span>
-              <p className="mt-0.5 font-mono text-sm">
-                <code className="rounded bg-muted/50 px-1.5 py-0.5">{project.buildContext}</code>
-              </p>
-            </div>
-            <div>
-              <span className="text-xs text-muted-foreground">Host port range</span>
-              <p className="mt-0.5 font-mono text-sm">
-                <code className="rounded bg-muted/50 px-1.5 py-0.5">
-                  {project.basePort}–{project.basePort + 1}
-                </code>
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card className="border-border bg-card">
-        <CardHeader>
-          <CardTitle>Deployment jobs</CardTitle>
-          <CardDescription>Build and rollback runs with artifact hints and duration.</CardDescription>
-        </CardHeader>
-        <CardContent className="px-0">
-          <Table>
-            <TableHeader>
-              <TableRow className="border-border/50 hover:bg-transparent">
-                <TableHead className="pl-6">Job</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Environment</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Artifact</TableHead>
-                <TableHead>Duration</TableHead>
-                <TableHead className="pr-6 text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {jobs.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="py-8 text-center text-muted-foreground">
-                    No jobs yet. Deploy to generate logs.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                jobs.map((job) => {
-                  const dep = job.deploymentId ? deployments.find((d) => d.id === job.deploymentId) : undefined;
-                  const envName =
-                    dep?.environmentId != null ? environmentNameById.get(dep.environmentId) ?? "—" : "—";
-                  return (
-                    <TableRow key={job.id} className="border-border/40">
-                      <TableCell className="pl-6 font-mono text-xs">#{job.id.slice(0, 8)}</TableCell>
-                      <TableCell className="font-mono text-sm">{job.type}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground">{envName}</TableCell>
-                      <TableCell>
-                        <Badge variant={job.status === "FAILED" ? "destructive" : "secondary"} className="font-mono text-xs">
-                          {job.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="font-mono text-xs text-muted-foreground">{jobArtifactLabel(job)}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground">{jobDurationLabel(job)}</TableCell>
-                      <TableCell className="pr-6 text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger
-                            className={buttonVariants({ variant: "outline", size: "sm", className: "h-8 px-2" })}
-                          >
-                            ⋯
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onSelect={() => navigate(`/projects/${project.id}/deploy/${job.id}`)}>
-                              View log
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => void copyText(job.id, "Job id")}
-                            >
-                              Copy job id
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-
-      <Card className="border-border bg-card">
-        <CardHeader>
-          <CardTitle>Deployments</CardTitle>
-          <CardDescription>Each row is one version. The host port is what you open in the browser for that color slot.</CardDescription>
-        </CardHeader>
-        <CardContent className="overflow-x-auto px-0">
-          <Table>
-            <TableHeader>
-              <TableRow className="border-border/50 hover:bg-transparent">
-                <TableHead className="pl-6">Ver</TableHead>
-                <TableHead>Environment</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Slot</TableHead>
-                <TableHead>Host port</TableHead>
-                <TableHead>App port</TableHead>
-                <TableHead>Container</TableHead>
-                <TableHead>When</TableHead>
-                <TableHead className="pr-6 text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {deployments.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={9} className="py-10 text-center text-muted-foreground">
-                    No deployments yet. Run Deploy above.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                deployments.map((d) => {
-                  const hp = d.port;
-                  const u = publicServiceUrl(hp);
-                  const matchedJobId = d.jobId ?? jobs.find((j) => j.deploymentId === d.id)?.id;
-                  return (
-                    <TableRow key={d.id} className="border-border/40">
-                      <TableCell className="pl-6 font-mono">v{d.version}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {d.environmentId ? environmentNameById.get(d.environmentId) ?? "—" : "—"}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-col gap-1">
-                          <StatusBadge status={d.status} />
-                          {d.errorMessage ? (
-                            <span className="max-w-[200px] truncate text-xs text-red-700" title={d.errorMessage ?? ""}>
-                              {d.errorMessage}
-                            </span>
-                          ) : null}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <SlotBadge color={d.color} />
-                      </TableCell>
-                      <TableCell className="font-mono text-sm">
-                        <a href={u} target="_blank" rel="noreferrer" className="text-primary hover:underline">
-                          {hp}
-                        </a>
-                      </TableCell>
-                      <TableCell className="font-mono text-sm tabular-nums">{project.appPort}</TableCell>
-                      <TableCell className="max-w-[180px] truncate font-mono text-xs text-muted-foreground">{d.containerName}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground">{timeAgo(d.createdAt)}</TableCell>
-                      <TableCell className="pr-6 text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger
-                            className={buttonVariants({ variant: "outline", size: "sm", className: "h-8 px-2 font-mono text-xs" })}
-                          >
-                            ...
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            {matchedJobId ? (
-                              <DropdownMenuItem onSelect={() => navigate(`/projects/${project.id}/deploy/${matchedJobId}`)}>
-                                View logs
-                              </DropdownMenuItem>
-                            ) : null}
-                            <DropdownMenuItem
-                              onClick={() => {
-                                const stageUrl = publicEnvironmentUrl(
-                                  project ? { name: project.name, basePort: project.basePort } : undefined,
-                                  d.environmentId ? environmentNameById.get(d.environmentId) : undefined,
-                                  d.port
-                                );
-                                void navigator.clipboard.writeText(stageUrl);
-                                toast.success("Copied deployment preview URL");
-                              }}
-                            >
-                              Copy preview URL
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onSelect={() => {
-                                if (d.environmentId) {
-                                  void onDeployToEnvironment(d.environmentId);
-                                } else {
-                                  void onDeploy();
-                                }
-                              }}
-                            >
-                              Redeploy
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => void copyText(d.containerName, "Container name")}
-                            >
-                              Copy container
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-
-      <section className="space-y-2">
-        <h2 className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Runtime Container Logs</h2>
-        <RuntimeLogsViewer
-          title="Live Application Container Logs (stdout/stderr)"
-          containerName={runtimeContainerName}
-          logs={runtimeLogs}
-          loading={runtimeLogsLoading}
-          onRefresh={() => void fetchRuntimeLogs()}
-          autoRefresh={runtimeAutoRefresh}
-          onToggleAutoRefresh={setRuntimeAutoRefresh}
-          emptyMessage="No active container running or no container logs emitted yet."
-          maxHeightClass="max-h-80"
-        />
-      </section>
-
-      <section className="space-y-2">
-        <h2 className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Live Deployment Log</h2>
-        <AggregateJobLogStream title="Recent jobs on this instance" pollMs={8000} />
-      </section>
-        </div>
-
-        <aside className="space-y-4">
-          <Card className="border-border bg-card">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base font-semibold">Project resources</CardTitle>
-              <CardDescription className="text-sm">Quick reference for this deployment.</CardDescription>
+          <Card className="border-neutral-800 bg-[#0a0a0a]">
+            <CardHeader>
+              <CardTitle className="text-sm font-semibold text-white">Zero-Downtime Reverse Proxy Architecture</CardTitle>
+              <CardDescription className="text-xs text-neutral-400">
+                How VersionGate manages isolated Nginx upstreams and blue/green port routing.
+              </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-5 text-sm">
+            <CardContent className="space-y-3 font-mono text-xs text-neutral-400">
+              <p>
+                Each custom domain is provisioned into its own isolated virtual host config under <span className="text-neutral-200">/etc/nginx/conf.d/</span>.
+              </p>
+              <p>
+                During blue/green traffic switches, VersionGate modifies only the upstream server port (<span className="text-neutral-200">:{project.basePort}</span> or <span className="text-neutral-200">:{project.basePort + 1}</span>) and reloads Nginx seamlessly.
+              </p>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* 04 // RUNTIME LOGS TAB */}
+        <TabsContent value="logs" className="space-y-6">
+          <RuntimeLogsViewer
+            title="Live Application Container Logs (stdout/stderr)"
+            containerName={runtimeContainerName}
+            logs={runtimeLogs}
+            loading={runtimeLogsLoading}
+            onRefresh={() => void fetchRuntimeLogs()}
+            autoRefresh={runtimeAutoRefresh}
+            onToggleAutoRefresh={setRuntimeAutoRefresh}
+            emptyMessage="No active container running or no container logs emitted yet."
+            maxHeightClass="max-h-96"
+          />
+
+          <section className="space-y-2">
+            <h3 className="font-mono text-xs uppercase tracking-wider text-neutral-400">Recent Deployment Tail</h3>
+            <AggregateJobLogStream title="Recent jobs on this instance" pollMs={8000} />
+          </section>
+        </TabsContent>
+
+        {/* 05 // SETTINGS TAB */}
+        <TabsContent value="settings" className="space-y-6">
+          <Card className="border-neutral-800 bg-[#0a0a0a]">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
               <div>
-                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Live URL</p>
-                {liveUrl ? (
-                  <a
-                    href={liveUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="mt-1.5 block break-all font-mono text-sm text-primary hover:underline"
-                  >
-                    {liveUrl.replace(/^https?:\/\//, "")}
-                  </a>
-                ) : (
-                  <span className="mt-1.5 block text-muted-foreground">Not deployed</span>
-                )}
-                {customDomains[0] ? (
-                  <p className="mt-2 text-xs text-muted-foreground">
-                    Custom domain attached. Manage in the section above.
+                <CardTitle className="text-sm font-semibold text-white">Project Configuration</CardTitle>
+                <CardDescription className="text-xs text-neutral-400">Docker build context, ports, and healthcheck paths.</CardDescription>
+              </div>
+              <Button variant="outline" size="sm" className="h-7 text-xs font-sans border-neutral-800 bg-neutral-900 text-neutral-300 hover:text-white" onClick={() => setEditOpen(true)}>
+                Edit Configuration
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div className="rounded-lg border border-neutral-800 bg-neutral-950 p-3">
+                  <span className="font-mono text-[10px] uppercase text-neutral-500">Health path</span>
+                  <p className="mt-1 font-mono text-xs text-neutral-200">{project.healthPath}</p>
+                </div>
+                <div className="rounded-lg border border-neutral-800 bg-neutral-950 p-3">
+                  <span className="font-mono text-[10px] uppercase text-neutral-500">Build context</span>
+                  <p className="mt-1 font-mono text-xs text-neutral-200">{project.buildContext}</p>
+                </div>
+                <div className="rounded-lg border border-neutral-800 bg-neutral-950 p-3">
+                  <span className="font-mono text-[10px] uppercase text-neutral-500">Host port range</span>
+                  <p className="mt-1 font-mono text-xs text-neutral-200">
+                    {project.basePort}–{project.basePort + 1}
                   </p>
-                ) : (
-                  <a href="#custom-domain" className="mt-2 inline-block text-xs text-primary hover:underline">
-                    Add a custom domain
-                  </a>
-                )}
-              </div>
-              <div>
-                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">App port</p>
-                <p className="mt-1.5 font-mono tabular-nums">{project.appPort}</p>
-              </div>
-              <div>
-                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Host ports</p>
-                <p className="mt-1.5 font-mono tabular-nums">
-                  {project.basePort}–{project.basePort + 1}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Branch</p>
-                <p className="mt-1.5">{project.branch}</p>
-              </div>
-              <div>
-                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Health path</p>
-                <p className="mt-1.5 font-mono">{project.healthPath}</p>
-              </div>
-              <div>
-                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Env vars</p>
-                <p className="mt-1.5 text-muted-foreground">Encrypted at rest</p>
+                </div>
               </div>
             </CardContent>
           </Card>
-        </aside>
-      </div>
 
-      <div className="hidden gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card className="border-border bg-card">
-          <CardContent className="py-4">
-            <p className="text-xs text-muted-foreground">Total deploys</p>
-            <p className="mt-1 text-sm font-semibold tabular-nums">{totalDeploys}</p>
-          </CardContent>
-        </Card>
-      </div>
+          <Card className="border-rose-900/40 bg-rose-950/10">
+            <CardHeader>
+              <CardTitle className="text-sm font-semibold text-rose-400">Danger Zone</CardTitle>
+              <CardDescription className="text-xs text-neutral-400">
+                Permanently delete this project, destroy its Docker containers, and wipe isolated Nginx configs.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button
+                variant="destructive"
+                size="sm"
+                className="text-xs font-sans"
+                onClick={() => setDeleteOpen(true)}
+              >
+                Delete Project
+              </Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       <EditProjectModal
         open={editOpen}
@@ -832,7 +895,7 @@ export function ProjectDetail() {
         navigateTo="/"
       />
 
-      <Link to="/" className={buttonVariants({ variant: "ghost", size: "sm", className: "text-muted-foreground" })}>
+      <Link to="/" className={buttonVariants({ variant: "ghost", size: "sm", className: "text-neutral-500 hover:text-white text-xs font-sans" })}>
         Back to overview
       </Link>
     </div>
