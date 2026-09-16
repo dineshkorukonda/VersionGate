@@ -44,9 +44,40 @@ interface ProcessedRelease {
 
 const FALLBACK_RELEASES: ProcessedRelease[] = [
   {
+    version: "v2.9.4",
+    date: "September 16, 2026",
+    isLatest: true,
+    summary:
+      "Vercel and shadcn UI overhaul: global Command Palette (Cmd+K), tabbed project workspaces, redesigned project cards, and streamlined telemetry.",
+    categories: [
+      {
+        title: "Developer Experience & Interface",
+        badge: "NEW",
+        items: [
+          {
+            title: "Global Command Palette (Cmd + K)",
+            description:
+              "Grouped command search with full keyboard navigation across Projects, Navigation, and Operational Actions with keyboard shortcuts and instant execution.",
+            command: "Cmd+K / Ctrl+K",
+          },
+          {
+            title: "Tabbed Per-Project Workspaces",
+            description:
+              "Reorganized long scrolling project views into dedicated tabs: Overview, Deployments, Domains & Networking, Runtime Logs, and Settings.",
+          },
+          {
+            title: "Vercel-Style Project Cards & Overview",
+            description:
+              "Minimalist cards with Git branch chips, commit status, live deployment preview links, and zero-downtime slot telemetry.",
+          },
+        ],
+      },
+    ],
+  },
+  {
     version: "v2.9.3",
     date: "September 14, 2026",
-    isLatest: true,
+    isLatest: false,
     summary:
       "Core engine optimizations, DNS preflight verification, live container logs inspection, raw dotenv bulk editing, and custom confirmation modals.",
     categories: [

@@ -14,6 +14,17 @@ export interface Capability {
 
 const CAPABILITIES: Capability[] = [
   {
+    id: "cap-vercel-command-ui",
+    category: "Monitoring",
+    title: "Vercel & shadcn UI with Command Palette",
+    command: "Cmd+K / Ctrl+K  |  Tabbed Project Navigation",
+    description:
+      "Precision-crafted developer interface with grouped Command Palette search, tabbed project workspaces, and live deployment previews.",
+    details:
+      "Transforms the dashboard with authentic Vercel/shadcn styling: global Cmd+K command bar for instant project and navigation jumping, dedicated project tabs (Overview, Deployments, Domains, Logs, Settings), and high-contrast telemetry cards.",
+    badge: "NEW",
+  },
+  {
     id: "cap-dns-verification",
     category: "Networking",
     title: "DNS Preflight Verification & Setup",

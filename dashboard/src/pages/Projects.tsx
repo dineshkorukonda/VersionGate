@@ -22,7 +22,7 @@ import { DeleteProjectDialog } from "@/components/modals/DeleteProjectDialog";
 import { AdoptServiceModal } from "@/components/modals/AdoptServiceModal";
 import { toast } from "sonner";
 import { useLaunchCreateProject } from "@/create-project-launch";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const PAGE_SIZE = 6;
 
@@ -234,25 +234,76 @@ export function Projects() {
                 const domains = domainsByProject[proj.id] ?? [];
                 const url = publicProjectLiveUrl(proj, domains, port);
                 return (
-                  <Link key={proj.id} to={`/projects/${proj.id}`} className="block group">
-                    <Card className="h-full border border-neutral-800 bg-[#0a0a0a] rounded-xl shadow-sm transition-all hover:border-neutral-700">
+                  <div key={proj.id} className="group">
+                    <Card className="h-full border border-neutral-800 bg-[#0a0a0a] rounded-xl shadow-sm transition-all hover:border-neutral-700 flex flex-col justify-between">
                       <CardHeader className="pb-3">
-                        <div className="flex items-start justify-between">
-                          <CardTitle className="text-base font-semibold text-white group-hover:text-neutral-200">{proj.name}</CardTitle>
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0 space-y-1">
+                            <div className="flex items-center gap-2">
+                              <CardTitle className="text-base font-semibold text-white group-hover:text-neutral-200 truncate">
+                                <Link to={`/projects/${proj.id}`}>{proj.name}</Link>
+                              </CardTitle>
+                              <span className="rounded border border-neutral-800 bg-neutral-900 px-1.5 py-0.5 font-mono text-[10px] text-neutral-400 shrink-0">
+                                {proj.branch}
+                              </span>
+                            </div>
+                            <div className="truncate font-mono text-[11px] text-neutral-500">
+                              <a
+                                href={/^https?:\/\//i.test(proj.repoUrl) ? proj.repoUrl : `https://${proj.repoUrl}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                                className="hover:text-neutral-300 hover:underline"
+                              >
+                                {proj.repoUrl.replace(/^https?:\/\/(www\.)?/, "")}
+                              </a>
+                            </div>
+                          </div>
                           <StatusBadge status={state} />
                         </div>
-                        <CardDescription className="text-xs truncate font-mono text-neutral-400">
-                          {url ? url.replace(/^https?:\/\//, "") : "Not deployed"}
-                        </CardDescription>
                       </CardHeader>
-                      <CardContent>
-                        <div className="mt-4 flex items-center justify-between text-xs text-neutral-500 font-sans">
-                          <span>{formatUptime(proj.id, deployments)} uptime</span>
-                          <span className="rounded bg-neutral-900 px-2 py-0.5 font-mono text-[10px] text-neutral-400 capitalize">{envLabel}</span>
+
+                      <CardContent className="space-y-3 pb-4 flex-1 flex flex-col justify-between">
+                        {/* Live deployment preview */}
+                        <div className="rounded-lg border border-neutral-800 bg-neutral-950/60 p-2.5">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="font-mono text-[10px] uppercase tracking-wider text-neutral-500">
+                              Production Domain
+                            </span>
+                            {url ? (
+                              <a
+                                href={url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="font-mono text-[10px] text-emerald-400 hover:underline"
+                              >
+                                [ VISIT APP ]
+                              </a>
+                            ) : (
+                              <span className="font-mono text-[10px] text-neutral-600">Pending deploy</span>
+                            )}
+                          </div>
+                          <p className="mt-1 truncate font-mono text-xs text-neutral-300">
+                            {url ? url.replace(/^https?:\/\//, "") : `Port :${proj.appPort} (awaiting deployment)`}
+                          </p>
+                        </div>
+
+                        <div className="flex items-center justify-between border-t border-neutral-800/80 pt-3 font-sans text-xs text-neutral-500">
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono text-[11px] text-neutral-400">{formatUptime(proj.id, deployments)} uptime</span>
+                            <span>·</span>
+                            <span className="rounded bg-neutral-900 px-1.5 py-0.5 font-mono text-[10px] text-neutral-400 capitalize">{envLabel}</span>
+                          </div>
+                          <Link
+                            to={`/projects/${proj.id}`}
+                            className={cn(buttonVariants({ variant: "outline", size: "xs" }), "border-neutral-800 bg-neutral-900 font-mono text-[11px] text-neutral-300 hover:bg-neutral-800 hover:text-white")}
+                          >
+                            Manage
+                          </Link>
                         </div>
                       </CardContent>
                     </Card>
-                  </Link>
+                  </div>
                 );
               })}
             </div>
