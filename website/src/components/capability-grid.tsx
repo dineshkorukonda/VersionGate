@@ -14,25 +14,14 @@ export interface Capability {
 
 const CAPABILITIES: Capability[] = [
   {
-    id: "cap-cron-jobs",
-    category: "Deployment",
-    title: "Cron Jobs & Scheduled Background Workers",
-    command: "POST /api/v1/cron-jobs  |  POST /api/v1/cron-jobs/:id/trigger",
+    id: "cap-adopted-domains-pm2",
+    category: "Networking",
+    title: "Nginx Domain Ingestion & PM2 Telemetry",
+    command: "GET /api/system/discover-deployments  |  POST /api/projects/adopt",
     description:
-      "Automated 5-part cron schedule engine for invoking internal HTTP endpoints or executing bare-metal host shell commands.",
+      "Auto-detect active reverse proxy hostnames and extract live PM2 stdout/stderr logs and process telemetry on service adoption.",
     details:
-      "Supports standard cron expressions (e.g. */15 * * * *), HTTP GET/POST/PUT webhooks with custom headers, host command execution with configurable timeout guards, project isolation, and execution log history.",
-    badge: "NEW",
-  },
-  {
-    id: "cap-server-specs",
-    category: "Monitoring",
-    title: "Server Capacity & Resource Specs Engine",
-    command: "GET /api/v1/system/server-specs",
-    description:
-      "Real-time host capacity analytics tracking CPU cores, RAM allocations, disk utilization, and container overhead.",
-    details:
-      "Calculates active container memory footprints, total host capacity, swap space, and disk limits to prevent out-of-memory crashes on VPS deployments.",
+      "Scans host Nginx vhost directories for server_name rules proxying to unmanaged service ports, attaches custom domains automatically during adoption, and streams real-time PM2 process logs and metrics directly into the workspace dashboard.",
     badge: "NEW",
   },
   {

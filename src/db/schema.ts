@@ -3,6 +3,7 @@ import {
   text,
   integer,
   bigint,
+  boolean,
   timestamp,
   jsonb,
   uniqueIndex,
@@ -256,6 +257,8 @@ export const managedDatabases = pgTable(
     status: managedDatabaseStatusEnum("status").default("PROVISIONING").notNull(),
     volumeName: text("volumeName").notNull(),
     linkedProjectId: text("linkedProjectId").references(() => projects.id, { onDelete: "set null" }),
+    memoryLimit: text("memoryLimit"),
+    cpuLimit: text("cpuLimit"),
     createdAt: timestamp("createdAt", { mode: "date" }).defaultNow().notNull(),
     updatedAt: timestamp("updatedAt", { mode: "date" }).defaultNow().notNull(),
   },
@@ -263,6 +266,56 @@ export const managedDatabases = pgTable(
     index("ManagedDatabase_name_idx").on(table.name),
     index("ManagedDatabase_engine_idx").on(table.engine),
     index("ManagedDatabase_linkedProjectId_idx").on(table.linkedProjectId),
+  ]
+);
+
+// Scheduled Cron Jobs
+export const cronJobs = pgTable(
+  "CronJob",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    name: text("name").notNull(),
+    schedule: text("schedule").notNull(),
+    targetType: text("targetType").default("HTTP").notNull(), // "HTTP" | "COMMAND"
+    httpMethod: text("httpMethod").default("GET"),
+    httpPath: text("httpPath"),
+    httpHeaders: jsonb("httpHeaders"),
+    command: text("command"),
+    timeoutSeconds: integer("timeoutSeconds").default(60).notNull(),
+    enabled: boolean("enabled").default(true).notNull(),
+    projectId: text("projectId").references(() => projects.id, { onDelete: "cascade" }),
+    environmentId: text("environmentId").references(() => environments.id, { onDelete: "cascade" }),
+    lastRunAt: timestamp("lastRunAt", { mode: "date" }),
+    lastStatus: text("lastStatus"),
+    lastDurationMs: integer("lastDurationMs"),
+    lastOutput: text("lastOutput"),
+    createdAt: timestamp("createdAt", { mode: "date" }).defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt", { mode: "date" }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("CronJob_projectId_idx").on(table.projectId),
+    index("CronJob_environmentId_idx").on(table.environmentId),
+    index("CronJob_enabled_idx").on(table.enabled),
+  ]
+);
+
+// Historical Cron Execution Logs
+export const cronJobLogs = pgTable(
+  "CronJobLog",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    cronJobId: text("cronJobId")
+      .notNull()
+      .references(() => cronJobs.id, { onDelete: "cascade" }),
+    status: text("status").notNull(), // "SUCCESS" | "FAILED" | "TIMEOUT"
+    durationMs: integer("durationMs").notNull(),
+    output: text("output"),
+    triggeredBy: text("triggeredBy").default("SCHEDULE").notNull(), // "SCHEDULE" | "MANUAL"
+    createdAt: timestamp("createdAt", { mode: "date" }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("CronJobLog_cronJobId_idx").on(table.cronJobId),
+    index("CronJobLog_createdAt_idx").on(table.createdAt),
   ]
 );
 
@@ -302,6 +355,26 @@ export const projectsRelations = relations(projects, ({ many }) => ({
   jobs: many(jobs),
   domains: many(projectDomains),
   databases: many(managedDatabases),
+  cronJobs: many(cronJobs),
+}));
+
+export const cronJobsRelations = relations(cronJobs, ({ one, many }) => ({
+  project: one(projects, {
+    fields: [cronJobs.projectId],
+    references: [projects.id],
+  }),
+  environment: one(environments, {
+    fields: [cronJobs.environmentId],
+    references: [environments.id],
+  }),
+  logs: many(cronJobLogs),
+}));
+
+export const cronJobLogsRelations = relations(cronJobLogs, ({ one }) => ({
+  cronJob: one(cronJobs, {
+    fields: [cronJobLogs.cronJobId],
+    references: [cronJobs.id],
+  }),
 }));
 
 export const managedDatabasesRelations = relations(managedDatabases, ({ one }) => ({
@@ -325,6 +398,7 @@ export const environmentsRelations = relations(environments, ({ one, many }) => 
   }),
   deployments: many(deployments),
   jobs: many(jobs),
+  cronJobs: many(cronJobs),
 }));
 
 export const jobsRelations = relations(jobs, ({ one }) => ({
@@ -371,3 +445,7 @@ export type DeploymentSelect = typeof deployments.$inferSelect;
 export type DeploymentInsert = typeof deployments.$inferInsert;
 export type ManagedDatabaseSelect = typeof managedDatabases.$inferSelect;
 export type ManagedDatabaseInsert = typeof managedDatabases.$inferInsert;
+export type CronJobSelect = typeof cronJobs.$inferSelect;
+export type CronJobInsert = typeof cronJobs.$inferInsert;
+export type CronJobLogSelect = typeof cronJobLogs.$inferSelect;
+export type CronJobLogInsert = typeof cronJobLogs.$inferInsert;

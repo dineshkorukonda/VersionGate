@@ -31,7 +31,7 @@ export async function execAsync(command: string): Promise<ExecResult> {
 export async function execFileAsync(
   cmd: string,
   args: string[],
-  extra?: Pick<ExecFileOptions, "env" | "cwd">
+  extra?: Pick<ExecFileOptions, "env" | "cwd" | "timeout">
 ): Promise<ExecResult> {
   try {
     const opts: ExecFileOptions = { maxBuffer: 50 * 1024 * 1024 };
@@ -40,6 +40,9 @@ export async function execFileAsync(
     }
     if (extra?.env) {
       opts.env = { ...process.env, ...extra.env };
+    }
+    if (extra?.timeout) {
+      opts.timeout = extra.timeout;
     }
     const { stdout, stderr } = await execFilePromise(cmd, args, opts);
     return { stdout: stdout.toString(), stderr: stderr.toString() };

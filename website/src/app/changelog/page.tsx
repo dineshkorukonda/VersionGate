@@ -48,54 +48,36 @@ const FALLBACK_RELEASES: ProcessedRelease[] = [
     date: "September 17, 2026",
     isLatest: true,
     summary:
-      "Marketing website UI overhaul inspired by Dokploy bento architecture, featuring multi-tab hero dashboard preview, supported runtime strips, 8-card bento feature matrix, 4-stage pipeline showcase, PaaS comparison, and tabbed installation suite.",
+      "Full-page PM2 project creation suite, in-dashboard UI Database Studio and SQL console, Nginx custom domain ingestion for adopted services, real-time PM2 runtime log streaming, and PM2 process metrics.",
     categories: [
       {
-        title: "Website & Developer Experience",
+        title: "Service Discovery & Host Adoption",
         badge: "NEW",
         items: [
           {
-            title: "Dokploy-Inspired Bento Marketing Redesign",
+            title: "Nginx Reverse Proxy Domain Ingestion",
             description:
-              "Rebuilt the marketing landing page with high-contrast obsidian aesthetic, hairline borders, expanding indicator accents, and zero emoji clutter.",
+              "Discovered host services now automatically inspect host Nginx configuration files to detect active server_name rules, pre-filling and attaching custom domains upon adoption.",
+            command: "GET /api/system/discover-deployments",
           },
           {
-            title: "Interactive Multi-Tab Dashboard Preview",
+            title: "Host PM2 Runtime Logs & Process Telemetry",
             description:
-              "Hero section window frame featuring interactive previews for Blue/Green slotting, in-dashboard DB Studio, realtime streaming logs, and telemetry counters.",
-          },
-          {
-            title: "PaaS Technical Comparison & Pipeline Visualizer",
-            description:
-              "Comprehensive architectural comparison against Dokploy, Coolify, and Vercel alongside a 4-stage deployment lifecycle walkthrough.",
-          },
-          {
-            title: "Cron Jobs & Scheduled Background Workers",
-            description:
-              "Automate background tasks with 5-part cron expressions (e.g. */15 * * * *), HTTP webhook triggers with custom headers, host command execution with timeout guards, and execution logs history.",
-            command: "POST /api/v1/cron-jobs | POST /api/v1/cron-jobs/:id/trigger",
-          },
-          {
-            title: "Server Resource Limits & Capacity Analytics",
-            description:
-              "Real-time host capacity analytics tracking CPU cores, RAM allocations, disk utilization, and container overhead calculations.",
-            command: "GET /api/v1/system/server-specs",
+              "Runtime Logs and Metrics views now stream PM2 stdout/stderr output directly and report CPU %, memory bytes, and process status for host-managed services.",
+            command: "GET /api/projects/:id/logs",
           },
         ],
       },
-    ],
-  },
-  {
-    version: "v2.9.5",
-    date: "September 17, 2026",
-    isLatest: false,
-    summary:
-      "Full-page PM2 project creation suite, in-dashboard UI Database Studio and SQL console, and dark mode contrast enhancements.",
-    categories: [
       {
         title: "Developer Experience & Database Tooling",
         badge: "NEW",
         items: [
+          {
+            title: "Scheduled Cron Jobs & Hardware Resource Limits",
+            description:
+              "Engine-level scheduled cron task runner supporting recurring HTTP webhooks and in-container command jobs. Features schedule presets, manual 'Run Now' triggers, execution history logs, and host hardware resource limit guardrails for databases and cron execution.",
+            command: "GET /api/v1/cron-jobs | POST /api/v1/cron-jobs/:id/run | GET /api/v1/system/capacity-specs",
+          },
           {
             title: "UI Database Studio & SQL Query Console",
             description:
@@ -117,6 +99,7 @@ const FALLBACK_RELEASES: ProcessedRelease[] = [
       },
     ],
   },
+
   {
     version: "v2.9.4",
     date: "September 16, 2026",

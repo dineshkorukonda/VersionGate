@@ -831,6 +831,8 @@ export interface ManagedDatabase {
   status: "PROVISIONING" | "RUNNING" | "STOPPED" | "FAILED";
   volumeName: string;
   linkedProjectId?: string | null;
+  memoryLimit?: string | null;
+  cpuLimit?: string | null;
   running?: boolean;
   createdAt: string;
   updatedAt: string;
@@ -850,6 +852,8 @@ export interface CreateManagedDatabaseInput {
   username?: string;
   password?: string;
   linkedProjectId?: string;
+  memoryLimit?: string;
+  cpuLimit?: string;
 }
 
 export function listManagedDatabases(): Promise<{ databases: ManagedDatabase[] }> {
@@ -941,6 +945,7 @@ export interface DiscoveredDeployment {
   localPath?: string;
   repoUrl?: string;
   branch?: string;
+  detectedDomains?: string[];
   alreadyAdopted: boolean;
 }
 
@@ -954,6 +959,7 @@ export interface AdoptDeploymentInput {
   containerName?: string;
   pm2Name?: string;
   imageTag?: string;
+  customDomains?: string[];
 }
 
 export function discoverServerDeployments(): Promise<{ candidates: DiscoveredDeployment[] }> {
@@ -965,5 +971,134 @@ export function adoptServerDeployment(
 ): Promise<{ project: Project; deployment: Deployment }> {
   return request("POST", "/projects/adopt", input);
 }
+
+// ── Scheduled Cron Jobs & Server Hardware Capacity API ───────────────────────
+
+export interface CronJob {
+  id: string;
+  name: string;
+  schedule: string;
+  targetType: "HTTP" | "COMMAND";
+  httpMethod?: "GET" | "POST" | "PUT";
+  httpPath?: string | null;
+  httpHeaders?: Record<string, string> | null;
+  command?: string | null;
+  timeoutSeconds: number;
+  enabled: boolean;
+  projectId?: string | null;
+  environmentId?: string | null;
+  lastRunAt?: string | null;
+  lastStatus?: "SUCCESS" | "FAILED" | "TIMEOUT" | "RUNNING" | null;
+  lastDurationMs?: number | null;
+  lastOutput?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CronJobLog {
+  id: string;
+  cronJobId: string;
+  status: "SUCCESS" | "FAILED" | "TIMEOUT";
+  durationMs: number;
+  output?: string | null;
+  triggeredBy: "SCHEDULE" | "MANUAL";
+  createdAt: string;
+}
+
+export interface CreateCronJobInput {
+  name: string;
+  schedule: string;
+  targetType?: "HTTP" | "COMMAND";
+  httpMethod?: "GET" | "POST" | "PUT";
+  httpPath?: string;
+  httpHeaders?: Record<string, string>;
+  command?: string;
+  timeoutSeconds?: number;
+  enabled?: boolean;
+  projectId?: string;
+  environmentId?: string;
+}
+
+export interface UpdateCronJobInput {
+  name?: string;
+  schedule?: string;
+  targetType?: "HTTP" | "COMMAND";
+  httpMethod?: "GET" | "POST" | "PUT";
+  httpPath?: string;
+  httpHeaders?: Record<string, string>;
+  command?: string;
+  timeoutSeconds?: number;
+  enabled?: boolean;
+}
+
+export interface ServerCapacitySpecs {
+  hardware: {
+    cpuCores: number;
+    cpuModel: string;
+    totalMemoryBytes: number;
+    totalMemoryMb: number;
+    totalMemoryGb: number;
+    freeMemoryMb: number;
+    loadAverage: [number, number, number];
+    platform: string;
+    arch: string;
+  };
+  recommendations: {
+    database: {
+      memoryLimit: string;
+      cpuLimit: string;
+      memoryPresetOptions: { label: string; value: string; isRecommended?: boolean }[];
+      cpuPresetOptions: { label: string; value: string; isRecommended?: boolean }[];
+    };
+    cron: {
+      maxConcurrentJobs: number;
+      defaultTimeoutSeconds: number;
+      recommendedTimeoutCeiling: number;
+    };
+    container: {
+      maxRecommendedRunningContainers: number;
+      defaultMemoryLimit: string;
+    };
+  };
+}
+
+export function listCronJobs(projectId?: string): Promise<{ cronJobs: CronJob[] }> {
+  const q = projectId ? `?projectId=${encodeURIComponent(projectId)}` : "";
+  return request("GET", `/cron-jobs${q}`);
+}
+
+export function getCronJob(id: string): Promise<{ cronJob: CronJob }> {
+  return request("GET", `/cron-jobs/${id}`);
+}
+
+export function createCronJob(input: CreateCronJobInput): Promise<{ cronJob: CronJob }> {
+  return request("POST", "/cron-jobs", input);
+}
+
+export function updateCronJob(id: string, input: UpdateCronJobInput): Promise<{ cronJob: CronJob }> {
+  return request("PATCH", `/cron-jobs/${id}`, input);
+}
+
+export function deleteCronJob(id: string): Promise<{ status: string }> {
+  return request("DELETE", `/cron-jobs/${id}`);
+}
+
+export function triggerCronJob(id: string): Promise<{
+  jobId: string;
+  status: "SUCCESS" | "FAILED" | "TIMEOUT";
+  durationMs: number;
+  output: string;
+}> {
+  return request("POST", `/cron-jobs/${id}/run`);
+}
+
+export function getCronJobLogs(id: string, limit = 50): Promise<{ logs: CronJobLog[] }> {
+  return request("GET", `/cron-jobs/${id}/logs?limit=${limit}`);
+}
+
+export function getServerCapacitySpecs(): Promise<ServerCapacitySpecs> {
+  return request("GET", "/system/capacity-specs");
+}
+
 
 

@@ -37,6 +37,8 @@ export interface ProvisionDatabaseInput {
   username?: string;
   password?: string;
   linkedProjectId?: string;
+  memoryLimit?: string;
+  cpuLimit?: string;
 }
 
 export interface ManagedDatabaseDetails extends ManagedDatabaseSelect {
@@ -199,6 +201,13 @@ export class DatabaseProvisioningService {
       "-p", `0.0.0.0:${hostPort}:${cfg.internalPort}`,
     ];
 
+    if (input.memoryLimit) {
+      dockerArgs.push("--memory", input.memoryLimit);
+    }
+    if (input.cpuLimit) {
+      dockerArgs.push("--cpus", input.cpuLimit);
+    }
+
     switch (input.engine) {
       case "postgres":
         dockerArgs.push(
@@ -262,6 +271,8 @@ export class DatabaseProvisioningService {
       status: "RUNNING",
       volumeName,
       linkedProjectId: input.linkedProjectId || null,
+      memoryLimit: input.memoryLimit || null,
+      cpuLimit: input.cpuLimit || null,
     });
 
     if (input.linkedProjectId) {

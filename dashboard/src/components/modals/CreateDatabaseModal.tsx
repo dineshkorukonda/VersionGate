@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { createManagedDatabase, type ManagedDatabase, type Project } from "@/lib/api";
+import { createManagedDatabase, getServerCapacitySpecs, type ManagedDatabase, type Project, type ServerCapacitySpecs } from "@/lib/api";
 import { toast } from "sonner";
 
 interface Props {
@@ -19,7 +19,28 @@ export function CreateDatabaseModal({ open, onOpenChange, projects, onCreated }:
   const [username, setUsername] = useState("postgres");
   const [password, setPassword] = useState("");
   const [linkedProjectId, setLinkedProjectId] = useState<string>("");
+  const [memoryLimit, setMemoryLimit] = useState<string>("512m");
+  const [cpuLimit, setCpuLimit] = useState<string>("1.0");
+  const [specs, setSpecs] = useState<ServerCapacitySpecs | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      void getServerCapacitySpecs()
+        .then((data) => {
+          setSpecs(data);
+          if (data?.recommendations?.database?.memoryLimit) {
+            setMemoryLimit(data.recommendations.database.memoryLimit);
+          }
+          if (data?.recommendations?.database?.cpuLimit) {
+            setCpuLimit(data.recommendations.database.cpuLimit);
+          }
+        })
+        .catch(() => {
+          // ignore background specs failure
+        });
+    }
+  }, [open]);
 
   const handleEngineChange = (newEngine: "postgres" | "mysql" | "redis" | "mongodb") => {
     setEngine(newEngine);
@@ -54,6 +75,8 @@ export function CreateDatabaseModal({ open, onOpenChange, projects, onCreated }:
         username: username.trim() || undefined,
         password: password.trim() || undefined,
         linkedProjectId: linkedProjectId || undefined,
+        memoryLimit: memoryLimit || undefined,
+        cpuLimit: cpuLimit || undefined,
       });
       toast.success(`[ OK ] Database ${res.database.name} provisioned`);
       onCreated(res.database);
@@ -165,6 +188,74 @@ export function CreateDatabaseModal({ open, onOpenChange, projects, onCreated }:
               onChange={(e) => setPassword(e.target.value)}
               className="border-neutral-800 bg-neutral-900 font-mono text-xs text-white placeholder:text-neutral-600 focus-visible:ring-emerald-500"
             />
+          </div>
+
+          {/* Resource Limits & Server Capacity */}
+          <div className="space-y-2 rounded border border-neutral-800/80 bg-neutral-900/40 p-3">
+            <div className="flex items-center justify-between">
+              <label className="font-mono text-xs font-medium text-neutral-300">
+                Resource Allocation Guardrails
+              </label>
+              {specs && (
+                <span className="font-mono text-[10px] text-emerald-400">
+                  [ HOST: {specs.hardware.cpuCores} CORES | {specs.hardware.totalMemoryGb} GB RAM ]
+                </span>
+              )}
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label htmlFor="db-memory" className="font-mono text-[11px] text-neutral-400">
+                  RAM Limit
+                </label>
+                <select
+                  id="db-memory"
+                  value={memoryLimit}
+                  onChange={(e) => setMemoryLimit(e.target.value)}
+                  className="w-full border border-neutral-800 bg-neutral-900 px-2 py-1.5 font-mono text-xs text-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                >
+                  {specs?.recommendations?.database?.memoryPresetOptions?.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label} {opt.value === specs.recommendations.database.memoryLimit ? "— Recommended" : ""}
+                    </option>
+                  )) || (
+                    <>
+                      <option value="256m">256 MB (Low)</option>
+                      <option value="512m">512 MB (Standard)</option>
+                      <option value="1g">1 GB (High)</option>
+                      <option value="2g">2 GB (Intensive)</option>
+                    </>
+                  )}
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label htmlFor="db-cpu" className="font-mono text-[11px] text-neutral-400">
+                  CPU Cores
+                </label>
+                <select
+                  id="db-cpu"
+                  value={cpuLimit}
+                  onChange={(e) => setCpuLimit(e.target.value)}
+                  className="w-full border border-neutral-800 bg-neutral-900 px-2 py-1.5 font-mono text-xs text-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                >
+                  {specs?.recommendations?.database?.cpuPresetOptions?.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label} {opt.value === specs.recommendations.database.cpuLimit ? "— Recommended" : ""}
+                    </option>
+                  )) || (
+                    <>
+                      <option value="0.5">0.5 Cores</option>
+                      <option value="1.0">1.0 Core</option>
+                      <option value="2.0">2.0 Cores</option>
+                      <option value="4.0">4.0 Cores</option>
+                    </>
+                  )}
+                </select>
+              </div>
+            </div>
+            <p className="text-[10px] text-neutral-500">
+              Limits are enforced by Docker cgroups to prevent runaway container queries from starving other host workloads.
+            </p>
           </div>
 
           {/* Auto-link Project */}
