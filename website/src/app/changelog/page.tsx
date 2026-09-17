@@ -44,9 +44,57 @@ interface ProcessedRelease {
 
 const FALLBACK_RELEASES: ProcessedRelease[] = [
   {
-    version: "v2.9.6",
+    version: "v2.9.7",
     date: "September 17, 2026",
     isLatest: true,
+    summary:
+      "Vercel-style deployment and commit log views across the dashboard, redesigned marketing site with Poppins typography and dark-only theme, and global deployments activity page.",
+    categories: [
+      {
+        title: "Dashboard Deployment Logs",
+        badge: "NEW",
+        items: [
+          {
+            title: "Global Deployments Page",
+            description:
+              "New /deployments route lists all project deployments with status, environment, commit metadata, branch, author, and duration in a Vercel-style feed.",
+            command: "GET /api/v1/deployments",
+          },
+          {
+            title: "Project Commit & Deployment Tabs",
+            description:
+              "Project workspaces now expose route-synced Deployments and Commits tabs with shared status/environment filters and commit-centric deployment history.",
+            command: "GET /api/v1/projects/:id/commits",
+          },
+          {
+            title: "Redesigned App Sidebar",
+            description:
+              "Vercel-style sidebar with workspace header, keyboard search shortcut, project sub-navigation, and streamlined navigation to deployments and activity.",
+          },
+        ],
+      },
+      {
+        title: "Marketing Site Redesign",
+        badge: "IMPROVEMENT",
+        items: [
+          {
+            title: "Poppins Typography & Dark-Only Theme",
+            description:
+              "Landing page now uses Poppins for UI copy, removes light-mode toggle, and enforces a consistent dark palette without white panel artifacts.",
+          },
+          {
+            title: "Simplified Landing Sections",
+            description:
+              "Removed the interactive capability catalog filter grid from the homepage in favor of cleaner feature bento cards and streamlined section copy.",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    version: "v2.9.6",
+    date: "September 17, 2026",
+    isLatest: false,
     summary:
       "Full-page PM2 project creation suite, in-dashboard UI Database Studio and SQL console, Nginx custom domain ingestion for adopted services, real-time PM2 runtime log streaming, and PM2 process metrics.",
     categories: [

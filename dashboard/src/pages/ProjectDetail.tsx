@@ -2,7 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DonutChart } from "@/components/charts/DonutChart";
 import { DeleteProjectDialog } from "@/components/modals/DeleteProjectDialog";
 import { EditProjectModal } from "@/components/modals/EditProjectModal";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
+import { projectTabFromPath, projectTabPath, type ProjectTab } from "@/lib/project-routes";
 import {
   getDeployments,
   getProject,
@@ -29,14 +30,14 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { StatusBadge } from "@/components/badges/StatusBadge";
-import { SlotBadge } from "@/components/badges/SlotBadge";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { BlueGreenTrafficCard } from "@/components/BlueGreenTrafficCard";
-import { getDeployingDeployment, publicEnvironmentUrl, publicProjectLiveUrl, publicServiceUrl } from "@/lib/deployment-display";
+import { getDeployingDeployment, publicProjectLiveUrl } from "@/lib/deployment-display";
 import { ProjectCustomDomainCard } from "@/components/ProjectCustomDomainCard";
 import { AggregateJobLogStream } from "@/components/AggregateJobLogStream";
+import { ProjectDeploymentLogs } from "@/components/ProjectDeploymentLogs";
 import { jobArtifactLabel, jobDurationLabel } from "@/lib/job-display";
 import {
   DropdownMenu,
@@ -52,17 +53,6 @@ function copyText(text: string, label: string) {
   );
 }
 
-function timeAgo(date: string): string {
-  const seconds = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
-  if (seconds < 60) return "just now";
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  return `${days}d ago`;
-}
-
 function notifyUser(title: string, options?: NotificationOptions) {
   if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
     try {
@@ -75,7 +65,9 @@ function notifyUser(title: string, options?: NotificationOptions) {
 
 export function ProjectDetail() {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   const { id } = useParams<{ id: string }>();
+  const activeTab: ProjectTab = id ? projectTabFromPath(pathname, id) : "overview";
   const [project, setProject] = useState<Project | null>(null);
   const [deployments, setDeployments] = useState<Deployment[]>([]);
   const [environments, setEnvironments] = useState<EnvironmentSummary[]>([]);
@@ -386,7 +378,14 @@ export function ProjectDetail() {
         </div>
       </div>
 
-      <Tabs defaultValue="overview" className="w-full space-y-6">
+      <Tabs
+        value={activeTab}
+        onValueChange={(v) => {
+          if (!id) return;
+          navigate(projectTabPath(id, v as ProjectTab));
+        }}
+        className="w-full space-y-6"
+      >
         <TabsList variant="line" className="gap-2 border-b border-neutral-800 bg-transparent p-0 w-full justify-start rounded-none">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="deployments">Deployments ({productionDeployments.length})</TabsTrigger>
@@ -545,132 +544,9 @@ export function ProjectDetail() {
 
         {/* 02 // DEPLOYMENTS TAB */}
         <TabsContent value="deployments" className="space-y-6">
-          <Card className="border-neutral-800 bg-[#0a0a0a]">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="text-base font-semibold text-white">Deployments</CardTitle>
-                  <CardDescription className="text-xs text-neutral-400">
-                    Each row represents a container release with its host port, container name, and status.
-                  </CardDescription>
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="border-rose-900/50 text-rose-400 hover:bg-rose-950/40 text-xs font-sans"
-                  onClick={() => void onRollback()}
-                >
-                  Quick Rollback
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="overflow-x-auto px-0">
-              <Table>
-                <TableHeader>
-                  <TableRow className="border-neutral-800 hover:bg-transparent text-neutral-400 font-mono text-[11px] uppercase">
-                    <TableHead className="pl-6">Ver</TableHead>
-                    <TableHead>Environment</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Slot</TableHead>
-                    <TableHead>Host port</TableHead>
-                    <TableHead>App port</TableHead>
-                    <TableHead>Container</TableHead>
-                    <TableHead>When</TableHead>
-                    <TableHead className="pr-6 text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {deployments.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={9} className="py-10 text-center text-neutral-500 font-mono text-xs">
-                        No deployments yet. Trigger a deploy to create your first release.
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    deployments.map((d) => {
-                      const hp = d.port;
-                      const u = publicServiceUrl(hp);
-                      const matchedJobId = d.jobId ?? jobs.find((j) => j.deploymentId === d.id)?.id;
-                      return (
-                        <TableRow key={d.id} className="border-neutral-800/60 font-sans text-xs hover:bg-neutral-900/40">
-                          <TableCell className="pl-6 font-mono font-semibold text-white">v{d.version}</TableCell>
-                          <TableCell className="text-xs text-neutral-400 capitalize">
-                            {d.environmentId ? environmentNameById.get(d.environmentId) ?? "—" : "—"}
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex flex-col gap-1">
-                              <StatusBadge status={d.status} />
-                              {d.errorMessage ? (
-                                <span className="max-w-[200px] truncate text-xs text-red-400" title={d.errorMessage ?? ""}>
-                                  {d.errorMessage}
-                                </span>
-                              ) : null}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <SlotBadge color={d.color} />
-                          </TableCell>
-                          <TableCell className="font-mono text-xs">
-                            <a href={u} target="_blank" rel="noreferrer" className="text-sky-400 hover:underline">
-                              :{hp}
-                            </a>
-                          </TableCell>
-                          <TableCell className="font-mono text-xs tabular-nums text-neutral-400">{project.appPort}</TableCell>
-                          <TableCell className="max-w-[180px] truncate font-mono text-xs text-neutral-400">{d.containerName}</TableCell>
-                          <TableCell className="text-xs text-neutral-400">{timeAgo(d.createdAt)}</TableCell>
-                          <TableCell className="pr-6 text-right">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger
-                                className={buttonVariants({ variant: "outline", size: "sm", className: "h-7 px-2 font-mono text-xs border-neutral-800 bg-neutral-900 text-neutral-300" })}
-                              >
-                                ...
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="border-neutral-800 bg-[#0a0a0a] text-white font-sans text-xs">
-                                {matchedJobId ? (
-                                  <DropdownMenuItem onSelect={() => navigate(`/projects/${project.id}/deploy/${matchedJobId}`)}>
-                                    View logs
-                                  </DropdownMenuItem>
-                                ) : null}
-                                <DropdownMenuItem
-                                  onClick={() => {
-                                    const stageUrl = publicEnvironmentUrl(
-                                      project ? { name: project.name, basePort: project.basePort } : undefined,
-                                      d.environmentId ? environmentNameById.get(d.environmentId) : undefined,
-                                      d.port
-                                    );
-                                    void navigator.clipboard.writeText(stageUrl);
-                                    toast.success("Copied deployment preview URL");
-                                  }}
-                                >
-                                  Copy preview URL
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onSelect={() => {
-                                    if (d.environmentId) {
-                                      void onDeployToEnvironment(d.environmentId);
-                                    } else {
-                                      void onDeploy();
-                                    }
-                                  }}
-                                >
-                                  Redeploy
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={() => void copyText(d.containerName, "Container name")}
-                                >
-                                  Copy container
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })
-                  )}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
+          {id ? (
+            <ProjectDeploymentLogs projectId={id} onRollback={() => void onRollback()} />
+          ) : null}
 
           <Card className="border-neutral-800 bg-[#0a0a0a]">
             <CardHeader>
