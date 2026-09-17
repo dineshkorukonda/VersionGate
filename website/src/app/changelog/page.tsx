@@ -78,14 +78,14 @@ const FALLBACK_RELEASES: ProcessedRelease[] = [
         badge: "IMPROVEMENT",
         items: [
           {
-            title: "Poppins Typography & Dark-Only Theme",
+            title: "Minimal Product Landing (A+B)",
             description:
-              "Landing page now uses Poppins for UI copy, removes light-mode toggle, and enforces a consistent dark palette without white panel artifacts.",
+              "Homepage rebuilt as a sparse Railway-style layout: split hero with real deployments UI preview, four feature rows, three-step how-it-works, and install CTA.",
           },
           {
-            title: "Simplified Landing Sections",
+            title: "Poppins Typography & Dark-Only Theme",
             description:
-              "Removed the interactive capability catalog filter grid from the homepage in favor of cleaner feature bento cards and streamlined section copy.",
+              "Landing page uses Poppins for UI copy, pure black canvas, and no light-mode toggle. Removed bento grid, comparison table, ecosystem strip, and capability catalog.",
           },
         ],
       },
