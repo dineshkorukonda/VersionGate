@@ -44,9 +44,39 @@ interface ProcessedRelease {
 
 const FALLBACK_RELEASES: ProcessedRelease[] = [
   {
-    version: "v2.9.5",
+    version: "v2.9.6",
     date: "September 17, 2026",
     isLatest: true,
+    summary:
+      "Marketing website UI overhaul inspired by Dokploy bento architecture, featuring multi-tab hero dashboard preview, supported runtime strips, 8-card bento feature matrix, 4-stage pipeline showcase, PaaS comparison, and tabbed installation suite.",
+    categories: [
+      {
+        title: "Website & Developer Experience",
+        badge: "NEW",
+        items: [
+          {
+            title: "Dokploy-Inspired Bento Marketing Redesign",
+            description:
+              "Rebuilt the marketing landing page with high-contrast obsidian aesthetic, hairline borders, expanding indicator accents, and zero emoji clutter.",
+          },
+          {
+            title: "Interactive Multi-Tab Dashboard Preview",
+            description:
+              "Hero section window frame featuring interactive previews for Blue/Green slotting, in-dashboard DB Studio, realtime streaming logs, and telemetry counters.",
+          },
+          {
+            title: "PaaS Technical Comparison & Pipeline Visualizer",
+            description:
+              "Comprehensive architectural comparison against Dokploy, Coolify, and Vercel alongside a 4-stage deployment lifecycle walkthrough.",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    version: "v2.9.5",
+    date: "September 17, 2026",
+    isLatest: false,
     summary:
       "Full-page PM2 project creation suite, in-dashboard UI Database Studio and SQL console, and dark mode contrast enhancements.",
     categories: [
