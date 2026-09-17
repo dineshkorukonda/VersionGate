@@ -16,6 +16,7 @@ import {
 import { CreateDatabaseModal } from "@/components/modals/CreateDatabaseModal";
 import { DatabaseDetailsModal } from "@/components/modals/DatabaseDetailsModal";
 import { LinkDatabaseModal } from "@/components/modals/LinkDatabaseModal";
+import { DatabaseStudioModal } from "@/components/modals/DatabaseStudioModal";
 import { ConfirmDialog } from "@/components/modals/ConfirmDialog";
 import { toast } from "sonner";
 
@@ -26,6 +27,8 @@ export function Databases() {
   const [createOpen, setCreateOpen] = useState(false);
   const [inspectDb, setInspectDb] = useState<ManagedDatabaseDetails | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [studioDb, setStudioDb] = useState<ManagedDatabase | null>(null);
+  const [studioOpen, setStudioOpen] = useState(false);
   const [linkModalOpen, setLinkModalOpen] = useState(false);
   const [linkingDb, setLinkingDb] = useState<ManagedDatabase | null>(null);
   const [actionInProgress, setActionInProgress] = useState<string | null>(null);
@@ -258,6 +261,16 @@ export function Databases() {
                             <button
                               type="button"
                               onClick={() => {
+                                setStudioDb(db);
+                                setStudioOpen(true);
+                              }}
+                              className="text-primary hover:underline font-semibold"
+                            >
+                              [ Studio ]
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
                                 setLinkingDb(db);
                                 setLinkModalOpen(true);
                               }}
@@ -325,6 +338,12 @@ export function Databases() {
         database={linkingDb}
         projects={projects}
         onLinked={() => void load()}
+      />
+
+      <DatabaseStudioModal
+        open={studioOpen}
+        onOpenChange={setStudioOpen}
+        database={studioDb}
       />
 
       <ConfirmDialog

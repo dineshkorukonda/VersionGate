@@ -7,7 +7,27 @@ import { isPortAvailableOnHost, parseExcludedPorts } from "../utils/port-manager
 import { databaseRepository } from "../repositories/database.repository";
 import { ProjectRepository } from "../repositories/project.repository";
 import { ManagedDatabaseSelect } from "../db/schema";
-import { inspectContainer, stopContainer, removeContainer, getContainerLogs } from "../utils/docker";
+import { inspectContainer, stopContainer, removeContainer, getContainerLogs, execContainer } from "../utils/docker";
+
+export interface DatabaseSchemaTable {
+  name: string;
+  type?: string;
+  rowCount?: number;
+}
+
+export interface DatabaseSchemaResult {
+  engine: "postgres" | "mysql" | "redis" | "mongodb";
+  databaseName: string;
+  tables: DatabaseSchemaTable[];
+}
+
+export interface DatabaseQueryResult {
+  columns: string[];
+  rows: string[][];
+  rowCount: number;
+  executionTimeMs: number;
+  rawOutput: string;
+}
 
 export interface ProvisionDatabaseInput {
   name: string;
@@ -418,6 +438,179 @@ export class DatabaseProvisioningService {
     const lines = await getContainerLogs(record.containerName, tail);
     return { lines, containerName: record.containerName };
   }
+
+  async getDatabaseSchema(databaseId: string): Promise<DatabaseSchemaResult> {
+    const record = await this.dbRepo.findById(databaseId);
+    if (!record) {
+      throw new Error("Database not found");
+    }
+
+    const running = await inspectContainer(record.containerName).catch(() => false);
+    if (!running) {
+      throw new Error(`Database container ${record.containerName} is not running`);
+    }
+
+    const password = record.passwordEncrypted ? decrypt(record.passwordEncrypted) : "";
+    const user = record.username || (record.engine === "mysql" ? "root" : "postgres");
+    const dbName = record.databaseName || "versiongate_app";
+    const tables: DatabaseSchemaTable[] = [];
+
+    try {
+      if (record.engine === "postgres") {
+        const query = "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE' ORDER BY table_name;";
+        const { stdout } = await execContainer(record.containerName, [
+          "psql",
+          "-U", user,
+          "-d", dbName,
+          "-A",
+          "-t",
+          "-c", query,
+        ]);
+        const names = stdout.split("\n").map((l) => l.trim()).filter(Boolean);
+        for (const name of names) {
+          tables.push({ name, type: "table" });
+        }
+      } else if (record.engine === "mysql") {
+        const query = "SHOW FULL TABLES WHERE Table_type = 'BASE TABLE';";
+        const { stdout } = await execContainer(record.containerName, [
+          "mysql",
+          "-u", user,
+          `-p${password}`,
+          dbName,
+          "-B",
+          "-N",
+          "-e", query,
+        ]);
+        const lines = stdout.split("\n").map((l) => l.trim()).filter(Boolean);
+        for (const line of lines) {
+          const tableName = line.split("\t")[0];
+          if (tableName) tables.push({ name: tableName, type: "table" });
+        }
+      } else if (record.engine === "redis") {
+        const cmd = password ? ["redis-cli", "-a", password, "--no-auth-warning", "KEYS", "*"] : ["redis-cli", "KEYS", "*"];
+        const { stdout } = await execContainer(record.containerName, cmd);
+        const keys = stdout.split("\n").map((l) => l.trim()).filter(Boolean);
+        for (const key of keys) {
+          tables.push({ name: key, type: "key" });
+        }
+      } else if (record.engine === "mongodb") {
+        const evalCmd = "db.getCollectionNames().join('\\n')";
+        const cmd = password
+          ? ["mongosh", "-u", user, "-p", password, "--authenticationDatabase", "admin", dbName, "--quiet", "--eval", evalCmd]
+          : ["mongosh", dbName, "--quiet", "--eval", evalCmd];
+        const { stdout } = await execContainer(record.containerName, cmd);
+        const collections = stdout.split("\n").map((l) => l.trim()).filter(Boolean);
+        for (const col of collections) {
+          tables.push({ name: col, type: "collection" });
+        }
+      }
+    } catch (err: any) {
+      logger.warn({ id: databaseId, engine: record.engine, err }, "Failed to fetch schema tables from container");
+    }
+
+    return {
+      engine: record.engine,
+      databaseName: dbName,
+      tables,
+    };
+  }
+
+  async executeDatabaseQuery(databaseId: string, query: string, limit = 100): Promise<DatabaseQueryResult> {
+    const record = await this.dbRepo.findById(databaseId);
+    if (!record) {
+      throw new Error("Database not found");
+    }
+
+    const running = await inspectContainer(record.containerName).catch(() => false);
+    if (!running) {
+      throw new Error(`Database container ${record.containerName} is not running`);
+    }
+
+    const trimmed = query.trim();
+    if (!trimmed) {
+      throw new Error("Query cannot be empty");
+    }
+
+    const password = record.passwordEncrypted ? decrypt(record.passwordEncrypted) : "";
+    const user = record.username || (record.engine === "mysql" ? "root" : "postgres");
+    const dbName = record.databaseName || "versiongate_app";
+
+    const startTime = Date.now();
+    let stdout = "";
+    let columns: string[] = [];
+    let rows: string[][] = [];
+
+    try {
+      if (record.engine === "postgres") {
+        const res = await execContainer(record.containerName, [
+          "psql",
+          "-U", user,
+          "-d", dbName,
+          "-A",
+          "-F", "\t",
+          "-c", trimmed,
+        ]);
+        stdout = res.stdout;
+        const lines = stdout.split("\n").map((l) => l.trimEnd()).filter(Boolean);
+        const dataLines = lines.filter((l) => !/^\(\d+\s+rows?\)$/i.test(l) && !/^--/i.test(l));
+        if (dataLines.length > 0 && dataLines[0].includes("\t") || dataLines.length > 1) {
+          columns = dataLines[0].split("\t");
+          rows = dataLines.slice(1, limit + 1).map((l) => l.split("\t"));
+        } else if (dataLines.length === 1 && !dataLines[0].startsWith("CREATE") && !dataLines[0].startsWith("INSERT") && !dataLines[0].startsWith("UPDATE") && !dataLines[0].startsWith("DELETE")) {
+          columns = [dataLines[0]];
+          rows = [];
+        }
+      } else if (record.engine === "mysql") {
+        const res = await execContainer(record.containerName, [
+          "mysql",
+          "-u", user,
+          `-p${password}`,
+          dbName,
+          "-B",
+          "-e", trimmed,
+        ]);
+        stdout = res.stdout;
+        const lines = stdout.split("\n").map((l) => l.trimEnd()).filter(Boolean);
+        if (lines.length > 0) {
+          columns = lines[0].split("\t");
+          rows = lines.slice(1, limit + 1).map((l) => l.split("\t"));
+        }
+      } else if (record.engine === "redis") {
+        const tokens = trimmed.match(/(?:[^\s"]+|"[^"]*")+/g) || [trimmed];
+        const cleanTokens = tokens.map((t) => t.replace(/^"|"$/g, ""));
+        const cmd = password
+          ? ["redis-cli", "-a", password, "--no-auth-warning", ...cleanTokens]
+          : ["redis-cli", ...cleanTokens];
+        const res = await execContainer(record.containerName, cmd);
+        stdout = res.stdout;
+        const lines = stdout.split("\n").map((l) => l.trimEnd()).filter(Boolean);
+        columns = ["Result"];
+        rows = lines.slice(0, limit).map((l) => [l]);
+      } else if (record.engine === "mongodb") {
+        const cmd = password
+          ? ["mongosh", "-u", user, "-p", password, "--authenticationDatabase", "admin", dbName, "--quiet", "--eval", trimmed]
+          : ["mongosh", dbName, "--quiet", "--eval", trimmed];
+        const res = await execContainer(record.containerName, cmd);
+        stdout = res.stdout;
+        columns = ["Output"];
+        rows = stdout.split("\n").map((l) => l.trimEnd()).filter(Boolean).slice(0, limit).map((l) => [l]);
+      }
+    } catch (err: any) {
+      const errMsg = err?.message || String(err);
+      throw new Error(`Query failed: ${errMsg}`);
+    }
+
+    const executionTimeMs = Date.now() - startTime;
+
+    return {
+      columns,
+      rows,
+      rowCount: rows.length,
+      executionTimeMs,
+      rawOutput: stdout,
+    };
+  }
 }
 
 export const databaseProvisioningService = new DatabaseProvisioningService();
+
