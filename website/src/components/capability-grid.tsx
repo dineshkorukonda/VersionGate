@@ -14,6 +14,28 @@ export interface Capability {
 
 const CAPABILITIES: Capability[] = [
   {
+    id: "cap-db-studio",
+    category: "Deployment",
+    title: "UI Database Studio & Query Console",
+    command: "GET /api/v1/databases/:id/schema  |  POST /api/v1/databases/:id/query",
+    description:
+      "Interactive in-dashboard database studio for inspecting schemas, exploring tables, and executing SQL / command queries against managed containers.",
+    details:
+      "Inspect live tables, run custom SQL / Redis / Mongo queries with real-time execution telemetry, view tabular records, and export results directly to JSON or CSV.",
+    badge: "NEW",
+  },
+  {
+    id: "cap-fullpage-project-wizard",
+    category: "Deployment",
+    title: "Full-Page Project & PM2 Creation Suite",
+    command: "POST /api/v1/projects  |  /projects/new",
+    description:
+      "Dedicated full-page project setup experience supporting Docker containerization and bare-metal PM2 process supervision.",
+    details:
+      "Ample workspace for repository selection, automatic stack detection, custom package managers (Bun, pnpm, uv, Poetry, Cargo, Composer), build/start script overrides, and encrypted environment variables.",
+    badge: "NEW",
+  },
+  {
     id: "cap-vercel-command-ui",
     category: "Monitoring",
     title: "Vercel & shadcn UI with Command Palette",

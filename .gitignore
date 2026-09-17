@@ -28,9 +28,11 @@ Thumbs.db
 .vscode/
 .idea/
 
-# Test coverage
+# Coverage and tooling
 coverage/
 .cursor/
 .entire/
 .gemini/
 .deepsec/
+.worktrees/
+worktrees/

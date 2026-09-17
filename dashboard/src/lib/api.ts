@@ -895,6 +895,38 @@ export function getDatabaseLogs(
   return request("GET", `/databases/${databaseId}/logs?tail=${tail}`);
 }
 
+export interface DatabaseSchemaTable {
+  name: string;
+  type?: string;
+  rowCount?: number;
+}
+
+export interface DatabaseSchemaResult {
+  engine: "postgres" | "mysql" | "redis" | "mongodb";
+  databaseName: string;
+  tables: DatabaseSchemaTable[];
+}
+
+export interface DatabaseQueryResult {
+  columns: string[];
+  rows: string[][];
+  rowCount: number;
+  executionTimeMs: number;
+  rawOutput: string;
+}
+
+export function getDatabaseSchema(databaseId: string): Promise<{ schema: DatabaseSchemaResult }> {
+  return request("GET", `/databases/${databaseId}/schema`);
+}
+
+export function executeDatabaseQuery(
+  databaseId: string,
+  query: string,
+  limit = 100
+): Promise<DatabaseQueryResult> {
+  return request("POST", `/databases/${databaseId}/query`, { query, limit });
+}
+
 // ── Discovered Deployments & Adoption API ────────────────────────────────────
 
 export interface DiscoveredDeployment {

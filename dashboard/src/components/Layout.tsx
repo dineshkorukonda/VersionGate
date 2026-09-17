@@ -156,7 +156,7 @@ export function Layout() {
 
   return (
     <TooltipProvider>
-      <CreateProjectLaunchContext.Provider value={() => setCreateProjectOpen(true)}>
+      <CreateProjectLaunchContext.Provider value={() => navigate("/projects/new")}>
         <SidebarProvider>
           <Sidebar collapsible="icon" className="border-r border-neutral-800 bg-[#0a0a0a]">
             <SidebarHeader className="gap-3 border-b border-neutral-800 px-3 py-4">
@@ -222,7 +222,7 @@ export function Layout() {
               <Button
                 type="button"
                 className="w-full gap-2 bg-white font-sans text-xs text-black hover:bg-neutral-200"
-                onClick={() => setCreateProjectOpen(true)}
+                onClick={() => navigate("/projects/new")}
               >
                 <span>+</span>
                 <span className="group-data-[collapsible=icon]:hidden">New project</span>
@@ -258,7 +258,7 @@ export function Layout() {
                   [ OPERATIONAL ]
                 </div>
 
-                <Button type="button" size="sm" className="gap-1.5 bg-white font-sans text-xs font-semibold text-black hover:bg-neutral-200" onClick={() => setCreateProjectOpen(true)}>
+                <Button type="button" size="sm" className="gap-1.5 bg-white font-sans text-xs font-semibold text-black hover:bg-neutral-200" onClick={() => navigate("/projects/new")}>
                   <span>+</span>
                   Deploy Project
                 </Button>
@@ -329,7 +329,7 @@ export function Layout() {
             <GlobalSearchDialog
               open={searchOpen}
               onOpenChange={setSearchOpen}
-              onLaunchCreate={() => setCreateProjectOpen(true)}
+              onLaunchCreate={() => navigate("/projects/new")}
             />
           </SidebarInset>
         </SidebarProvider>

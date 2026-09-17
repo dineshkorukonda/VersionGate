@@ -938,7 +938,7 @@ export function Settings() {
                         ) : null}
                       </p>
                       {selfUpdateSafe.git.message ? (
-                        <p className="mt-1 text-amber-800">{selfUpdateSafe.git.message}</p>
+                        <p className="mt-1 text-amber-400">{selfUpdateSafe.git.message}</p>
                       ) : selfUpdateSafe.git.behind ? (
                         <p className="mt-1 text-foreground">Remote is ahead — you can update.</p>
                       ) : selfUpdateSafe.git.isGitRepo ? (

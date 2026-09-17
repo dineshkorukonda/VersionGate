@@ -186,3 +186,15 @@ export async function imageExists(imageTag: string): Promise<boolean> {
     return false;
   }
 }
+
+/**
+ * Executes a command inside a running Docker container.
+ */
+export async function execContainer(
+  name: string,
+  command: string[]
+): Promise<{ stdout: string; stderr: string }> {
+  logger.debug({ name, command }, "Executing command inside container");
+  return execFileAsync(dockerCmd(), ["exec", "-i", name, ...command]);
+}
+

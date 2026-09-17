@@ -148,3 +148,31 @@ export async function getDatabaseLogsHandler(
     return reply.status(500).send({ error: "Failed to get database logs", message: err?.message });
   }
 }
+
+export async function getDatabaseSchemaHandler(
+  req: FastifyRequest<{ Params: { id: string } }>,
+  reply: FastifyReply
+): Promise<void> {
+  try {
+    const schema = await databaseProvisioningService.getDatabaseSchema(req.params.id);
+    return reply.status(200).send({ schema });
+  } catch (err: any) {
+    logger.error({ err, id: req.params.id }, "Failed to get database schema");
+    return reply.status(400).send({ error: "Failed to get database schema", message: err?.message });
+  }
+}
+
+export async function executeDatabaseQueryHandler(
+  req: FastifyRequest<{ Params: { id: string }; Body: { query: string; limit?: number } }>,
+  reply: FastifyReply
+): Promise<void> {
+  try {
+    const { query, limit } = req.body;
+    const result = await databaseProvisioningService.executeDatabaseQuery(req.params.id, query, limit);
+    return reply.status(200).send(result);
+  } catch (err: any) {
+    logger.error({ err, id: req.params.id }, "Failed to execute database query");
+    return reply.status(400).send({ error: "Query execution failed", message: err?.message });
+  }
+}
+

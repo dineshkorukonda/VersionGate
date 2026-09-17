@@ -294,10 +294,10 @@ export function DeployLog() {
       </div>
 
       {showWorkerHint && (
-        <Alert className="border-amber-500/40 bg-amber-50">
-          <AlertTitle>Queued</AlertTitle>
-          <AlertDescription>
-            Worker idle — run <code className="rounded bg-muted px-1 text-xs">pm2 restart versiongate-worker</code>
+        <Alert className="border-amber-500/40 bg-amber-500/10 text-amber-300">
+          <AlertTitle className="text-amber-200">Queued</AlertTitle>
+          <AlertDescription className="text-amber-400/90">
+            Worker idle — run <code className="rounded bg-muted px-1 text-xs text-foreground">pm2 restart versiongate-worker</code>
           </AlertDescription>
         </Alert>
       )}
