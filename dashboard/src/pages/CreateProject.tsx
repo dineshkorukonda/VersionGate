@@ -4,6 +4,7 @@ import { EnvVariablesEditor } from "@/components/EnvVariablesEditor";
 import {
   ApiError,
   createProject,
+  createCronJob,
   detectRepoStack,
   getGithubInstallation,
   getGithubRepoBranches,
@@ -67,6 +68,14 @@ export function CreateProject() {
   const [detectedStack, setDetectedStack] = useState<RepoStackDetection | null>(null);
   const [envPairs, setEnvPairs] = useState<{ key: string; value: string }[]>([]);
   const [managedDbs, setManagedDbs] = useState<ManagedDatabase[]>([]);
+
+  // Optional Initial Scheduled Cron Job
+  const [enableInitialCron, setEnableInitialCron] = useState(false);
+  const [cronName, setCronName] = useState("");
+  const [cronSchedule, setCronSchedule] = useState("0 0 * * *");
+  const [cronTargetType, setCronTargetType] = useState<"HTTP" | "COMMAND">("HTTP");
+  const [cronHttpPath, setCronHttpPath] = useState("/api/cron");
+  const [cronCommand, setCronCommand] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -272,6 +281,24 @@ export function CreateProject() {
         env: Object.keys(envMap).length > 0 ? envMap : undefined,
       });
       toast.success("[ OK ] Project created successfully");
+
+      if (enableInitialCron && (cronName.trim() || cronHttpPath.trim() || cronCommand.trim())) {
+        try {
+          await createCronJob({
+            name: cronName.trim() || `${trimmed}-daily-task`,
+            schedule: cronSchedule.trim() || "0 0 * * *",
+            targetType: cronTargetType,
+            httpMethod: "GET",
+            httpPath: cronTargetType === "HTTP" ? (cronHttpPath.trim() || "/api/cron") : undefined,
+            command: cronTargetType === "COMMAND" ? cronCommand.trim() : undefined,
+            projectId: project.id,
+          });
+          toast.success("[ OK ] Initial cron routine scheduled");
+        } catch {
+          toast.error("Project created, but initial cron schedule failed");
+        }
+      }
+
       navigate(`/projects/${project.id}`);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not create project");
@@ -780,6 +807,110 @@ export function CreateProject() {
               maxHeightClass="max-h-72"
             />
           </CardContent>
+        </Card>
+
+        {/* Section 5: Scheduled Cron Automation */}
+        <Card className="border-border bg-card">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-base">05 // Scheduled Cron Automation</CardTitle>
+                <CardDescription>
+                  Optional recurring HTTP webhook dispatches or in-container command jobs.
+                </CardDescription>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEnableInitialCron((prev) => !prev)}
+                className={`border px-3 py-1 font-mono text-xs font-semibold uppercase transition-colors ${
+                  enableInitialCron
+                    ? "border-emerald-500 bg-emerald-950/40 text-emerald-400"
+                    : "border-neutral-800 bg-neutral-900 text-neutral-400 hover:text-white"
+                }`}
+              >
+                {enableInitialCron ? "[ ENABLED ]" : "[ DISABLED ]"}
+              </button>
+            </div>
+          </CardHeader>
+          {enableInitialCron && (
+            <CardContent className="space-y-4 pt-2 font-mono text-xs">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <label htmlFor="cp-cron-name" className="text-neutral-300">Task Name</label>
+                  <Input
+                    id="cp-cron-name"
+                    value={cronName}
+                    onChange={(e) => setCronName(e.target.value)}
+                    placeholder="e.g. daily-cache-warmup"
+                    className="font-mono text-xs"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label htmlFor="cp-cron-sched" className="text-neutral-300">Cron Schedule</label>
+                  <Input
+                    id="cp-cron-sched"
+                    value={cronSchedule}
+                    onChange={(e) => setCronSchedule(e.target.value)}
+                    placeholder="0 0 * * *"
+                    className="font-mono text-xs text-emerald-400"
+                  />
+                </div>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <label className="text-neutral-300">Target Type</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setCronTargetType("HTTP")}
+                      className={`border px-2 py-1.5 text-center text-xs uppercase ${
+                        cronTargetType === "HTTP"
+                          ? "border-blue-500 bg-blue-950/40 text-blue-400 font-semibold"
+                          : "border-neutral-800 bg-neutral-900 text-neutral-400"
+                      }`}
+                    >
+                      HTTP Webhook
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCronTargetType("COMMAND")}
+                      className={`border px-2 py-1.5 text-center text-xs uppercase ${
+                        cronTargetType === "COMMAND"
+                          ? "border-purple-500 bg-purple-950/40 text-purple-400 font-semibold"
+                          : "border-neutral-800 bg-neutral-900 text-neutral-400"
+                      }`}
+                    >
+                      Shell Command
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label htmlFor="cp-cron-target" className="text-neutral-300">
+                    {cronTargetType === "HTTP" ? "Endpoint Path (e.g. /api/cron)" : "Command (Inside runtime)"}
+                  </label>
+                  {cronTargetType === "HTTP" ? (
+                    <Input
+                      id="cp-cron-target"
+                      value={cronHttpPath}
+                      onChange={(e) => setCronHttpPath(e.target.value)}
+                      placeholder="/api/cron"
+                      className="font-mono text-xs"
+                    />
+                  ) : (
+                    <Input
+                      id="cp-cron-target"
+                      value={cronCommand}
+                      onChange={(e) => setCronCommand(e.target.value)}
+                      placeholder="bun run cleanup.ts"
+                      className="font-mono text-xs"
+                    />
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          )}
         </Card>
 
         {/* Action Footer */}

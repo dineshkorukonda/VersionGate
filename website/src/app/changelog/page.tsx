@@ -73,6 +73,12 @@ const FALLBACK_RELEASES: ProcessedRelease[] = [
         badge: "NEW",
         items: [
           {
+            title: "Scheduled Cron Jobs & Hardware Resource Limits",
+            description:
+              "Engine-level scheduled cron task runner supporting recurring HTTP webhooks and in-container command jobs. Features schedule presets, manual 'Run Now' triggers, execution history logs, and host hardware resource limit guardrails for databases and cron execution.",
+            command: "GET /api/v1/cron-jobs | POST /api/v1/cron-jobs/:id/run | GET /api/v1/system/capacity-specs",
+          },
+          {
             title: "UI Database Studio & SQL Query Console",
             description:
               "Interactive database studio inside VersionGate. Inspect live schemas, browse tables, run raw queries with millisecond execution telemetry, and export results as JSON or CSV.",

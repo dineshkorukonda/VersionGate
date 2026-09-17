@@ -54,6 +54,18 @@ export class DeploymentRepository {
     return d ?? null;
   }
 
+  async findActiveForProject(projectId: string): Promise<DeploymentSelect | null> {
+    const db = getDb();
+    const rows = await db
+      .select({ deployment: deployments })
+      .from(deployments)
+      .innerJoin(environments, eq(deployments.environmentId, environments.id))
+      .where(and(eq(environments.projectId, projectId), eq(deployments.status, "ACTIVE")))
+      .orderBy(desc(deployments.createdAt))
+      .limit(1);
+    return rows[0]?.deployment ?? null;
+  }
+
   async findDeployingForEnvironment(environmentId: string): Promise<DeploymentSelect | null> {
     const db = getDb();
     const [d] = await db
