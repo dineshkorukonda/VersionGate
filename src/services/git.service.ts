@@ -40,12 +40,35 @@ export class GitService {
     if (isExisting) {
       logger.debug({ projectId: project.id }, "Repo exists — fetching latest");
       await this.pullLatest(project, repoDir, branch);
+    } else if (
+      project.repoUrl.includes("github.com/local/") &&
+      project.localPath &&
+      (await this.dirExists(project.localPath))
+    ) {
+      logger.info({ projectId: project.id, localPath: project.localPath }, "Preparing source from local adopted directory");
+      await this.copyLocalDirectory(project.localPath, repoDir);
     } else {
       logger.debug({ projectId: project.id }, "Cloning repository");
       await this.cloneRepo(project, repoDir, branch);
     }
 
     logger.info({ projectId: project.id, branch }, "Source ready");
+  }
+
+  private async dirExists(dir: string): Promise<boolean> {
+    try {
+      const stat = await fs.stat(dir);
+      return stat.isDirectory();
+    } catch {
+      return false;
+    }
+  }
+
+  private async copyLocalDirectory(source: string, destination: string): Promise<void> {
+    await fs.cp(source, destination, {
+      recursive: true,
+      filter: (src) => !src.includes("node_modules") && !src.includes(".git") && !src.includes("dist"),
+    });
   }
 
   private async ensureProjectDirectory(project: Pick<ProjectSelect, "id">): Promise<void> {

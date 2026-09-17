@@ -3,6 +3,7 @@ import { DeploymentRepository } from "../repositories/deployment.repository";
 import { ProjectRepository } from "../repositories/project.repository";
 import { EnvironmentRepository } from "../repositories/environment.repository";
 import { getContainerStats, getContainerLogs } from "../utils/docker";
+import { getPm2Logs, getPm2Process } from "../utils/pm2";
 import { logger } from "../utils/logger";
 
 const deploymentRepo = new DeploymentRepository();
@@ -66,6 +67,29 @@ export async function getProjectMetricsHandler(
     return reply.code(200).send({ ...EMPTY_METRICS, timestamp: new Date().toISOString() });
   }
 
+  // Handle Host PM2 processes
+  if (project.deploymentType === "pm2") {
+    const info = await getPm2Process(active.containerName);
+    if (!info) {
+      return reply.code(200).send({ ...EMPTY_METRICS, timestamp: new Date().toISOString() });
+    }
+    return reply.code(200).send({
+      running: info.status === "online",
+      cpu: info.cpu || 0,
+      memoryUsed: info.memory || 0,
+      memoryLimit: 0,
+      memoryPercent: 0,
+      netIn: 0,
+      netOut: 0,
+      blockIn: 0,
+      blockOut: 0,
+      pids: info.pid ? 1 : 0,
+      uptime: info.uptime || 0,
+      timestamp: new Date().toISOString(),
+    });
+  }
+
+  // Handle Docker containers
   const stats = await getContainerStats(active.containerName);
   if (!stats) {
     logger.warn({ containerName: active.containerName }, "Metrics: docker stats returned null");
@@ -115,6 +139,17 @@ export async function getProjectLogsHandler(
     return reply.code(200).send({ lines: [], containerName: null });
   }
 
+  // Handle PM2 logs
+  if (project.deploymentType === "pm2") {
+    const rawLogs = await getPm2Logs(target.containerName, 200);
+    const lines = rawLogs
+      ? rawLogs.split("\n").map((l) => l.trimEnd()).filter((l) => l.length > 0)
+      : [];
+    return reply.code(200).send({ lines, containerName: target.containerName });
+  }
+
+  // Handle Docker container logs
   const lines = await getContainerLogs(target.containerName, 200);
   reply.code(200).send({ lines, containerName: target.containerName });
 }
+

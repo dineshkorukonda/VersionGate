@@ -941,6 +941,7 @@ export interface DiscoveredDeployment {
   localPath?: string;
   repoUrl?: string;
   branch?: string;
+  detectedDomains?: string[];
   alreadyAdopted: boolean;
 }
 
@@ -954,6 +955,7 @@ export interface AdoptDeploymentInput {
   containerName?: string;
   pm2Name?: string;
   imageTag?: string;
+  customDomains?: string[];
 }
 
 export function discoverServerDeployments(): Promise<{ candidates: DiscoveredDeployment[] }> {

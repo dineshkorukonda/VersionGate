@@ -48,8 +48,26 @@ const FALLBACK_RELEASES: ProcessedRelease[] = [
     date: "September 17, 2026",
     isLatest: true,
     summary:
-      "Full-page PM2 project creation suite, in-dashboard UI Database Studio and SQL console, and dark mode contrast enhancements.",
+      "Full-page PM2 project creation suite, in-dashboard UI Database Studio and SQL console, Nginx custom domain ingestion for adopted services, real-time PM2 runtime log streaming, and PM2 process metrics.",
     categories: [
+      {
+        title: "Service Discovery & Host Adoption",
+        badge: "NEW",
+        items: [
+          {
+            title: "Nginx Reverse Proxy Domain Ingestion",
+            description:
+              "Discovered host services now automatically inspect host Nginx configuration files to detect active server_name rules, pre-filling and attaching custom domains upon adoption.",
+            command: "GET /api/system/discover-deployments",
+          },
+          {
+            title: "Host PM2 Runtime Logs & Process Telemetry",
+            description:
+              "Runtime Logs and Metrics views now stream PM2 stdout/stderr output directly and report CPU %, memory bytes, and process status for host-managed services.",
+            command: "GET /api/projects/:id/logs",
+          },
+        ],
+      },
       {
         title: "Developer Experience & Database Tooling",
         badge: "NEW",
@@ -75,6 +93,7 @@ const FALLBACK_RELEASES: ProcessedRelease[] = [
       },
     ],
   },
+
   {
     version: "v2.9.4",
     date: "September 16, 2026",
