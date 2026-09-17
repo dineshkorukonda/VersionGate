@@ -46,9 +46,6 @@ const CAPABILITIES: Capability[] = [
       "Ample workspace for repository selection, automatic stack detection, custom package managers (Bun, pnpm, uv, Poetry, Cargo, Composer), build/start script overrides, and encrypted environment variables.",
     badge: "NEW",
   },
-
-    badge: "NEW",
-  },
   {
     id: "cap-vercel-command-ui",
     category: "Monitoring",
