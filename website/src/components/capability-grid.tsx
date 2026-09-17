@@ -14,6 +14,17 @@ export interface Capability {
 
 const CAPABILITIES: Capability[] = [
   {
+    id: "cap-adopted-domains-pm2",
+    category: "Networking",
+    title: "Nginx Domain Ingestion & PM2 Telemetry",
+    command: "GET /api/system/discover-deployments  |  POST /api/projects/adopt",
+    description:
+      "Auto-detect active reverse proxy hostnames and extract live PM2 stdout/stderr logs and process telemetry on service adoption.",
+    details:
+      "Scans host Nginx vhost directories for server_name rules proxying to unmanaged service ports, attaches custom domains automatically during adoption, and streams real-time PM2 process logs and metrics directly into the workspace dashboard.",
+    badge: "NEW",
+  },
+  {
     id: "cap-db-studio",
     category: "Deployment",
     title: "UI Database Studio & Query Console",
@@ -33,6 +44,9 @@ const CAPABILITIES: Capability[] = [
       "Dedicated full-page project setup experience supporting Docker containerization and bare-metal PM2 process supervision.",
     details:
       "Ample workspace for repository selection, automatic stack detection, custom package managers (Bun, pnpm, uv, Poetry, Cargo, Composer), build/start script overrides, and encrypted environment variables.",
+    badge: "NEW",
+  },
+
     badge: "NEW",
   },
   {

@@ -7,6 +7,10 @@ import { isPm2Available } from "../utils/pm2";
 import { ProjectRepository, DEFAULT_ENVIRONMENT_NAME } from "../repositories/project.repository";
 import { DeploymentRepository } from "../repositories/deployment.repository";
 import { EnvironmentRepository } from "../repositories/environment.repository";
+import { ProjectDomainRepository } from "../repositories/project-domain.repository";
+import { ProjectDomainService } from "./project-domain.service";
+import { isValidHostname } from "../utils/domain-validation";
+import { reloadNginxBestEffort } from "../utils/nginx-reload";
 import { TrafficService } from "./traffic.service";
 import { ProjectSelect, DeploymentSelect } from "../db/schema";
 
@@ -22,6 +26,7 @@ export interface DiscoveredDeployment {
   localPath?: string;
   repoUrl?: string;
   branch?: string;
+  detectedDomains?: string[];
   alreadyAdopted: boolean;
 }
 
@@ -35,12 +40,15 @@ export interface AdoptDeploymentInput {
   containerName?: string;
   pm2Name?: string;
   imageTag?: string;
+  customDomains?: string[];
 }
 
 export class ServiceDiscoveryService {
   private projectRepo = new ProjectRepository();
   private deploymentRepo = new DeploymentRepository();
   private envRepo = new EnvironmentRepository();
+  private domainRepo = new ProjectDomainRepository();
+  private domainService = new ProjectDomainService();
   private trafficService = new TrafficService();
 
   /**
@@ -73,6 +81,76 @@ export class ServiceDiscoveryService {
       // Ignored
     }
     return {};
+  }
+
+  /**
+   * Scans standard host Nginx configuration directories to detect any server blocks
+   * proxy_passing to the given port.
+   */
+  extractNginxDomains(port: number): string[] {
+    if (!port || port <= 0) return [];
+    const candidateDirs = [
+      "/etc/nginx/sites-enabled",
+      "/etc/nginx/conf.d",
+      "/etc/nginx/sites-available",
+      "/usr/local/etc/nginx/servers",
+    ];
+
+    const detected = new Set<string>();
+    const portRegexes = [
+      new RegExp(`proxy_pass\\s+https?:\\/\\/(?:127\\.0\\.0\\.1|localhost|0\\.0\\.0\\.0):${port}(?:[\\/\\s;]|$)`, "i"),
+      new RegExp(`server\\s+(?:127\\.0\\.0\\.1|localhost|0\\.0\\.0\\.0):${port}(?:[\\s;]|$)`, "i"),
+    ];
+
+    for (const dir of candidateDirs) {
+      try {
+        if (!fs.existsSync(dir)) continue;
+        const files = fs.readdirSync(dir);
+        for (const file of files) {
+          if (
+            file.startsWith("vg-app-") ||
+            file.startsWith("vg-upstream-") ||
+            file === "versiongate.conf"
+          ) {
+            continue;
+          }
+          const fullPath = path.join(dir, file);
+          try {
+            const stat = fs.statSync(fullPath);
+            if (!stat.isFile()) continue;
+            const content = fs.readFileSync(fullPath, "utf-8");
+            const matchesPort = portRegexes.some((rx) => rx.test(content));
+            if (!matchesPort) continue;
+
+            const serverNameMatches = content.matchAll(/server_name\s+([^;]+);/gi);
+            for (const match of serverNameMatches) {
+              const rawNames = match[1].trim().split(/\s+/);
+              for (const name of rawNames) {
+                const cleaned = name.trim().toLowerCase();
+                if (
+                  cleaned &&
+                  cleaned !== "_" &&
+                  cleaned !== "localhost" &&
+                  cleaned !== "127.0.0.1" &&
+                  !cleaned.startsWith("~") &&
+                  !cleaned.startsWith("$") &&
+                  !/^\d{1,3}(\.\d{1,3}){3}$/.test(cleaned) &&
+                  isValidHostname(cleaned)
+                ) {
+                  detected.add(cleaned);
+                }
+              }
+            }
+          } catch {
+            // ignore unreadable file
+          }
+        }
+      } catch {
+        // ignore unreadable directory
+      }
+    }
+
+    return Array.from(detected);
   }
 
   /**
@@ -116,6 +194,7 @@ export class ServiceDiscoveryService {
             const parsedPort = envPort ? parseInt(envPort, 10) : undefined;
 
             const git = cwd ? this.extractGitMetadata(cwd) : {};
+            const detectedDomains = parsedPort ? this.extractNginxDomains(parsedPort) : [];
             const isAdopted = existingNames.has(name.toLowerCase());
 
             results.push({
@@ -128,6 +207,7 @@ export class ServiceDiscoveryService {
               localPath: cwd || undefined,
               repoUrl: git.repoUrl,
               branch: git.branch || "main",
+              detectedDomains: detectedDomains.length > 0 ? detectedDomains : undefined,
               alreadyAdopted: isAdopted,
             });
           }
@@ -170,6 +250,7 @@ export class ServiceDiscoveryService {
             hostPort = parseInt(portMatch[1], 10);
           }
 
+          const detectedDomains = hostPort ? this.extractNginxDomains(hostPort) : [];
           const isAdopted =
             existingNames.has(containerName.toLowerCase()) ||
             (hostPort !== undefined && existingPorts.has(hostPort));
@@ -182,6 +263,7 @@ export class ServiceDiscoveryService {
             port: hostPort,
             containerName,
             imageTag: image,
+            detectedDomains: detectedDomains.length > 0 ? detectedDomains : undefined,
             alreadyAdopted: isAdopted,
           });
         } catch {
@@ -197,7 +279,7 @@ export class ServiceDiscoveryService {
 
   /**
    * Adopts an unmanaged service into VersionGate, registering Project, Environments,
-   * and an initial ACTIVE Deployment record.
+   * custom domains (if detected or provided), and an initial ACTIVE Deployment record.
    */
   async adoptService(input: AdoptDeploymentInput): Promise<{
     project: ProjectSelect;
@@ -250,7 +332,7 @@ export class ServiceDiscoveryService {
       environment: { connect: { id: prodEnv.id } },
     });
 
-    // 4. Update Nginx upstream if production
+    // 4. Update Nginx upstream for path-based routing
     try {
       await this.trafficService.switchTrafficTo(input.port, {
         projectName: cleanName,
@@ -260,8 +342,40 @@ export class ServiceDiscoveryService {
       logger.warn({ err }, "Notice: Nginx upstream switch skipped or had warning during adoption");
     }
 
+    // 5. Attach any detected or provided custom domains
+    const domainsToRegister = Array.isArray(input.customDomains) ? input.customDomains : [];
+    if (domainsToRegister.length > 0) {
+      let registeredCount = 0;
+      for (const rawDomain of domainsToRegister) {
+        const hostname = rawDomain.trim().toLowerCase();
+        if (hostname && isValidHostname(hostname)) {
+          const existingDomain = await this.domainRepo.findByHostname(hostname);
+          if (!existingDomain) {
+            await this.domainRepo.create({
+              projectId: project.id,
+              hostname,
+              environmentName: DEFAULT_ENVIRONMENT_NAME,
+              sslStatus: "pending_dns",
+            });
+            await this.domainService.writeUpstreamForProject(cleanName, input.port);
+            await this.domainService.writeServerForHostname(cleanName, hostname);
+            registeredCount++;
+          }
+        }
+      }
+      if (registeredCount > 0) {
+        try {
+          reloadNginxBestEffort();
+        } catch {
+          // non-blocking
+        }
+        logger.info({ projectName: cleanName, count: registeredCount }, "Registered custom domains during adoption");
+      }
+    }
+
     return { project, deployment };
   }
 }
 
 export const serviceDiscoveryService = new ServiceDiscoveryService();
+

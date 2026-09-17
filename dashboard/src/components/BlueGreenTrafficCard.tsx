@@ -110,7 +110,7 @@ export function BlueGreenTrafficCard({
               →
             </span>
             <span className="rounded-md border border-border/60 bg-background/80 px-2 py-1 font-mono text-xs">
-              container :{project.appPort}
+              {project.deploymentType === "pm2" ? "pm2" : "container"} :{project.appPort}
             </span>
           </div>
           <p className="mt-2 text-xs text-muted-foreground">{nginxNote}</p>
@@ -165,7 +165,7 @@ export function BlueGreenTrafficCard({
 
               <dl className="mt-3 space-y-1.5 text-xs">
                 <div className="flex justify-between gap-2">
-                  <dt className="text-muted-foreground">Docker map</dt>
+                  <dt className="text-muted-foreground">{project.deploymentType === "pm2" ? "Process map" : "Docker map"}</dt>
                   <dd className="font-mono text-right text-foreground">
                     {port} → {project.appPort}
                   </dd>
@@ -179,17 +179,26 @@ export function BlueGreenTrafficCard({
                       </dd>
                     </div>
                     <div className="flex justify-between gap-2">
-                      <dt className="text-muted-foreground">Container</dt>
+                      <dt className="text-muted-foreground">{project.deploymentType === "pm2" ? "PM2 process" : "Container"}</dt>
                       <dd className="max-w-[min(100%,14rem)] truncate font-mono text-right text-muted-foreground" title={latest.containerName}>
                         {latest.containerName}
                       </dd>
                     </div>
-                    <div className="flex justify-between gap-2">
-                      <dt className="text-muted-foreground">Image</dt>
-                      <dd className="max-w-[min(100%,14rem)] truncate font-mono text-right text-muted-foreground" title={latest.imageTag}>
-                        {latest.imageTag}
-                      </dd>
-                    </div>
+                    {project.deploymentType === "pm2" ? (
+                      <div className="flex justify-between gap-2">
+                        <dt className="text-muted-foreground">Runtime</dt>
+                        <dd className="max-w-[min(100%,14rem)] truncate font-mono text-right text-muted-foreground">
+                          Host PM2
+                        </dd>
+                      </div>
+                    ) : (
+                      <div className="flex justify-between gap-2">
+                        <dt className="text-muted-foreground">Image</dt>
+                        <dd className="max-w-[min(100%,14rem)] truncate font-mono text-right text-muted-foreground" title={latest.imageTag}>
+                          {latest.imageTag}
+                        </dd>
+                      </div>
+                    )}
                   </>
                 ) : (
                   <p className="text-muted-foreground">No deployment has used this slot yet.</p>

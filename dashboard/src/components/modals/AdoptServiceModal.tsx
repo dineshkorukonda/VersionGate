@@ -25,6 +25,7 @@ export function AdoptServiceModal({
   const [hostPort, setHostPort] = useState("");
   const [repoUrl, setRepoUrl] = useState("");
   const [branch, setBranch] = useState("main");
+  const [customDomain, setCustomDomain] = useState("");
   const [adopting, setAdopting] = useState(false);
 
   const handleSelectCandidate = (c: DiscoveredDeployment) => {
@@ -33,6 +34,7 @@ export function AdoptServiceModal({
     setHostPort(c.port ? String(c.port) : "");
     setRepoUrl(c.repoUrl || "");
     setBranch(c.branch || "main");
+    setCustomDomain(c.detectedDomains && c.detectedDomains.length > 0 ? c.detectedDomains[0] : "");
   };
 
   const handleAdopt = async (e: React.FormEvent) => {
@@ -52,6 +54,7 @@ export function AdoptServiceModal({
 
     setAdopting(true);
     try {
+      const domainsList = customDomain.trim() ? [customDomain.trim().toLowerCase()] : undefined;
       await adoptServerDeployment({
         name: projectName.trim(),
         serviceType: selectedCandidate.serviceType,
@@ -62,6 +65,7 @@ export function AdoptServiceModal({
         containerName: selectedCandidate.containerName,
         pm2Name: selectedCandidate.pm2Name,
         imageTag: selectedCandidate.imageTag,
+        customDomains: domainsList,
       });
 
       toast.success(`[ OK ] Adopted ${projectName} into VersionGate management`);
@@ -109,6 +113,11 @@ export function AdoptServiceModal({
               <p className="text-[11px] text-neutral-400 font-mono">
                 {selectedCandidate.localPath ? `Path: ${selectedCandidate.localPath}` : `Container: ${selectedCandidate.containerName}`}
               </p>
+              {selectedCandidate.detectedDomains && selectedCandidate.detectedDomains.length > 0 && (
+                <p className="text-[11px] text-sky-400 font-mono">
+                  Detected Nginx Domain: {selectedCandidate.detectedDomains.join(", ")}
+                </p>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-3">
@@ -164,6 +173,18 @@ export function AdoptServiceModal({
                   className="border-neutral-800 bg-neutral-900 font-mono text-xs text-white focus-visible:ring-emerald-500"
                 />
               </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="block font-mono text-xs text-neutral-300">
+                Custom Domain <span className="text-neutral-500">(Optional / Auto-detected from Nginx)</span>
+              </label>
+              <Input
+                value={customDomain}
+                onChange={(e) => setCustomDomain(e.target.value)}
+                placeholder="e.g. api.example.com"
+                className="border-neutral-800 bg-neutral-900 font-mono text-xs text-white focus-visible:ring-emerald-500"
+              />
             </div>
 
             <p className="text-[11px] text-neutral-500">
@@ -223,6 +244,11 @@ export function AdoptServiceModal({
                         >
                           [{c.status}]
                         </span>
+                        {c.detectedDomains && c.detectedDomains.length > 0 && (
+                          <span className="border border-sky-500/40 bg-sky-950/40 px-1.5 py-0.5 font-mono text-[9px] text-sky-400">
+                            {c.detectedDomains[0]}
+                          </span>
+                        )}
                       </div>
                       <div className="flex items-center gap-3 text-[11px] font-mono text-neutral-400">
                         {c.port && <span>Port: <strong className="text-emerald-400">{c.port}</strong></span>}
@@ -259,3 +285,4 @@ export function AdoptServiceModal({
     </Dialog>
   );
 }
+
