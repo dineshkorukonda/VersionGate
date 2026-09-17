@@ -192,9 +192,16 @@ export async function imageExists(imageTag: string): Promise<boolean> {
  */
 export async function execContainer(
   name: string,
-  command: string[]
+  command: string[],
+  envVars?: Record<string, string>
 ): Promise<{ stdout: string; stderr: string }> {
   logger.debug({ name, command }, "Executing command inside container");
-  return execFileAsync(dockerCmd(), ["exec", "-i", name, ...command]);
+  const envArgs: string[] = [];
+  if (envVars) {
+    for (const [k, v] of Object.entries(envVars)) {
+      envArgs.push("-e", `${k}=${v}`);
+    }
+  }
+  return execFileAsync(dockerCmd(), ["exec", "-i", ...envArgs, name, ...command]);
 }
 

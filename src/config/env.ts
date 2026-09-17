@@ -79,7 +79,7 @@ export const config = {
   /** Tracked branch for git fetch/merge (must match your deploy remote). */
   selfUpdateGitBranch: optionalEnv("SELF_UPDATE_GIT_BRANCH", "main"),
   /** If > 0, periodically fetch origin and log or auto-apply (see SELF_UPDATE_AUTO_APPLY). */
-  selfUpdatePollMs: Math.max(0, parseInt(optionalEnv("SELF_UPDATE_POLL_MS", "0"), 10) || 0),
+  selfUpdatePollMs: Math.max(0, parseInt(optionalEnv("SELF_UPDATE_POLL_MS", "300000"), 10) || 0),
   /** When true with SELF_UPDATE_POLL_MS, runs apply when origin is ahead (fast-forward only). */
   selfUpdateAutoApply:
     optionalEnv("SELF_UPDATE_AUTO_APPLY", "").toLowerCase() === "true" ||

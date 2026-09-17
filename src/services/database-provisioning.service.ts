@@ -469,14 +469,18 @@ export class DatabaseProvisioningService {
     try {
       if (record.engine === "postgres") {
         const query = "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE' ORDER BY table_name;";
-        const { stdout } = await execContainer(record.containerName, [
-          "psql",
-          "-U", user,
-          "-d", dbName,
-          "-A",
-          "-t",
-          "-c", query,
-        ]);
+        const { stdout } = await execContainer(
+          record.containerName,
+          [
+            "psql",
+            "-U", user,
+            "-d", dbName,
+            "-A",
+            "-t",
+            "-c", query,
+          ],
+          password ? { PGPASSWORD: password } : undefined
+        );
         const names = stdout.split("\n").map((l) => l.trim()).filter(Boolean);
         for (const name of names) {
           tables.push({ name, type: "table" });
@@ -553,18 +557,22 @@ export class DatabaseProvisioningService {
 
     try {
       if (record.engine === "postgres") {
-        const res = await execContainer(record.containerName, [
-          "psql",
-          "-U", user,
-          "-d", dbName,
-          "-A",
-          "-F", "\t",
-          "-c", trimmed,
-        ]);
+        const res = await execContainer(
+          record.containerName,
+          [
+            "psql",
+            "-U", user,
+            "-d", dbName,
+            "-A",
+            "-F", "\t",
+            "-c", trimmed,
+          ],
+          password ? { PGPASSWORD: password } : undefined
+        );
         stdout = res.stdout;
         const lines = stdout.split("\n").map((l) => l.trimEnd()).filter(Boolean);
         const dataLines = lines.filter((l) => !/^\(\d+\s+rows?\)$/i.test(l) && !/^--/i.test(l));
-        if (dataLines.length > 0 && dataLines[0].includes("\t") || dataLines.length > 1) {
+        if ((dataLines.length > 0 && dataLines[0].includes("\t")) || dataLines.length > 1) {
           columns = dataLines[0].split("\t");
           rows = dataLines.slice(1, limit + 1).map((l) => l.split("\t"));
         } else if (dataLines.length === 1 && !dataLines[0].startsWith("CREATE") && !dataLines[0].startsWith("INSERT") && !dataLines[0].startsWith("UPDATE") && !dataLines[0].startsWith("DELETE")) {

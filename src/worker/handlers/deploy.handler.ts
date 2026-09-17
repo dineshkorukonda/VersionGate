@@ -77,6 +77,10 @@ export async function runDeployJob(
 
     await log(`Step 1: Preparing source code (branch ${environment.branch})`);
     await git.prepareSource(project, environment.branch);
+    const latestCommit = await git.getLatestCommit(project);
+    if (latestCommit) {
+      await log(`Commit: ${latestCommit.sha.slice(0, 7)} — "${latestCommit.message}" by ${latestCommit.author}`);
+    }
     await checkCancelled(undefined, log);
 
     const repoRoot = git.projectPath(project);
@@ -113,6 +117,10 @@ export async function runDeployJob(
       color: newColor,
       status: "DEPLOYING",
       environment: { connect: { id: environmentId } },
+      commitSha: latestCommit?.sha ?? null,
+      commitMessage: latestCommit?.message ?? null,
+      commitAuthor: latestCommit?.author ?? null,
+      commitBranch: environment.branch,
     });
     deploymentId = deployment.id;
 

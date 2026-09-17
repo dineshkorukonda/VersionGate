@@ -146,7 +146,7 @@ export function DatabaseStudioModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[92vh] max-w-6xl overflow-hidden p-0 gap-0 border-border bg-card">
+      <DialogContent className="max-h-[92vh] w-[95vw] sm:max-w-6xl overflow-hidden p-0 gap-0 border-border bg-card">
         {/* Header Strip */}
         <DialogHeader className="border-b border-border px-6 py-4 bg-muted/20 text-left">
           <div className="space-y-1">
@@ -168,7 +168,7 @@ export function DatabaseStudioModal({
         </DialogHeader>
 
         {/* Studio Workspace Layout */}
-        <div className="grid grid-cols-1 md:grid-cols-4 h-[72vh] overflow-hidden">
+        <div className="grid grid-cols-1 md:grid-cols-[280px_1fr] h-[75vh] overflow-hidden">
           {/* Left: Schema Explorer */}
           <div className="border-r border-border bg-background/60 p-4 flex flex-col gap-3 overflow-hidden">
             <div className="flex items-center justify-between">
@@ -179,7 +179,7 @@ export function DatabaseStudioModal({
                 type="button"
                 onClick={() => void loadSchema()}
                 disabled={loadingSchema}
-                className="font-mono text-[10px] text-primary hover:underline"
+                className="font-mono text-[10px] text-primary hover:underline cursor-pointer"
               >
                 {loadingSchema ? "Scanning…" : "Refresh"}
               </button>
@@ -189,7 +189,7 @@ export function DatabaseStudioModal({
               value={tableSearch}
               onChange={(e) => setTableSearch(e.target.value)}
               placeholder="Filter tables..."
-              className="h-8 font-mono text-xs"
+              className="h-8 font-mono text-xs w-full"
             />
 
             <div className="flex-1 overflow-y-auto space-y-1 pr-1">
@@ -208,7 +208,7 @@ export function DatabaseStudioModal({
                     type="button"
                     onClick={() => handleSelectTable(t.name)}
                     className={cn(
-                      "w-full rounded px-2.5 py-1.5 text-left font-mono text-xs transition-colors truncate flex items-center justify-between",
+                      "w-full rounded px-2.5 py-1.5 text-left font-mono text-xs transition-colors truncate flex items-center justify-between cursor-pointer",
                       selectedTable === t.name
                         ? "bg-primary text-primary-foreground font-semibold"
                         : "text-muted-foreground hover:bg-muted/40 hover:text-foreground"
@@ -223,10 +223,10 @@ export function DatabaseStudioModal({
           </div>
 
           {/* Right: Query Editor & Data Grid */}
-          <div className="col-span-3 flex flex-col overflow-hidden bg-black">
+          <div className="flex flex-col overflow-hidden bg-black">
             {/* Query Input Strip */}
             <div className="p-4 border-b border-border space-y-3 bg-muted/10">
-              <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
                   <span className="font-mono text-xs font-semibold text-foreground">
                     Query Console
@@ -236,7 +236,7 @@ export function DatabaseStudioModal({
                   </span>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 shrink-0">
                   <Button
                     type="button"
                     variant="outline"
