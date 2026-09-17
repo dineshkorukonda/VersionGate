@@ -1,22 +1,28 @@
-# VersionGate marketing site
+# VersionGate Marketing Website & Relay
 
-Public landing page and GitHub App **install + webhook fan-out relay** for [versiongate.tech](https://versiongate.tech).
+Public marketing landing page, release changelog, interactive documentation, and GitHub App **install + webhook fan-out relay** for [versiongate.tech](https://versiongate.tech).
 
-Lives in the same repo as the deployment engine so marketing copy stays in sync with dashboard features.
+Built with **Next.js 16**, **React 19**, **Turbopack**, and **Tailwind CSS**, featuring a high-contrast obsidian aesthetic inspired by Dokploy bento architecture.
 
-## What's here
+---
+
+## What's Here
 
 | Path | Purpose |
 |------|---------|
-| `src/app/page.tsx` | Landing page |
-| `src/app/api/github/callback/route.ts` | Install callback → persist mapping → redirect to VPS |
+| `src/app/page.tsx` | Dokploy-inspired bento landing page with interactive hero preview |
+| `src/app/changelog/page.tsx` | Interactive release changelog with version badges and feature categories |
+| `src/app/docs/` | Full platform documentation (Quick-Start, Architecture, Networking, APIs) |
+| `src/components/landing/` | Bento feature matrix, ecosystem strip, pipeline showcase, and comparisons |
+| `src/app/api/github/callback/route.ts` | GitHub App install callback &rarr; persist mapping &rarr; redirect to VPS |
 | `src/app/api/github/register/route.ts` | Signed backup registration from VPS after install |
-| `src/app/api/webhooks/github/route.ts` | Official App webhook → fan-out to `POST {instance}/api/webhooks/github/relay` |
-| `src/lib/install-registry.ts` | Upstash Redis: `installation_id → instanceUrl` |
-| `src/lib/github-install-state.ts` | Install `state` parser (must match engine) |
-| `src/lib/relay-crypto.ts` | GitHub sig verify + hop signatures + register tokens |
+| `src/app/api/webhooks/github/route.ts` | Official GitHub App webhook &rarr; fan-out to `POST {instance}/api/webhooks/github/relay` |
+| `src/lib/install-registry.ts` | Redis / persistent storage: `installation_id &rarr; instanceUrl` |
+| `src/lib/relay-crypto.ts` | GitHub HMAC signature verification + hop signing + register tokens |
 
-## Development
+---
+
+## Local Development
 
 ```bash
 cd website
@@ -24,46 +30,39 @@ bun install
 bun run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+Open [http://localhost:3000](http://localhost:3000) to view the marketing site and docs.
 
-## Deploy (Vercel)
+### Build Verification
 
-Deploy the `website/` directory as the project root on Vercel.
+```bash
+cd website
+bun run build
+```
 
-Add an **Upstash Redis** store from the Vercel Marketplace and set:
+---
+
+## Deployment (Vercel)
+
+Deploy the `website/` directory as the project root on Vercel with the following environment variables:
 
 | Variable | Description |
 |----------|-------------|
 | `RELAY_SECRET` | Same value as `GITHUB_STATE_SECRET` on every self-hosted engine |
-| `GITHUB_WEBHOOK_SECRET` | Same webhook secret as the official VersionGate GitHub App |
-| `UPSTASH_REDIS_REST_URL` | From Upstash / Vercel Redis integration |
-| `UPSTASH_REDIS_REST_TOKEN` | From Upstash / Vercel Redis integration |
+| `GITHUB_WEBHOOK_SECRET` | Webhook secret configured on the official VersionGate GitHub App |
+| `UPSTASH_REDIS_REST_URL` | (Optional) Upstash Redis URL for multi-region relay registry |
+| `UPSTASH_REDIS_REST_TOKEN` | (Optional) Upstash Redis token |
 
-## Official GitHub App (ops checklist)
+---
 
-On [github.com/apps/VersionGate-App](https://github.com/apps/VersionGate-App) → settings:
-
-1. **Callback URL:** `https://versiongate.tech/api/github/callback`
-2. **Webhook URL:** `https://versiongate.tech/api/webhooks/github` (not per-VPS)
-3. Subscribe to: `push`, `installation`, `installation_repositories`, `ping`
-4. Permissions: Contents (read), Metadata (read) — plus any already required for repo listing
-
-### E2E smoke test
-
-1. Set `PUBLIC_URL` + shared App env + `GITHUB_STATE_SECRET` on a VPS
-2. Dashboard → Integrations → Connect GitHub → install on a test repo
-3. Confirm Redis key `vg:install:{id}` exists
-4. Push to the project branch → relay logs fan-out → VPS enqueues deploy
-
-## GitHub App relay flow
+## GitHub App Relay Flow
 
 ```
-Install:  GitHub → /api/github/callback → Redis SET → redirect to VPS
-Push:     GitHub → /api/webhooks/github → lookup → POST VPS /api/webhooks/github/relay
+Install: GitHub ──► /api/github/callback ──► Redis SET ──► Redirect to VPS Dashboard
+Push:    GitHub ──► /api/webhooks/github ──► Lookup ────► POST VPS /api/webhooks/github/relay
 ```
 
-## Phase 2 (not implemented yet)
+---
 
-Advanced users may later create a **per-instance** GitHub App via the App Manifest flow (Coolify-style), with webhook URL `{PUBLIC_URL}/api/webhooks/github` and no dependency on this relay. Tracked as a follow-up; Phase 1 is shared App only.
+## Repository
 
-The engine repo is at [github.com/dinexh/VersionGate](https://github.com/dinexh/VersionGate).
+The main engine repository is located at [github.com/dineshkorukonda/VersionGate](https://github.com/dineshkorukonda/VersionGate).

