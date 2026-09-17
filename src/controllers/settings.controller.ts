@@ -26,6 +26,31 @@ import { validateExcludedPortsString } from "../utils/port-manager";
 
 const DB_URL_REGEX = /^DATABASE_URL\s*=\s*"?([^"\n\r]+)"?\s*$/m;
 
+/** Default poll interval (5 min) when self-update is enabled on a deployed git clone. */
+const DEFAULT_SELF_UPDATE_POLL_MS = 300_000;
+
+function writeSelfUpdateEnv(updates: Record<string, string>): void {
+  const next = mergeIntoDotenv(updates);
+  writeEnvWithBackup(next);
+  for (const [key, value] of Object.entries(updates)) {
+    process.env[key] = value;
+  }
+  kickSelfUpdatePoll();
+}
+
+/** Persist secret and poll defaults so deployed instances start checking origin automatically. */
+function ensureSelfUpdateConfigured(): void {
+  if (selfUpdateSecretLive()) return;
+  const updates: Record<string, string> = {
+    SELF_UPDATE_SECRET: randomBytes(32).toString("hex"),
+  };
+  if (selfUpdatePollMsLive() <= 0) {
+    updates.SELF_UPDATE_POLL_MS = String(DEFAULT_SELF_UPDATE_POLL_MS);
+  }
+  writeSelfUpdateEnv(updates);
+  logger.info("Self-update configured (secret and poll interval written to .env)");
+}
+
 function readDatabaseUrlFromFile(): string | null {
   if (!existsSync(envFilePath)) return null;
   const content = readFileSync(envFilePath, "utf-8");
@@ -396,12 +421,10 @@ export async function postRestartServicesHandler(
 export async function getSelfUpdateSettingsHandler(_req: FastifyRequest, reply: FastifyReply): Promise<void> {
   const branch = selfUpdateBranchLive();
   let git: Awaited<ReturnType<typeof getSelfUpdateStatus>> | null = null;
-  if (selfUpdateSecretLive()) {
-    try {
-      git = await getSelfUpdateStatus(branch);
-    } catch {
-      git = null;
-    }
+  try {
+    git = await getSelfUpdateStatus(branch);
+  } catch {
+    git = null;
   }
   reply.code(200).send({
     configured: Boolean(selfUpdateSecretLive()),
@@ -420,41 +443,37 @@ export async function postSelfUpdateEnableHandler(_req: FastifyRequest, reply: F
         "SELF_UPDATE_SECRET is already set. Remove it from .env to regenerate, or paste a new secret using the env editor.",
     });
   }
-  const secret = randomBytes(32).toString("hex");
   try {
-    const next = mergeIntoDotenv({ SELF_UPDATE_SECRET: secret });
-    writeEnvWithBackup(next);
+    const updates: Record<string, string> = {
+      SELF_UPDATE_SECRET: randomBytes(32).toString("hex"),
+    };
+    if (selfUpdatePollMsLive() <= 0) {
+      updates.SELF_UPDATE_POLL_MS = String(DEFAULT_SELF_UPDATE_POLL_MS);
+    }
+    writeSelfUpdateEnv(updates);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     logger.error({ err }, "postSelfUpdateEnable: write failed");
     return reply.code(500).send({ error: "WriteError", message: msg });
   }
-  process.env.SELF_UPDATE_SECRET = secret;
-  kickSelfUpdatePoll();
   logger.info("Self-update enabled from Settings (secret written to .env, not logged)");
   reply.code(200).send({
     message:
-      "Self-update enabled. The secret was saved to .env and is not shown again. Use “Check for updates” below, or call the webhook with that token.",
+      "Self-update enabled. The secret was saved to .env and is not shown again. Polling starts every 5 minutes unless SELF_UPDATE_POLL_MS is changed.",
   });
 }
 
 export async function postSelfUpdateCheckHandler(_req: FastifyRequest, reply: FastifyReply): Promise<void> {
-  if (!selfUpdateSecretLive()) {
-    return reply.code(400).send({
-      error: "NotConfigured",
-      message: "Enable self-update first, or set SELF_UPDATE_SECRET in .env",
-    });
-  }
   const status = await getSelfUpdateStatus(selfUpdateBranchLive());
   reply.code(200).send(status);
 }
 
 export async function postSelfUpdateApplyHandler(_req: FastifyRequest, reply: FastifyReply): Promise<void> {
-  if (!selfUpdateSecretLive()) {
-    return reply.code(400).send({
-      error: "NotConfigured",
-      message: "Enable self-update first, or set SELF_UPDATE_SECRET in .env",
-    });
+  try {
+    ensureSelfUpdateConfigured();
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return reply.code(500).send({ error: "WriteError", message: `Failed to configure self-update: ${msg}` });
   }
   const result = await applySelfUpdate(selfUpdateBranchLive());
   /** Always 200: outcome is in `result.ok` / `result.error` (avoids generic client treating merge/build failure as an HTTP exception). */

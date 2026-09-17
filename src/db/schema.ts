@@ -224,6 +224,10 @@ export const deployments = pgTable(
       .notNull()
       .references(() => environments.id, { onDelete: "cascade" }),
     promotedFromId: text("promotedFromId"),
+    commitSha: text("commitSha"),
+    commitMessage: text("commitMessage"),
+    commitAuthor: text("commitAuthor"),
+    commitBranch: text("commitBranch"),
     createdAt: timestamp("createdAt", { mode: "date" }).defaultNow().notNull(),
     updatedAt: timestamp("updatedAt", { mode: "date" }).defaultNow().notNull(),
   },
@@ -231,6 +235,7 @@ export const deployments = pgTable(
     index("Deployment_status_idx").on(table.status),
     index("Deployment_createdAt_idx").on(table.createdAt),
     index("Deployment_environmentId_idx").on(table.environmentId),
+    index("Deployment_commitSha_idx").on(table.commitSha),
     index("Deployment_promotedFromId_idx").on(table.promotedFromId),
     foreignKey({
       columns: [table.promotedFromId],

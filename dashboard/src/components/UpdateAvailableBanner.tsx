@@ -19,7 +19,7 @@ export function UpdateAvailableBanner() {
   const poll = useCallback(async () => {
     try {
       const su = await getSelfUpdateSettings();
-      if (!su.configured || !su.git?.isGitRepo || su.git.message) {
+      if (!su.git?.isGitRepo || su.git.message) {
         setShow(false);
         return;
       }

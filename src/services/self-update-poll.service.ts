@@ -2,7 +2,6 @@ import {
   selfUpdateAutoApplyLive,
   selfUpdateBranchLive,
   selfUpdatePollMsLive,
-  selfUpdateSecretLive,
 } from "../config/env";
 import { logger } from "../utils/logger";
 import { applySelfUpdate, getSelfUpdateStatus } from "./self-update.service";
@@ -14,9 +13,8 @@ function scheduleNext(): void {
     clearTimeout(timer);
     timer = null;
   }
-  const secret = selfUpdateSecretLive();
   const ms = selfUpdatePollMsLive();
-  if (!secret || ms <= 0) return;
+  if (ms <= 0) return;
   timer = setTimeout(() => void runTick(), ms);
 }
 
@@ -52,12 +50,13 @@ export function kickSelfUpdatePoll(): void {
     clearTimeout(timer);
     timer = null;
   }
-  const secret = selfUpdateSecretLive();
   const ms = selfUpdatePollMsLive();
-  if (secret && ms > 0) {
-    logger.info({ pollMs: ms, autoApply: selfUpdateAutoApplyLive(), branch: selfUpdateBranchLive() }, "Self-update poll scheduled");
-  }
-  scheduleNext();
+  if (ms <= 0) return;
+  logger.info(
+    { pollMs: ms, autoApply: selfUpdateAutoApplyLive(), branch: selfUpdateBranchLive() },
+    "Self-update poll scheduled"
+  );
+  void runTick();
 }
 
 export function stopSelfUpdatePoll(): void {

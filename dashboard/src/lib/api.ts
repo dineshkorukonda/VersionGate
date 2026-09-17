@@ -95,10 +95,36 @@ export interface Deployment {
   projectId: string;
   projectName?: string | null;
   environmentId?: string;
+  environmentName?: string | null;
+  environmentBranch?: string | null;
   promotedFromId?: string | null;
   jobId?: string | null;
+  commitSha?: string | null;
+  commitMessage?: string | null;
+  commitAuthor?: string | null;
+  commitBranch?: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface ProjectCommit {
+  sha: string;
+  shortSha: string;
+  message: string;
+  author: string;
+  date: string;
+  isDeployed: boolean;
+  isProduction: boolean;
+  activeDeployment: Deployment | null;
+  latestDeployment: Deployment | null;
+  allDeployments: Deployment[];
+}
+
+export interface ProjectCommitsResponse {
+  projectId: string;
+  projectName: string;
+  branch: string;
+  commits: ProjectCommit[];
 }
 
 export interface EnvironmentRow {

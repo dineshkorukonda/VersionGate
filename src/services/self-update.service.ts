@@ -51,14 +51,48 @@ function ecosystemPath(): string {
   return join(projectRoot, "ecosystem.config.cjs");
 }
 
-function schedulePm2Reload(): void {
-  const child = spawn("pm2", ["reload", ecosystemPath(), "--update-env"], {
+function reloadPm2Processes(args: string[], env: NodeJS.ProcessEnv, label: string): void {
+  const child = spawn("pm2", args, {
     cwd: projectRoot,
     detached: true,
     stdio: "ignore",
-    env: process.env,
+    env,
+  });
+  child.on("error", (err) => {
+    logger.warn({ err, label }, "schedulePm2Reload: pm2 spawn failed");
   });
   child.unref();
+}
+
+function schedulePm2Reload(): void {
+  const env = {
+    ...process.env,
+    PATH: ["/usr/local/bin", "/usr/bin", "/bin", process.env.PATH].filter(Boolean).join(":"),
+  };
+  let usedFallback = false;
+  const tryProcessReload = (reason: string) => {
+    if (usedFallback) return;
+    usedFallback = true;
+    logger.warn({ reason }, "schedulePm2Reload: trying process reload fallback");
+    reloadPm2Processes(["reload", "versiongate-api", "versiongate-worker", "--update-env"], env, "process-reload");
+  };
+
+  const ecosystemChild = spawn("pm2", ["reload", ecosystemPath(), "--update-env"], {
+    cwd: projectRoot,
+    detached: true,
+    stdio: "ignore",
+    env,
+  });
+  ecosystemChild.on("error", (err) => {
+    logger.warn({ err }, "schedulePm2Reload: ecosystem reload spawn failed");
+    tryProcessReload("spawn-error");
+  });
+  ecosystemChild.on("exit", (code) => {
+    if (code !== 0 && code !== null) {
+      tryProcessReload(`exit-${code}`);
+    }
+  });
+  ecosystemChild.unref();
 }
 
 /**

@@ -114,6 +114,57 @@ export class GitService {
     return repoUrl;
   }
 
+  async getLatestCommit(project: Pick<ProjectSelect, "id">): Promise<{
+    sha: string;
+    message: string;
+    author: string;
+    date: string;
+  } | null> {
+    const repoDir = this.projectPath(project);
+    try {
+      const { stdout } = await execFileAsync("git", [
+        "-C", repoDir,
+        "log", "-1",
+        "--format=%H%x00%s%x00%an%x00%aI",
+      ]);
+      const [sha, message, author, date] = stdout.trim().split("\0");
+      if (!sha) return null;
+      return { sha, message: message || "", author: author || "", date: date || "" };
+    } catch {
+      return null;
+    }
+  }
+
+  async listRecentCommits(
+    project: Pick<ProjectSelect, "id">,
+    limit = 30
+  ): Promise<Array<{
+    sha: string;
+    message: string;
+    author: string;
+    date: string;
+  }>> {
+    const repoDir = this.projectPath(project);
+    try {
+      const { stdout } = await execFileAsync("git", [
+        "-C", repoDir,
+        "log", `-${limit}`,
+        "--format=%H%x00%s%x00%an%x00%aI",
+      ]);
+      const lines = stdout.split("\n").filter(Boolean);
+      const list: Array<{ sha: string; message: string; author: string; date: string }> = [];
+      for (const line of lines) {
+        const [sha, message, author, date] = line.split("\0");
+        if (sha) {
+          list.push({ sha, message: message || "", author: author || "", date: date || "" });
+        }
+      }
+      return list;
+    } catch {
+      return [];
+    }
+  }
+
   private async isGitRepo(dir: string): Promise<boolean> {
     try {
       await fs.access(path.join(dir, ".git"));

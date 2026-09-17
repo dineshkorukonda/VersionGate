@@ -15,6 +15,10 @@ export class DeploymentRepository {
     status: DeploymentStatusType;
     environment: { connect: { id: string } };
     promotedFromId?: string | null;
+    commitSha?: string | null;
+    commitMessage?: string | null;
+    commitAuthor?: string | null;
+    commitBranch?: string | null;
   }): Promise<DeploymentSelect> {
     const db = getDb();
     const now = new Date();
@@ -29,6 +33,10 @@ export class DeploymentRepository {
         status: data.status,
         environmentId: data.environment.connect.id,
         promotedFromId: data.promotedFromId ?? null,
+        commitSha: data.commitSha ?? null,
+        commitMessage: data.commitMessage ?? null,
+        commitAuthor: data.commitAuthor ?? null,
+        commitBranch: data.commitBranch ?? null,
         createdAt: now,
         updatedAt: now,
       })
@@ -108,12 +116,14 @@ export class DeploymentRepository {
 
   async findAllForProject(
     projectId: string
-  ): Promise<(DeploymentSelect & { projectId: string; jobId?: string | null })[]> {
+  ): Promise<(DeploymentSelect & { projectId: string; environmentName: string; environmentBranch: string; jobId?: string | null })[]> {
     const db = getDb();
     const rows = await db
       .select({
         deployment: deployments,
         projectId: environments.projectId,
+        environmentName: environments.name,
+        environmentBranch: environments.branch,
         jobId: jobs.id,
       })
       .from(deployments)
@@ -122,7 +132,13 @@ export class DeploymentRepository {
       .where(eq(environments.projectId, projectId))
       .orderBy(desc(deployments.createdAt));
 
-    return rows.map((r) => ({ ...r.deployment, projectId: r.projectId, jobId: r.jobId ?? null }));
+    return rows.map((r) => ({
+      ...r.deployment,
+      projectId: r.projectId,
+      environmentName: r.environmentName,
+      environmentBranch: r.environmentBranch,
+      jobId: r.jobId ?? null,
+    }));
   }
 
   async getNextVersionForEnvironment(environmentId: string): Promise<number> {
@@ -155,13 +171,15 @@ export class DeploymentRepository {
     return rows.map((r) => ({ ...r.deployment, project: r.project }));
   }
 
-  async findAll(): Promise<(DeploymentSelect & { projectId: string; projectName?: string; jobId?: string | null })[]> {
+  async findAll(): Promise<(DeploymentSelect & { projectId: string; projectName?: string; environmentName?: string; environmentBranch?: string; jobId?: string | null })[]> {
     const db = getDb();
     const rows = await db
       .select({
         deployment: deployments,
         projectId: environments.projectId,
         projectName: projects.name,
+        environmentName: environments.name,
+        environmentBranch: environments.branch,
         jobId: jobs.id,
       })
       .from(deployments)
@@ -174,6 +192,8 @@ export class DeploymentRepository {
       ...r.deployment,
       projectId: r.projectId,
       projectName: r.projectName,
+      environmentName: r.environmentName,
+      environmentBranch: r.environmentBranch,
       jobId: r.jobId ?? null,
     }));
   }

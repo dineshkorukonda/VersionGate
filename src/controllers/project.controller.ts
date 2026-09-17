@@ -5,6 +5,7 @@ import { ProjectRepository } from "../repositories/project.repository";
 import { DeploymentRepository } from "../repositories/deployment.repository";
 import { EnvironmentRepository } from "../repositories/environment.repository";
 import { freeHostPort, removeContainer, stopContainer } from "../utils/docker";
+import { deletePm2App } from "../utils/pm2";
 import { enqueueJob } from "../services/job-queue.service";
 import { config, excludedPortsLive } from "../config/env";
 import { logger } from "../utils/logger";
@@ -12,12 +13,13 @@ import { validateEnvObject } from "../utils/env";
 import { ProjectDomainService } from "../services/project-domain.service";
 import { projectAnalyticsService } from "../services/project-analytics.service";
 import { isProjectPortRangeSafe, parseExcludedPorts } from "../utils/port-manager";
-import { deletePm2App } from "../utils/pm2";
+import { GitService } from "../services/git.service";
 
 const projectRepo = new ProjectRepository();
 const deploymentRepo = new DeploymentRepository();
 const envRepo = new EnvironmentRepository();
 const projectDomainService = new ProjectDomainService();
+const git = new GitService();
 
 interface CreateProjectBody {
   name: string;
@@ -360,5 +362,54 @@ export async function getProjectAnalyticsHandler(
 
   const analytics = await projectAnalyticsService.getAnalytics(id);
   reply.code(200).send({ analytics });
+}
+
+export async function getProjectCommitsHandler(
+  req: FastifyRequest<{ Params: ProjectParams; Querystring: { limit?: string } }>,
+  reply: FastifyReply
+): Promise<void> {
+  const { id } = req.params;
+  const project = await projectRepo.findById(id);
+  if (!project) {
+    return reply.code(404).send({ error: "NotFound", message: "Project not found" });
+  }
+
+  const limit = Math.min(100, Math.max(1, parseInt(req.query.limit || "50", 10) || 50));
+  const rawCommits = await git.listRecentCommits(project, limit);
+  const deployments = await deploymentRepo.findAllForProject(id);
+
+  // Map each commit to its latest deployment if any
+  const commits = rawCommits.map((c) => {
+    // Find all deployments matching this commit SHA or prefix
+    const matching = deployments.filter(
+      (d) => d.commitSha && (d.commitSha === c.sha || c.sha.startsWith(d.commitSha) || d.commitSha.startsWith(c.sha))
+    );
+    const activeDep = matching.find((d) => d.status === "ACTIVE");
+    const latestDep = matching[0] ?? null;
+    const isProduction = Boolean(
+      (activeDep && activeDep.environmentName?.toLowerCase() === "production") ||
+      (latestDep && latestDep.environmentName?.toLowerCase() === "production")
+    );
+
+    return {
+      sha: c.sha,
+      shortSha: c.sha.slice(0, 7),
+      message: c.message,
+      author: c.author,
+      date: c.date,
+      isDeployed: matching.length > 0,
+      isProduction,
+      activeDeployment: activeDep ?? null,
+      latestDeployment: latestDep ?? null,
+      allDeployments: matching,
+    };
+  });
+
+  reply.code(200).send({
+    projectId: id,
+    projectName: project.name,
+    branch: project.branch,
+    commits,
+  });
 }
 

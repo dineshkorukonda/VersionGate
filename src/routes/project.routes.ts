@@ -10,6 +10,7 @@ import {
   updateProjectEnvHandler,
   generatePipelineHandler,
   getProjectAnalyticsHandler,
+  getProjectCommitsHandler,
 } from "../controllers/project.controller";
 import {
   listProjectDomainsHandler,
@@ -192,6 +193,10 @@ export async function projectRoutes(app: FastifyInstance): Promise<void> {
 
   app.get("/projects/:id/analytics", {
     handler: getProjectAnalyticsHandler,
+  });
+
+  app.get("/projects/:id/commits", {
+    handler: getProjectCommitsHandler,
   });
 
   app.post("/projects/:id/generate-pipeline", {
