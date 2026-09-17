@@ -10,6 +10,8 @@ interface CreateDatabaseBody {
   username?: string;
   password?: string;
   linkedProjectId?: string;
+  memoryLimit?: string;
+  cpuLimit?: string;
 }
 
 interface LinkDatabaseBody {

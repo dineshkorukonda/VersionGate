@@ -14,6 +14,17 @@ export interface Capability {
 
 const CAPABILITIES: Capability[] = [
   {
+    id: "cap-cron-runner",
+    category: "Deployment",
+    title: "Scheduled Cron Jobs & Hardware Guardrails",
+    command: "GET /api/v1/cron-jobs  |  POST /api/v1/cron-jobs/:id/run",
+    description:
+      "Background cron scheduler engine supporting recurring HTTP webhooks and in-container command execution with hardware resource limit guardrails.",
+    details:
+      "Automate recurring database maintenance, cache warmups, and scheduled tasks. Supports 5-part cron expressions, presets, manual triggers, historical execution telemetry logs, and intelligent CPU/RAM allocation limits based on host server hardware capacity.",
+    badge: "NEW",
+  },
+  {
     id: "cap-db-studio",
     category: "Deployment",
     title: "UI Database Studio & Query Console",

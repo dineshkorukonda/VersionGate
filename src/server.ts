@@ -11,6 +11,7 @@ import { kickSelfUpdatePoll, stopSelfUpdatePoll } from "./services/self-update-p
 
 import { engineHealthMonitor } from "./services/engine-monitor.service";
 import { startInProcessWorker, stopInProcessWorker } from "./worker/in-process";
+import { cronRunnerService } from "./services/cron-runner.service";
 
 function databaseUrlLive(): string {
   return process.env.DATABASE_URL?.trim() ?? "";
@@ -25,6 +26,7 @@ async function start(): Promise<void> {
     monitor.start();
     engineHealthMonitor.start();
     startInProcessWorker();
+    cronRunnerService.startScheduler();
     void (async () => {
       try {
         const reconciliation = new ReconciliationService();
@@ -39,6 +41,7 @@ async function start(): Promise<void> {
   // Graceful shutdown
   const shutdown = async (signal: string): Promise<void> => {
     logger.info({ signal }, "Shutting down");
+    cronRunnerService.stopScheduler();
     stopSelfUpdatePoll();
     stopInProcessWorker();
     systemMetrics.stop();
@@ -105,6 +108,7 @@ async function start(): Promise<void> {
     if (databaseUrlLive()) {
       monitor.start();
       engineHealthMonitor.start();
+      cronRunnerService.startScheduler();
     } else {
       logger.warn("DATABASE_URL not set — container monitor disabled until database is configured");
     }

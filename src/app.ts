@@ -20,6 +20,7 @@ import { authRoutes } from "./routes/auth.routes";
 import { githubAppRoutes } from "./routes/github-app.routes";
 import { proxyRoutes } from "./routes/proxy.routes";
 import { databaseRoutes } from "./routes/database.routes";
+import { cronRoutes } from "./routes/cron.routes";
 
 export async function buildApp(): Promise<FastifyInstance> {
   const app = Fastify({
@@ -72,6 +73,9 @@ export async function buildApp(): Promise<FastifyInstance> {
     /^\/api\/v1\/projects\/[^/]+\/environments$/,
     /^\/api\/v1\/projects\/[^/]+\/jobs$/,
     /^\/api\/v1\/projects\/[^/]+\/metrics$/,
+    /^\/api\/v1\/cron-jobs$/,
+    /^\/api\/v1\/cron-jobs\/[^/]+$/,
+    /^\/api\/v1\/system\/capacity-specs$/,
   ];
 
   const isQuietSuccessfulPoll = (pathname: string, method: string, status: number): boolean => {
@@ -149,6 +153,10 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(async (instance) => {
     await instance.register(dbRoutes);
     await databaseRoutes(instance);
+  }, { prefix: "/api/v1" });
+  await app.register(async (instance) => {
+    await instance.register(dbRoutes);
+    await cronRoutes(instance);
   }, { prefix: "/api/v1" });
   await app.register(systemRoutes, { prefix: "/api/v1" });
   await app.register(async (instance) => {

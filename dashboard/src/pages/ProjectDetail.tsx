@@ -21,6 +21,7 @@ import {
   type ProjectDomain,
 } from "@/lib/api";
 import { RuntimeLogsViewer } from "@/components/RuntimeLogsViewer";
+import { CronJobsManager } from "@/components/CronJobsManager";
 import { EnvironmentChain } from "@/components/badges/EnvironmentChain";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -390,6 +391,7 @@ export function ProjectDetail() {
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="deployments">Deployments ({productionDeployments.length})</TabsTrigger>
           <TabsTrigger value="domains">Domains &amp; Networking ({customDomains.length})</TabsTrigger>
+          <TabsTrigger value="cron">Cron Jobs</TabsTrigger>
           <TabsTrigger value="logs">Runtime Logs</TabsTrigger>
           <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
@@ -825,7 +827,12 @@ export function ProjectDetail() {
           </section>
         </TabsContent>
 
-        {/* 05 // SETTINGS TAB */}
+        {/* 05 // CRON JOBS TAB */}
+        <TabsContent value="cron" className="space-y-6">
+          <CronJobsManager projectId={project.id} project={project} />
+        </TabsContent>
+
+        {/* 06 // SETTINGS TAB */}
         <TabsContent value="settings" className="space-y-6">
           <Card className="border-neutral-800 bg-[#0a0a0a]">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">

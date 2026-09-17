@@ -37,10 +37,11 @@ const nav = [
   { to: "/", label: "Overview", end: true, tag: "01" },
   { to: "/projects", label: "Projects", end: true, tag: "02" },
   { to: "/databases", label: "Databases", end: false, tag: "03" },
-  { to: "/activity", label: "Activity", end: false, tag: "04" },
-  { to: "/dashboard/integrations", label: "Integrations", end: false, tag: "05" },
-  { to: "/system", label: "System health", end: false, tag: "06" },
-  { to: "/settings", label: "Settings", end: false, tag: "07" },
+  { to: "/cron", label: "Cron Jobs", end: false, tag: "04" },
+  { to: "/activity", label: "Activity", end: false, tag: "05" },
+  { to: "/dashboard/integrations", label: "Integrations", end: false, tag: "06" },
+  { to: "/system", label: "System health", end: false, tag: "07" },
+  { to: "/settings", label: "Settings", end: false, tag: "08" },
 ] as const;
 
 const navBtn =
