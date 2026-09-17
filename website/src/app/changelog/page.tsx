@@ -44,9 +44,41 @@ interface ProcessedRelease {
 
 const FALLBACK_RELEASES: ProcessedRelease[] = [
   {
+    version: "v2.9.5",
+    date: "September 17, 2026",
+    isLatest: true,
+    summary:
+      "Full-page PM2 project creation suite, in-dashboard UI Database Studio and SQL console, and dark mode contrast enhancements.",
+    categories: [
+      {
+        title: "Developer Experience & Database Tooling",
+        badge: "NEW",
+        items: [
+          {
+            title: "UI Database Studio & SQL Query Console",
+            description:
+              "Interactive database studio inside VersionGate. Inspect live schemas, browse tables, run raw queries with millisecond execution telemetry, and export results as JSON or CSV.",
+            command: "GET /api/v1/databases/:id/schema | POST /api/v1/databases/:id/query",
+          },
+          {
+            title: "Full-Page Project Creation Suite",
+            description:
+              "Replaced modal setup with a full-page wizard (/projects/new) supporting Docker containers and bare-metal PM2 process supervision, stack detection, and encrypted environment variables.",
+            command: "POST /api/v1/projects | /projects/new",
+          },
+          {
+            title: "Dark Mode Contrast & Theme Refinement",
+            description:
+              "Fixed element contrast issues across forms, selects, status badges, alerts, and modal dialogs to guarantee crisp readability in dark mode.",
+          },
+        ],
+      },
+    ],
+  },
+  {
     version: "v2.9.4",
     date: "September 16, 2026",
-    isLatest: true,
+    isLatest: false,
     summary:
       "Vercel and shadcn UI overhaul: global Command Palette (Cmd+K), tabbed project workspaces, redesigned project cards, and streamlined telemetry.",
     categories: [
