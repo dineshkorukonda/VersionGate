@@ -106,8 +106,8 @@ export function Setup() {
         {status?.needsRestart && (
           <Card className="mb-6 border-amber-500/40 bg-card">
             <CardHeader className="pb-2">
-              <CardTitle className="text-base text-amber-950">Restart required</CardTitle>
-              <CardDescription className="text-amber-900/90">
+              <CardTitle className="text-base text-amber-300">Restart required</CardTitle>
+              <CardDescription className="text-amber-400/90">
                 <code className="rounded bg-muted px-1 py-0.5 text-xs text-foreground">DATABASE_URL</code> is in{" "}
                 <code className="rounded bg-muted px-1 py-0.5 text-xs text-foreground">.env</code> but this API process
                 has not loaded it yet (unusual). Restart the API; restart the worker too so deploy jobs use the

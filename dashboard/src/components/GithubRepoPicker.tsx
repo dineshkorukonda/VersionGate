@@ -104,11 +104,11 @@ export function GithubRepoPicker({
         </div>
       ) : error ? (
         <div
-          className="rounded-lg border border-amber-200/90 bg-amber-50/90 px-3 py-3 text-sm text-amber-950"
+          className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-3 text-sm text-amber-300"
           role="alert"
         >
-          <p className="font-medium">Could not load repositories</p>
-          <p className="mt-1 text-amber-900/90">{error}</p>
+          <p className="font-medium text-amber-200">Could not load repositories</p>
+          <p className="mt-1 text-amber-400/90">{error}</p>
           <div className="mt-3 flex flex-wrap gap-2">
             <Link
               to="/dashboard/integrations"

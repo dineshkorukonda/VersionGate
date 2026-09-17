@@ -206,7 +206,7 @@ export function SystemHealth() {
             <CardHeader className="pb-2">
               <div className="flex flex-wrap items-center gap-2">
                 <CardTitle className="text-base">Dependencies</CardTitle>
-                <Badge variant="outline" className={preflight.ok ? "border-emerald-500/40 text-emerald-700" : "border-amber-500/50 text-amber-800"}>
+                <Badge variant="outline" className={preflight.ok ? "border-emerald-500/40 text-emerald-400" : "border-amber-500/50 text-amber-400"}>
                   {preflight.ok ? "All required checks passed" : "Attention needed"}
                 </Badge>
               </div>
@@ -235,7 +235,7 @@ export function SystemHealth() {
                           <Badge
                             variant="outline"
                             className={
-                              c.ok ? "border-sky-500/40 text-sky-800" : "border-amber-500/50 text-amber-900"
+                              c.ok ? "border-sky-500/40 text-sky-400" : "border-amber-500/50 text-amber-400"
                             }
                           >
                             {st}
@@ -298,7 +298,7 @@ export function SystemHealth() {
                         <TableCell className="font-mono text-xs text-muted-foreground">{p.address}</TableCell>
                         <TableCell className="pr-6">
                           {pub ? (
-                            <Badge variant="outline" className="border-sky-500/45 text-[10px] text-sky-800">
+                            <Badge variant="outline" className="border-sky-500/45 text-[10px] text-sky-400">
                               Exposed
                             </Badge>
                           ) : (

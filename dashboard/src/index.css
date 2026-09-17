@@ -18,6 +18,13 @@
   html {
     @apply font-sans;
   }
+  select, input, textarea {
+    @apply bg-background text-foreground;
+  }
+  option {
+    background-color: #0a0a0a;
+    color: #ffffff;
+  }
 }
 
 @theme inline {
