@@ -396,6 +396,13 @@ export function getDeployments(projectId: string): Promise<{ deployments: Deploy
   return request("GET", `/projects/${projectId}/deployments`);
 }
 
+export function getProjectCommits(
+  projectId: string,
+  limit = 50
+): Promise<ProjectCommitsResponse> {
+  return request("GET", `/projects/${projectId}/commits?limit=${limit}`);
+}
+
 export function getAllDeployments(): Promise<{ deployments: Deployment[] }> {
   return request("GET", "/deployments");
 }

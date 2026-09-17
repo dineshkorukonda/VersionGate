@@ -11,7 +11,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { AggregateJobLogStream } from "@/components/AggregateJobLogStream";
+import { DeploymentList } from "@/components/DeploymentList";
+import {
+  DeploymentLogFilters,
+  filterDeployments,
+  type DeploymentEnvFilter,
+  type DeploymentStatusFilter,
+} from "@/components/DeploymentLogFilters";
 import { jobArtifactLabel } from "@/lib/job-display";
+import { sortDeploymentsNewestFirst } from "@/lib/deployment-log-display";
 import { cn } from "@/lib/utils";
 
 const POLL_MS = 8000;
@@ -78,10 +86,12 @@ function exportJobsCsv(jobs: JobRecord[]) {
 export function Activity() {
   const [jobs, setJobs] = useState<JobRecord[]>([]);
   const [deployments, setDeployments] = useState<Deployment[]>([]);
-  const [activeTab, setActiveTab] = useState<"jobs" | "deployments">("jobs");
+  const [activeTab, setActiveTab] = useState<"jobs" | "deployments">("deployments");
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [depStatusFilter, setDepStatusFilter] = useState<DeploymentStatusFilter>("all");
+  const [depEnvFilter, setDepEnvFilter] = useState<DeploymentEnvFilter>("all");
   const [chartMode, setChartMode] = useState<"all" | "deploy" | "rollback">("all");
 
   const load = useCallback(async () => {
@@ -133,6 +143,11 @@ export function Activity() {
     return max;
   }, [dayBuckets]);
 
+  const filteredDeployments = useMemo(() => {
+    const sorted = sortDeploymentsNewestFirst(deployments);
+    return filterDeployments(sorted, depStatusFilter, depEnvFilter);
+  }, [deployments, depStatusFilter, depEnvFilter]);
+
   const successRate = useMemo(() => {
     let ok = 0;
     let done = 0;
@@ -149,8 +164,8 @@ export function Activity() {
   return (
     <div className="w-full space-y-8">
       <PageHeader
-        title="Activity Log"
-        description="Real-time deployment jobs across all projects"
+        title="Logs"
+        description="Deployment history and pipeline jobs across all projects"
                 actions={
           <div className="flex flex-wrap items-center gap-2">
             <select
@@ -314,71 +329,24 @@ export function Activity() {
               </TableBody>
             </Table>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow className="border-border/50 hover:bg-transparent">
-                  <TableHead className="pl-6">Version</TableHead>
-                  <TableHead>Project</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Container / Slot</TableHead>
-                  <TableHead>Host Port</TableHead>
-                  <TableHead>When</TableHead>
-                  <TableHead className="pr-6 text-right">Logs</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {deployments.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="py-16 text-center text-muted-foreground">
-                      No deployments recorded yet.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  deployments.map((d) => (
-                    <TableRow key={d.id} className="border-border/40">
-                      <TableCell className="pl-6 font-mono text-sm font-medium">v{d.version}</TableCell>
-                      <TableCell className="font-medium">
-                        <Link to={`/projects/${d.projectId}`} className="text-primary hover:underline">
-                          {d.projectName ?? d.projectId.slice(0, 8)}
-                        </Link>
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={d.status === "ACTIVE" ? "default" : d.status === "FAILED" ? "destructive" : "secondary"}
-                          className="font-mono text-xs"
-                        >
-                          {d.status}
-                        </Badge>
-                        {d.errorMessage ? (
-                          <p className="mt-1 max-w-xs truncate text-xs text-rose-400" title={d.errorMessage}>
-                            {d.errorMessage}
-                          </p>
-                        ) : null}
-                      </TableCell>
-                      <TableCell className="font-mono text-xs text-muted-foreground">
-                        {d.containerName} ({d.color})
-                      </TableCell>
-                      <TableCell className="font-mono text-sm">{d.port}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {new Date(d.createdAt).toLocaleString()}
-                      </TableCell>
-                      <TableCell className="pr-6 text-right">
-                        {d.jobId ? (
-                          <Link
-                            to={`/projects/${d.projectId}/deploy/${d.jobId}`}
-                            className={buttonVariants({ variant: "outline", size: "sm" })}
-                          >
-                            View log
-                          </Link>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">—</span>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+            <div className="space-y-4 px-1 pb-4">
+              <DeploymentLogFilters
+                statusFilter={depStatusFilter}
+                envFilter={depEnvFilter}
+                onStatusChange={setDepStatusFilter}
+                onEnvChange={setDepEnvFilter}
+                onClear={() => {
+                  setDepStatusFilter("all");
+                  setDepEnvFilter("all");
+                }}
+                count={filteredDeployments.length}
+              />
+              <DeploymentList
+                deployments={filteredDeployments}
+                showProject
+                emptyMessage="No deployments match your filters."
+              />
+            </div>
           )}
           {!loading && (activeTab === "jobs" ? total > 0 : deployments.length > 0) ? (
             <p className="border-t border-border/40 px-6 py-3 text-xs text-muted-foreground">

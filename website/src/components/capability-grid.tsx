@@ -14,6 +14,17 @@ export interface Capability {
 
 const CAPABILITIES: Capability[] = [
   {
+    id: "cap-deployment-logs-ui",
+    category: "Monitoring",
+    title: "Vercel-Style Deployment & Commit Logs",
+    command: "GET /api/v1/deployments  |  GET /api/v1/projects/:id/commits",
+    description:
+      "Global and per-project deployment feeds with commit metadata, status filters, environment badges, and commit-centric deployment history.",
+    details:
+      "Dashboard deployments page lists all projects with production/preview labels, commit SHA, branch, author, and duration. Project workspaces expose Deployments and Commits tabs with shared filters and live log drill-down.",
+    badge: "NEW",
+  },
+  {
     id: "cap-adopted-domains-pm2",
     category: "Networking",
     title: "Nginx Domain Ingestion & PM2 Telemetry",

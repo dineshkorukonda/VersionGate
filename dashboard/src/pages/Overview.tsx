@@ -37,6 +37,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { AggregateJobLogStream } from "@/components/AggregateJobLogStream";
+import { DeploymentList } from "@/components/DeploymentList";
 
 function timeAgo(date: string): string {
   const seconds = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
@@ -476,6 +477,23 @@ export function Overview() {
               })}
             </div>
           </div>
+
+          {deployments.length > 0 && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <h2 className="text-sm font-semibold text-white">Recent Deployments</h2>
+                <Link to="/deployments" className="text-xs text-neutral-400 hover:text-white">
+                  View all
+                </Link>
+              </div>
+              <DeploymentList
+                deployments={[...deployments]
+                  .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                  .slice(0, 6)}
+                showProject
+              />
+            </div>
+          )}
 
           {/* Recent Activity Stream */}
           {recentJobs.length > 0 && (

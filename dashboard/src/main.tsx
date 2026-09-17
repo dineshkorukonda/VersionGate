@@ -16,6 +16,7 @@ const Login = lazy(() => import("@/pages/Login").then((m) => ({ default: m.Login
 const Settings = lazy(() => import("@/pages/Settings").then((m) => ({ default: m.Settings })));
 const Databases = lazy(() => import("@/pages/Databases").then((m) => ({ default: m.Databases })));
 const CronJobs = lazy(() => import("@/pages/CronJobs").then((m) => ({ default: m.CronJobs })));
+const Deployments = lazy(() => import("@/pages/Deployments").then((m) => ({ default: m.Deployments })));
 const CreateProject = lazy(() => import("@/pages/CreateProject").then((m) => ({ default: m.CreateProject })));
 
 const PageLoader = () => (
@@ -35,10 +36,16 @@ createRoot(document.getElementById("root")!).render(
             <Route path="/" element={<Overview />} />
             <Route path="/projects" element={<Projects />} />
             <Route path="/projects/new" element={<CreateProject />} />
+            <Route path="/deployments" element={<Deployments />} />
             <Route path="/databases" element={<Databases />} />
             <Route path="/cron" element={<CronJobs />} />
             <Route path="/activity" element={<Activity />} />
             <Route path="/projects/:id" element={<ProjectDetail />} />
+            <Route path="/projects/:id/deployments" element={<ProjectDetail />} />
+            <Route path="/projects/:id/domains" element={<ProjectDetail />} />
+            <Route path="/projects/:id/cron" element={<ProjectDetail />} />
+            <Route path="/projects/:id/logs" element={<ProjectDetail />} />
+            <Route path="/projects/:id/settings" element={<ProjectDetail />} />
             <Route path="/projects/:id/deploy/:jobId" element={<DeployLog />} />
             <Route path="/system" element={<SystemHealth />} />
             <Route path="/server" element={<Navigate to="/system" replace />} />
