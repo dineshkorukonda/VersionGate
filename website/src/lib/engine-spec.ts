@@ -20,25 +20,26 @@ export const STACK = [
   { name: "Fastify", role: "HTTP API, WebSocket job logs, stage proxy" },
   { name: "PostgreSQL", role: "Projects, deployments, jobs, auth" },
   { name: "Redis", role: "Optional deploy locks + log pub/sub" },
-  { name: "Docker", role: "Single container per environment" },
-  { name: "Nginx", role: "Production upstream reload" },
+  { name: "Docker & PM2", role: "Containerization and bare-metal host supervision" },
+  { name: "Databases", role: "PostgreSQL, Redis, MySQL, MongoDB + In-Dashboard DB Studio" },
+  { name: "Nginx", role: "Production upstream reload & SSL reverse proxy" },
   { name: "Drizzle ORM", role: "Schema sync on boot" },
 ] as const;
 
 export const PIPELINE_STEPS = [
   { n: "1", label: "enqueue", detail: "POST /deploy or webhook → DEPLOY job (SKIP LOCKED claim)" },
-  { n: "2", label: "source", detail: "git pull branch → ensureDockerfile() → docker build" },
+  { n: "2", label: "source", detail: "git pull branch → auto-detect stack / Dockerfile / PM2 build" },
   { n: "3", label: "slot", detail: "Idle BLUE/GREEN on basePort or basePort+1" },
   { n: "4", label: "health", detail: "GET healthPath (+ /, /index.html fallbacks)" },
   { n: "5", label: "traffic", detail: "nginx -s reload when env name is production" },
-  { n: "6", label: "retire", detail: "Stop previous slot container; mark ROLLED_BACK" },
+  { n: "6", label: "retire", detail: "Stop previous slot container; mark ROLLED_BACK with cached image" },
 ] as const;
 
 export const SPEC_SECTIONS: SpecSection[] = [
   {
     id: "deploy",
     title: "Deploy pipeline",
-    blurb: "Blue/green single-container deploys. One image build per job.",
+    blurb: "Blue/green zero-downtime deploys across Docker and bare-metal PM2 runtimes.",
     items: [
       {
         id: "bluegreen",
@@ -48,7 +49,7 @@ export const SPEC_SECTIONS: SpecSection[] = [
           "deploy.handler picks opposite color from ACTIVE record, builds versiongate-{project}:{timestamp}, runs container, validates HTTP health, switches Nginx for production only.",
         api: "POST /api/v1/deploy",
         source: "worker/handlers/deploy.handler.ts",
-        limit: "One concurrent deploy per environment (Redis + DB lock). No docker-compose.",
+        limit: "One concurrent deploy per environment (Redis + DB lock).",
       },
       {
         id: "dockerfile",

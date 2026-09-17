@@ -17,9 +17,9 @@ const mono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "VersionGate — self-hosted blue/green Docker deploy engine",
+  title: "VersionGate — Self-Hosted Zero-Downtime Docker & Multi-Runtime PaaS",
   description:
-    "VersionGate: single-container deploy engine for your VPS. Fastify, PostgreSQL, Nginx, GitHub webhooks, warm-swap rollback.",
+    "Self-hosted zero-downtime deployment engine: Git webhook builds, Blue/Green warm-swap slotting, in-dashboard DB studio, and PM2 supervision on your own VPS.",
   icons: {
     icon: [
       { url: "/favicon.png", type: "image/png" },
@@ -28,9 +28,9 @@ export const metadata: Metadata = {
     apple: "/apple-touch-icon.png",
   },
   openGraph: {
-    title: "VersionGate",
+    title: "VersionGate — Self-Hosted Zero-Downtime Docker & Multi-Runtime PaaS",
     description:
-      "Self-hosted zero-downtime Docker deploys on your own server. Blue-green slots, GitHub integration, environment promotion.",
+      "Deploy Docker containers and host PM2 apps on your VPS with zero downtime, instant rollbacks, and built-in database management.",
     url: "https://versiongate.tech",
     siteName: "VersionGate",
     type: "website",
@@ -39,7 +39,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className="light" data-theme="light">
+    <html lang="en" className="dark" data-theme="dark">
       <body
         className={`${sans.variable} ${mono.variable} font-sans antialiased bg-background text-foreground`}
         style={{ "--font-display": "var(--font-mono)" } as React.CSSProperties}

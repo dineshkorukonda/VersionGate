@@ -2,76 +2,90 @@
 
 import { useState } from "react";
 
-interface FaqItem {
-  id: string;
-  question: string;
-  answer: string;
+interface FAQ {
+  q: string;
+  a: string;
+  code?: string;
 }
 
-const FAQ: FaqItem[] = [
+const FAQS: FAQ[] = [
   {
-    id: "scope",
-    question: "Does it deploy docker-compose stacks or multiple services?",
-    answer:
-      "No. One build context, one Dockerfile, one container per project environment. If you need frontend + API + DB together, pack them into one container or bring your own Dockerfile.",
+    q: "How does VersionGate achieve zero-downtime deployments without Traefik or Kubernetes?",
+    a: "VersionGate runs an internal slot allocator that maintains a BLUE/GREEN port pair per project environment. During a rollout, it starts the new container on the idle port, validates HTTP health check responses (e.g. HTTP 200), and atomically updates the Nginx upstream configuration via nginx -s reload. Active incoming TCP connections are preserved without dropping packets.",
+    code: "TrafficService.switchTrafficTo(slot) & nginx -s reload",
   },
   {
-    id: "rollback",
-    question: "How is rollback different from a normal deploy?",
-    answer:
-      "Rollback reuses the previous deployment record. If the Docker image tag is still on the host, the worker skips git pull and docker build, starts the old container, health-checks it, then reloads Nginx.",
+    q: "Can I deploy bare-metal PM2 Node/Bun/Python/Rust services instead of Docker?",
+    a: "Yes. VersionGate v2.9.5 provides dual execution engines. When creating a project, you can select 'PM2 Bare-Metal' to run processes directly on the host using PM2 process supervision with automatic package manager detection (Bun, pnpm, yarn, npm, uv, poetry, cargo, composer).",
   },
   {
-    id: "failed",
-    question: "What if the new container fails health checks?",
-    answer:
-      "The deploy job fails before Nginx is reloaded. Traffic stays on the slot that was already active.",
+    q: "How does the in-dashboard UI Database Studio work?",
+    a: "The Database Studio allows you to inspect tables, examine column schemas, and execute raw SQL, Redis commands, or MongoDB operations directly against your provisioned containers. Queries are executed in isolated background worker threads with millisecond execution timing and one-click JSON/CSV data export.",
   },
   {
-    id: "ci",
-    question: "How do I trigger a deploy from CI?",
-    answer:
-      "Create a Bearer token in the dashboard (Settings), then POST /api/v1/deploy with Authorization: Bearer vg_live_... and a JSON body with projectId and environmentId.",
+    q: "Can VersionGate adopt containers or PM2 apps already running on my server?",
+    a: "Yes. The Server Deployment Auto-Adoption feature scans the host system for existing external Docker containers and active PM2 processes, auto-detects their open ports and working directories, and imports them into VersionGate zero-downtime management with a single click.",
+    code: "GET /api/v1/system/discover-deployments",
   },
   {
-    id: "cli",
-    question: "Is there a versiongate CLI?",
-    answer:
-      "No. Control is through the dashboard, the HTTP API, GitHub webhooks, and a few host scripts (bun run reset-password, install.sh).",
+    q: "How does DNS preflight verification prevent Let's Encrypt rate-limit bans?",
+    a: "Before requesting a TLS certificate from Certbot, VersionGate conducts DNS A and CNAME record queries against the server's public IPv4 address. If DNS has not propagated yet or points to an incorrect host, Certbot execution is safely blocked, protecting your domain from Let's Encrypt 5-failure-per-hour rate limits.",
   },
   {
-    id: "domain-working",
-    question: "VersionGate says the domain is working but the browser cannot open it. Why?",
-    answer:
-      "PM2 online and preflight DNS only prove the engine and the VPS resolver. Your laptop may still get NXDOMAIN. Curling the public IP from the VPS often hangs (hairpin NAT on Proxmox / NAT hosts). install.sh, Settings, and Certbot also write three different nginx files that can fight on port 80. See /docs/troubleshooting.",
+    q: "What are the minimum server requirements to host VersionGate?",
+    a: "VersionGate is extremely lightweight (built on Fastify and Drizzle ORM). It runs smoothly on a VPS with 1 vCPU and 1 GB RAM (Ubuntu 22.04+ or Debian 12) alongside Docker Engine, PostgreSQL 16, and Nginx.",
   },
 ];
 
-export function LandingFaq() {
-  const [openId, setOpenId] = useState<string | null>(FAQ[0]?.id ?? null);
+export function LandingFAQ() {
+  const [openIdx, setOpenIdx] = useState<number | null>(null);
 
   return (
-    <div className="divide-y divide-white/10 border border-white/10">
-      {FAQ.map((item) => {
-        const open = openId === item.id;
-        return (
-          <div key={item.id}>
-            <button
-              type="button"
-              onClick={() => setOpenId(open ? null : item.id)}
-              className="flex w-full items-start justify-between gap-4 px-5 py-4 text-left transition hover:bg-white/[0.02]"
-            >
-              <span className="text-sm text-white/85">{item.question}</span>
-              <span className="shrink-0 font-mono text-xs text-white/40">{open ? "−" : "+"}</span>
-            </button>
-            {open && (
-              <div className="border-t border-white/10 px-5 pb-4 pt-1">
-                <p className="text-sm leading-relaxed text-white/55">{item.answer}</p>
+    <section className="py-20 border-t border-border/40 scroll-mt-20">
+      <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
+        <div className="text-center">
+          <p className="font-mono text-xs uppercase tracking-[0.2em] text-primary">
+            [ FREQUENTLY ASKED QUESTIONS ]
+          </p>
+          <h2 className="mt-2 font-mono text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+            Technical Architecture &amp; Operations
+          </h2>
+        </div>
+
+        <div className="mt-12 space-y-4">
+          {FAQS.map((faq, idx) => {
+            const isOpen = openIdx === idx;
+            return (
+              <div
+                key={faq.q}
+                className="rounded-lg border border-border/60 bg-zinc-950/80 p-5 transition hover:border-border"
+              >
+                <button
+                  type="button"
+                  onClick={() => setOpenIdx(isOpen ? null : idx)}
+                  className="flex w-full items-center justify-between text-left font-mono text-sm font-semibold text-foreground"
+                >
+                  <span>{faq.q}</span>
+                  <span className="ml-4 text-primary font-bold">
+                    {isOpen ? "[-]" : "[+]"}
+                  </span>
+                </button>
+
+                {isOpen && (
+                  <div className="mt-4 pt-3 border-t border-border/40 font-sans text-xs leading-relaxed text-zinc-400">
+                    <p>{faq.a}</p>
+                    {faq.code && (
+                      <pre className="mt-3 rounded bg-black p-2.5 font-mono text-[11px] text-emerald-400 overflow-x-auto">
+                        <code>{faq.code}</code>
+                      </pre>
+                    )}
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-        );
-      })}
-    </div>
+            );
+          })}
+        </div>
+      </div>
+    </section>
   );
 }

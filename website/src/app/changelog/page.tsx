@@ -44,7 +44,7 @@ interface ProcessedRelease {
 
 const FALLBACK_RELEASES: ProcessedRelease[] = [
   {
-    version: "v2.9.5",
+    version: "v2.9.6",
     date: "September 17, 2026",
     isLatest: true,
     summary:
