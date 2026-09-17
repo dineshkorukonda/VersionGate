@@ -21,6 +21,7 @@ const TECH_STACK: TechItem[] = [
   { name: "MongoDB", category: "Database", badge: "Document" },
   { name: "Nginx", category: "Proxy", badge: "Reverse Proxy" },
   { name: "Let's Encrypt", category: "Security", badge: "Certbot TLS" },
+  { name: "Cron Runner", category: "Automation", badge: "Scheduled Tasks" },
 ];
 
 export function EcosystemStrip() {

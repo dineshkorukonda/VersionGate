@@ -69,6 +69,18 @@ const FALLBACK_RELEASES: ProcessedRelease[] = [
             description:
               "Comprehensive architectural comparison against Dokploy, Coolify, and Vercel alongside a 4-stage deployment lifecycle walkthrough.",
           },
+          {
+            title: "Cron Jobs & Scheduled Background Workers",
+            description:
+              "Automate background tasks with 5-part cron expressions (e.g. */15 * * * *), HTTP webhook triggers with custom headers, host command execution with timeout guards, and execution logs history.",
+            command: "POST /api/v1/cron-jobs | POST /api/v1/cron-jobs/:id/trigger",
+          },
+          {
+            title: "Server Resource Limits & Capacity Analytics",
+            description:
+              "Real-time host capacity analytics tracking CPU cores, RAM allocations, disk utilization, and container overhead calculations.",
+            command: "GET /api/v1/system/server-specs",
+          },
         ],
       },
     ],

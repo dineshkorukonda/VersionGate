@@ -62,6 +62,10 @@ Open the dashboard setup wizard at `http://your-server-ip:9090/` or `https://you
 - **Raw .env Bulk Editor:** Dual-mode key-value inputs alongside raw multiline dotenv editing with AES-256 secret masking.
 - **Rolling Telemetry:** 24-hour hit counters, response status code distributions (2xx, 3xx, 4xx, 5xx), and millisecond latency metrics.
 
+### 08 // Cron Jobs & Background Scheduling
+- **5-Part Cron Scheduler:** Run background tasks on custom intervals (`*/15 * * * *`) with HTTP webhook triggers and host shell commands.
+- **Execution Telemetry:** Real-time log capture, timeout guards, manual trigger execution, and server resource limit analytics.
+
 ---
 
 ## Deployment Lifecycle Architecture

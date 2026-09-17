@@ -84,6 +84,16 @@ const BENTO_FEATURES: BentoCard[] = [
     highlight: "Dual-mode key-value and raw dotenv bulk paste",
   },
   {
+    id: "cron-jobs",
+    category: "Automation",
+    title: "Cron Jobs & Scheduled Workers",
+    description:
+      "Automate background tasks with 5-part cron schedules, internal HTTP webhook pings, host shell commands, and execution log history.",
+    badge: "NEW v2.9.5",
+    command: "POST /api/v1/cron-jobs",
+    highlight: "HTTP webhook & host command execution with timeouts",
+  },
+  {
     id: "self-hosted",
     category: "Sovereignty",
     title: "100% Self-Hosted & Zero Lock-In",

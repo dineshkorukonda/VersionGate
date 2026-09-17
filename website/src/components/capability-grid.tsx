@@ -14,6 +14,28 @@ export interface Capability {
 
 const CAPABILITIES: Capability[] = [
   {
+    id: "cap-cron-jobs",
+    category: "Deployment",
+    title: "Cron Jobs & Scheduled Background Workers",
+    command: "POST /api/v1/cron-jobs  |  POST /api/v1/cron-jobs/:id/trigger",
+    description:
+      "Automated 5-part cron schedule engine for invoking internal HTTP endpoints or executing bare-metal host shell commands.",
+    details:
+      "Supports standard cron expressions (e.g. */15 * * * *), HTTP GET/POST/PUT webhooks with custom headers, host command execution with configurable timeout guards, project isolation, and execution log history.",
+    badge: "NEW",
+  },
+  {
+    id: "cap-server-specs",
+    category: "Monitoring",
+    title: "Server Capacity & Resource Specs Engine",
+    command: "GET /api/v1/system/server-specs",
+    description:
+      "Real-time host capacity analytics tracking CPU cores, RAM allocations, disk utilization, and container overhead.",
+    details:
+      "Calculates active container memory footprints, total host capacity, swap space, and disk limits to prevent out-of-memory crashes on VPS deployments.",
+    badge: "NEW",
+  },
+  {
     id: "cap-db-studio",
     category: "Deployment",
     title: "UI Database Studio & Query Console",
