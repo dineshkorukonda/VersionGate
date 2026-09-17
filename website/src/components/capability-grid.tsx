@@ -14,14 +14,14 @@ export interface Capability {
 
 const CAPABILITIES: Capability[] = [
   {
-    id: "cap-cron-runner",
-    category: "Deployment",
-    title: "Scheduled Cron Jobs & Hardware Guardrails",
-    command: "GET /api/v1/cron-jobs  |  POST /api/v1/cron-jobs/:id/run",
+    id: "cap-adopted-domains-pm2",
+    category: "Networking",
+    title: "Nginx Domain Ingestion & PM2 Telemetry",
+    command: "GET /api/system/discover-deployments  |  POST /api/projects/adopt",
     description:
-      "Background cron scheduler engine supporting recurring HTTP webhooks and in-container command execution with hardware resource limit guardrails.",
+      "Auto-detect active reverse proxy hostnames and extract live PM2 stdout/stderr logs and process telemetry on service adoption.",
     details:
-      "Automate recurring database maintenance, cache warmups, and scheduled tasks. Supports 5-part cron expressions, presets, manual triggers, historical execution telemetry logs, and intelligent CPU/RAM allocation limits based on host server hardware capacity.",
+      "Scans host Nginx vhost directories for server_name rules proxying to unmanaged service ports, attaches custom domains automatically during adoption, and streams real-time PM2 process logs and metrics directly into the workspace dashboard.",
     badge: "NEW",
   },
   {

@@ -9,6 +9,11 @@ describe("Service Discovery & Adoption Engine", () => {
     expect(meta).toEqual({});
   });
 
+  test("extractNginxDomains returns empty array when port is invalid or zero", () => {
+    const domains = service.extractNginxDomains(0);
+    expect(domains).toEqual([]);
+  });
+
   test("discoverUnmanagedServices returns an array of candidates", async () => {
     const candidates = await service.discoverUnmanagedServices();
     expect(Array.isArray(candidates)).toBe(true);
@@ -17,6 +22,10 @@ describe("Service Discovery & Adoption Engine", () => {
       expect(typeof c.name).toBe("string");
       expect(["pm2", "docker"]).toContain(c.serviceType);
       expect(typeof c.alreadyAdopted).toBe("boolean");
+      if (c.detectedDomains) {
+        expect(Array.isArray(c.detectedDomains)).toBe(true);
+      }
     }
   });
 });
+
