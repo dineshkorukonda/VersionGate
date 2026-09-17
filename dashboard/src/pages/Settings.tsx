@@ -1,9 +1,6 @@
 import { type ReactNode, useEffect, useMemo, useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/PageHeader";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,30 +28,43 @@ import { cn } from "@/lib/utils";
 import { SystemUpdateModal } from "@/components/modals/SystemUpdateModal";
 import { ConfirmDialog } from "@/components/modals/ConfirmDialog";
 import { DonutChart } from "@/components/charts/DonutChart";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { formatPublicDashboardUrl, looksLikeIpv4, normalizePublicBasePath } from "@/lib/public-url";
 import { setConfiguredPublicHost } from "@/lib/deployment-display";
 
 function Row({ label, value }: { label: string; value: ReactNode }) {
   return (
-    <div className="grid gap-1 sm:grid-cols-[minmax(0,200px)_1fr] sm:items-baseline sm:gap-4">
-      <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</dt>
-      <dd className="font-mono text-sm text-foreground">{value}</dd>
+    <div className="flex flex-col gap-1 border-b border-neutral-800/60 py-2.5 sm:flex-row sm:items-center sm:justify-between last:border-0">
+      <dt className="text-xs font-medium text-neutral-400">{label}</dt>
+      <dd className="font-mono text-xs text-neutral-200">{value}</dd>
     </div>
   );
 }
 
-function boolBadge(ok: boolean, yes = "Yes", no = "No") {
+function boolPill(ok: boolean, yes = "Healthy", no = "Attention Needed") {
   return (
-    <Badge variant={ok ? "default" : "secondary"} className="font-mono text-xs">
-      {ok ? yes : no}
-    </Badge>
+    <span
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium border",
+        ok
+          ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
+          : "border-amber-500/30 bg-amber-500/10 text-amber-400"
+      )}
+    >
+      <span className={cn("size-1.5 rounded-full shrink-0", ok ? "bg-emerald-500" : "bg-amber-500")} />
+      <span>{ok ? yes : no}</span>
+    </span>
   );
 }
 
 const textareaClass = cn(
-  "min-h-[72px] w-full rounded-lg border border-input bg-transparent px-2.5 py-2 text-sm text-foreground shadow-none outline-none",
-  "placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
+  "min-h-[80px] w-full rounded-md border border-neutral-800 bg-black px-3 py-2 text-xs font-mono text-neutral-200 placeholder:text-neutral-600 outline-none transition-colors",
+  "focus-visible:border-neutral-500 focus-visible:ring-1 focus-visible:ring-neutral-500",
+  "disabled:cursor-not-allowed disabled:opacity-50"
+);
+
+const inputClass = cn(
+  "h-9 w-full rounded-md border border-neutral-800 bg-black px-3 text-xs text-neutral-200 placeholder:text-neutral-600 outline-none transition-colors",
+  "focus-visible:border-neutral-500 focus-visible:ring-1 focus-visible:ring-neutral-500",
   "disabled:cursor-not-allowed disabled:opacity-50"
 );
 
@@ -89,17 +99,18 @@ function ChangePasswordCard() {
   };
 
   return (
-    <Card className="border-border bg-card">
-      <CardHeader>
-        <CardTitle>Change Administrator Password</CardTitle>
-        <CardDescription>
-          Update your dashboard account password. Password must be at least 10 characters.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handlePasswordChange} className="space-y-4 max-w-md">
-          <div className="space-y-2">
-            <label className="text-xs font-medium text-muted-foreground" htmlFor="current-pass">
+    <div className="overflow-hidden rounded-xl border border-neutral-800 bg-[#0a0a0a]">
+      <div className="p-6 space-y-4">
+        <div>
+          <h3 className="text-base font-semibold text-white">Administrator Password</h3>
+          <p className="mt-1 text-xs text-neutral-400">
+            Update your dashboard authentication password. Passwords must be at least 10 characters.
+          </p>
+        </div>
+
+        <form id="change-password-form" onSubmit={handlePasswordChange} className="space-y-4 max-w-md">
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-neutral-300" htmlFor="current-pass">
               Current Password
             </label>
             <Input
@@ -109,25 +120,27 @@ function ChangePasswordCard() {
               onChange={(e) => setCurrentPassword(e.target.value)}
               placeholder="Enter current password"
               autoComplete="current-password"
+              className={inputClass}
             />
           </div>
-          <div className="space-y-2">
-            <label className="text-xs font-medium text-muted-foreground" htmlFor="new-pass">
-              New Password (min 10 characters)
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-neutral-300" htmlFor="new-pass">
+              New Password
             </label>
             <Input
               id="new-pass"
               type="password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              placeholder="Enter new password"
+              placeholder="Minimum 10 characters"
               required
               minLength={10}
               autoComplete="new-password"
+              className={inputClass}
             />
           </div>
-          <div className="space-y-2">
-            <label className="text-xs font-medium text-muted-foreground" htmlFor="confirm-pass">
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-neutral-300" htmlFor="confirm-pass">
               Confirm New Password
             </label>
             <Input
@@ -135,18 +148,29 @@ function ChangePasswordCard() {
               type="password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              placeholder="Confirm new password"
+              placeholder="Re-enter new password"
               required
               minLength={10}
               autoComplete="new-password"
+              className={inputClass}
             />
           </div>
-          <Button type="submit" disabled={updating || !newPassword}>
-            {updating ? "Updating…" : "Update Password"}
-          </Button>
         </form>
-      </CardContent>
-    </Card>
+      </div>
+
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-t border-neutral-800 bg-black px-6 py-3 text-xs text-neutral-500">
+        <span>Use a secure password with a mix of characters to safeguard control plane access.</span>
+        <Button
+          type="submit"
+          form="change-password-form"
+          size="sm"
+          disabled={updating || !newPassword}
+          className="bg-white text-black font-semibold hover:bg-neutral-200 text-xs shrink-0"
+        >
+          {updating ? "Updating..." : "Save Password"}
+        </Button>
+      </div>
+    </div>
   );
 }
 
@@ -180,7 +204,7 @@ function ApiTokensCard() {
       const res = await createApiToken(name.trim());
       setNewRawToken(res.token.token);
       setName("");
-      toast.success("API Token generated");
+      toast.success("API Token generated successfully");
       await loadTokens();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to create token");
@@ -213,68 +237,74 @@ function ApiTokensCard() {
   };
 
   return (
-    <Card className="border-border bg-card">
-      <CardHeader>
-        <CardTitle>API Access Tokens</CardTitle>
-        <CardDescription>
-          Generate Bearer tokens for CI/CD pipelines, GitHub Actions, and external scripts (`Authorization: Bearer vg_live_...`).
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
+    <div className="overflow-hidden rounded-xl border border-neutral-800 bg-[#0a0a0a]">
+      <div className="p-6 space-y-4">
+        <div>
+          <h3 className="text-base font-semibold text-white">API Access Tokens</h3>
+          <p className="mt-1 text-xs text-neutral-400">
+            Generate Bearer tokens for CI/CD pipelines, GitHub Actions, and external automation (`Authorization: Bearer vg_live_...`).
+          </p>
+        </div>
+
         {newRawToken ? (
-          <Alert className="border-emerald-500/50 bg-emerald-500/10 text-emerald-300">
-            <AlertTitle className="font-semibold text-emerald-400">New API Token Generated!</AlertTitle>
-            <AlertDescription className="mt-2 space-y-2">
-              <p className="text-xs text-emerald-200">
-                Copy this token now. For security, it will <strong>never be shown again</strong>.
-              </p>
-              <div className="flex items-center gap-2">
-                <code className="flex-1 rounded bg-black/40 px-2.5 py-1.5 font-mono text-xs text-emerald-300 select-all border border-emerald-500/30">
-                  {newRawToken}
-                </code>
-                <Button size="sm" variant="secondary" onClick={() => handleCopy(newRawToken)}>
-                  Copy
-                </Button>
-                <Button size="sm" variant="ghost" onClick={() => setNewRawToken(null)}>
-                  Done
-                </Button>
-              </div>
-            </AlertDescription>
-          </Alert>
+          <div className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 p-4 text-emerald-300">
+            <p className="text-xs font-semibold text-emerald-400">New Token Generated</p>
+            <p className="mt-1 text-xs text-emerald-200/90">
+              Copy this token now. For security, it will not be displayed again.
+            </p>
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <code className="flex-1 rounded border border-emerald-500/30 bg-black/60 px-3 py-1.5 font-mono text-xs text-emerald-300 select-all">
+                {newRawToken}
+              </code>
+              <Button size="sm" variant="secondary" className="text-xs h-8" onClick={() => handleCopy(newRawToken)}>
+                Copy
+              </Button>
+              <Button size="sm" variant="ghost" className="text-xs h-8 text-neutral-300 hover:text-white" onClick={() => setNewRawToken(null)}>
+                Done
+              </Button>
+            </div>
+          </div>
         ) : null}
 
-        <form onSubmit={handleCreate} className="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <form onSubmit={handleCreate} className="flex flex-col sm:flex-row items-center gap-2 max-w-lg">
           <Input
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Token name (e.g. GitHub Actions CI)"
-            className="flex-1"
+            className={inputClass}
           />
-          <Button type="submit" disabled={creating || !name.trim()}>
-            {creating ? "Generating…" : "Generate Token"}
+          <Button
+            type="submit"
+            size="sm"
+            disabled={creating || !name.trim()}
+            className="w-full sm:w-auto bg-white text-black font-semibold hover:bg-neutral-200 text-xs shrink-0 h-9"
+          >
+            {creating ? "Generating..." : "Generate"}
           </Button>
         </form>
 
         {loading ? (
           <Skeleton className="h-16 w-full" />
         ) : tokens.length === 0 ? (
-          <p className="text-xs text-muted-foreground">No API tokens generated yet.</p>
+          <div className="rounded-lg border border-neutral-800/80 bg-black/40 p-4 text-center text-xs text-neutral-500">
+            No API tokens generated yet.
+          </div>
         ) : (
-          <div className="rounded-md border border-border divide-y divide-border">
+          <div className="rounded-lg border border-neutral-800 divide-y divide-neutral-800/80 overflow-hidden bg-black/40">
             {tokens.map((t) => (
               <div key={t.id} className="flex items-center justify-between p-3 text-xs">
-                <div className="space-y-1">
-                  <p className="font-medium text-foreground">{t.name}</p>
-                  <p className="font-mono text-muted-foreground">{t.tokenPrefix}</p>
+                <div className="space-y-0.5">
+                  <p className="font-medium text-white">{t.name}</p>
+                  <p className="font-mono text-[11px] text-neutral-500">{t.tokenPrefix}••••••••</p>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="text-[11px] text-muted-foreground">
+                  <span className="text-[11px] text-neutral-500">
                     {t.lastUsedAt ? `Used ${new Date(t.lastUsedAt).toLocaleDateString()}` : "Never used"}
                   </span>
                   <Button
                     size="sm"
                     variant="outline"
-                    className="h-7 text-xs text-destructive hover:bg-destructive/10 border-destructive/40"
+                    className="h-7 text-xs border-red-900/40 text-red-400 hover:bg-red-950/20"
                     onClick={() => setRevokeTarget(t)}
                   >
                     Revoke
@@ -297,8 +327,12 @@ function ApiTokensCard() {
           busy={revoking}
           onConfirm={executeRevoke}
         />
-      </CardContent>
-    </Card>
+      </div>
+
+      <div className="border-t border-neutral-800 bg-black px-6 py-3 text-xs text-neutral-500">
+        Tokens grant administrative deployment rights on this VersionGate instance.
+      </div>
+    </div>
   );
 }
 
@@ -672,10 +706,10 @@ export function Settings() {
 
   if (loading || !instance || !setup) {
     return (
-      <div className="w-full max-w-4xl space-y-8">
-        <Skeleton className="h-10 w-64" />
-        <Skeleton className="h-48 " />
-        <Skeleton className="h-64 " />
+      <div className="w-full max-w-4xl space-y-6">
+        <Skeleton className="h-10 w-48" />
+        <Skeleton className="h-64 w-full" />
+        <Skeleton className="h-48 w-full" />
       </div>
     );
   }
@@ -690,270 +724,344 @@ export function Settings() {
     };
 
   return (
-    <div className="w-full max-w-4xl space-y-6">
+    <div className="w-full max-w-4xl space-y-6 font-sans">
       <PageHeader
         title="Settings"
-        description="Manage your instance configuration, network, security, and update settings."
+        description="Manage control plane configurations, networking, security credentials, and updates."
       />
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="mb-6 h-10 w-full justify-start rounded-none border-b border-border bg-transparent p-0">
-          <TabsTrigger value="general" className="relative h-10 rounded-none border-b-2 border-transparent bg-transparent px-4 pb-3 pt-2 font-medium text-muted-foreground shadow-none transition-none data-[state=active]:border-primary data-[state=active]:text-foreground data-[state=active]:shadow-none">General</TabsTrigger>
-          <TabsTrigger value="network" className="relative h-10 rounded-none border-b-2 border-transparent bg-transparent px-4 pb-3 pt-2 font-medium text-muted-foreground shadow-none transition-none data-[state=active]:border-primary data-[state=active]:text-foreground data-[state=active]:shadow-none">Network</TabsTrigger>
-          <TabsTrigger value="security" className="relative h-10 rounded-none border-b-2 border-transparent bg-transparent px-4 pb-3 pt-2 font-medium text-muted-foreground shadow-none transition-none data-[state=active]:border-primary data-[state=active]:text-foreground data-[state=active]:shadow-none">Security</TabsTrigger>
-          <TabsTrigger value="updates" className="relative h-10 rounded-none border-b-2 border-transparent bg-transparent px-4 pb-3 pt-2 font-medium text-muted-foreground shadow-none transition-none data-[state=active]:border-primary data-[state=active]:text-foreground data-[state=active]:shadow-none">Updates</TabsTrigger>
-          <TabsTrigger value="advanced" className="relative h-10 rounded-none border-b-2 border-transparent bg-transparent px-4 pb-3 pt-2 font-medium text-muted-foreground shadow-none transition-none data-[state=active]:border-primary data-[state=active]:text-foreground data-[state=active]:shadow-none">Advanced</TabsTrigger>
+
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full space-y-6">
+        <TabsList className="flex h-auto w-full justify-start gap-6 rounded-none border-b border-neutral-800 bg-transparent p-0">
+          <TabsTrigger
+            value="general"
+            className="rounded-none border-b-2 border-transparent bg-transparent pb-3 pt-2 text-sm font-medium text-neutral-400 transition-colors data-[state=active]:border-white data-[state=active]:text-white hover:text-neutral-200"
+          >
+            General
+          </TabsTrigger>
+          <TabsTrigger
+            value="network"
+            className="rounded-none border-b-2 border-transparent bg-transparent pb-3 pt-2 text-sm font-medium text-neutral-400 transition-colors data-[state=active]:border-white data-[state=active]:text-white hover:text-neutral-200"
+          >
+            Domains & Network
+          </TabsTrigger>
+          <TabsTrigger
+            value="security"
+            className="rounded-none border-b-2 border-transparent bg-transparent pb-3 pt-2 text-sm font-medium text-neutral-400 transition-colors data-[state=active]:border-white data-[state=active]:text-white hover:text-neutral-200"
+          >
+            Security & Tokens
+          </TabsTrigger>
+          <TabsTrigger
+            value="updates"
+            className="rounded-none border-b-2 border-transparent bg-transparent pb-3 pt-2 text-sm font-medium text-neutral-400 transition-colors data-[state=active]:border-white data-[state=active]:text-white hover:text-neutral-200"
+          >
+            Updates
+          </TabsTrigger>
+          <TabsTrigger
+            value="advanced"
+            className="rounded-none border-b-2 border-transparent bg-transparent pb-3 pt-2 text-sm font-medium text-neutral-400 transition-colors data-[state=active]:border-white data-[state=active]:text-white hover:text-neutral-200"
+          >
+            Environment & System
+          </TabsTrigger>
         </TabsList>
 
+        {/* TAB 1: GENERAL */}
         <TabsContent value="general" className="space-y-6">
-          <div className="grid gap-4 lg:grid-cols-3">
-            <Card className="border-border bg-card lg:col-span-2">
-              <CardHeader>
-                <CardTitle>Instance summary</CardTitle>
-                <CardDescription>Engine build, runtime mode, and paths used by the control plane.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <dl className="space-y-3">
-                  <Row label="Engine version" value={instance.engineVersion} />
-                  <Row label="Node environment" value={instance.nodeEnv} />
-                  <Row label="API listen port" value={String(instance.apiPort)} />
-                  <Row label="Docker network" value={instance.dockerNetwork} />
-                  <Row label="Projects root" value={instance.projectsRootPath} />
-                  <Row label="Nginx config path" value={instance.nginxConfigPath} />
-                  <Row label="Public hostname" value={instance.publicDomain || "—"} />
-                  <Row label="Public base path" value={instance.publicBasePath || "/"} />
+          <div className="grid gap-6 lg:grid-cols-3">
+            <div className="overflow-hidden rounded-xl border border-neutral-800 bg-[#0a0a0a] lg:col-span-2">
+              <div className="p-6">
+                <h3 className="text-base font-semibold text-white">Instance Details</h3>
+                <p className="mt-1 text-xs text-neutral-400">
+                  Engine runtime build, networking parameters, and control plane paths.
+                </p>
+
+                <dl className="mt-6 divide-y divide-neutral-800/60">
+                  <Row label="Engine Version" value={`v${instance.engineVersion}`} />
+                  <Row label="Node Environment" value={instance.nodeEnv} />
+                  <Row label="API Listen Port" value={String(instance.apiPort)} />
+                  <Row label="Docker Network" value={instance.dockerNetwork} />
+                  <Row label="Projects Root" value={instance.projectsRootPath} />
+                  <Row label="Nginx Config Path" value={instance.nginxConfigPath} />
+                  <Row label="Public Hostname" value={instance.publicDomain || "—"} />
+                  <Row label="Public Base Path" value={instance.publicBasePath || "/"} />
                   <Row
-                    label="Drizzle schema sync"
+                    label="Schema Sync Mode"
                     value={
                       (instance.drizzleSchemaSync ?? instance.prismaSchemaSync) === "migrate"
-                        ? "migrate (legacy label; runs drizzle-kit push)"
-                        : "push (drizzle-kit push)"
+                        ? "drizzle-kit push (migrate mode)"
+                        : "drizzle-kit push"
                     }
                   />
                   <Row
-                    label="In-process worker"
-                    value={instance.inProcessWorker ? "enabled in API process" : "disabled (external worker)"}
+                    label="Worker Mode"
+                    value={instance.inProcessWorker ? "In-process Worker (API thread)" : "External Worker (Separate process)"}
                   />
                 </dl>
-              </CardContent>
-            </Card>
-            <Card className="border-border/50 bg-card/60 ring-1 ring-border/30">
-              <CardHeader>
-                <CardTitle className="text-base">Health checks</CardTitle>
-                <CardDescription>Six binary signals from the API.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <DonutChart data={checkSummary} />
-              </CardContent>
-            </Card>
+              </div>
+
+              <div className="border-t border-neutral-800 bg-black px-6 py-3 text-xs text-neutral-500">
+                Instance ID: {instance.projectsRootPath ? "Production Local" : "Self-Hosted Control Plane"}
+              </div>
+            </div>
+
+            <div className="overflow-hidden rounded-xl border border-neutral-800 bg-[#0a0a0a]">
+              <div className="p-6">
+                <h3 className="text-base font-semibold text-white">System Signals</h3>
+                <p className="mt-1 text-xs text-neutral-400">Control plane runtime health.</p>
+
+                <div className="mt-6 flex flex-col items-center justify-center">
+                  <DonutChart data={checkSummary} />
+                </div>
+              </div>
+              <div className="border-t border-neutral-800 bg-black px-6 py-3 text-xs text-neutral-500">
+                Live health telemetry
+              </div>
+            </div>
           </div>
         </TabsContent>
 
+        {/* TAB 2: DOMAINS & NETWORK */}
         <TabsContent value="network" className="space-y-6">
-          <Card id="dashboard-url" className="border-border/50 bg-card/60 ring-1 ring-border/30 scroll-mt-24">
-            <CardHeader>
-              <CardTitle className="text-base font-semibold">
-                Dashboard URL &amp; hostname
-              </CardTitle>
-              <CardDescription>
-                Change the <strong className="font-medium text-foreground">domain / hostname</strong> and optional{" "}
-                <strong className="font-medium text-foreground">URL path</strong> where users open VersionGate. Configure HTTPS and Nginx reverse proxy below.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <Alert>
-                <AlertTitle>DNS</AlertTitle>
-                <AlertDescription>
-                  Add an <strong>A</strong> record for your hostname to this server&apos;s public IPv4. Propagation must finish before Let&apos;s Encrypt can validate.
-                </AlertDescription>
-              </Alert>
+          <div id="dashboard-url" className="overflow-hidden rounded-xl border border-neutral-800 bg-[#0a0a0a] scroll-mt-24">
+            <div className="p-6 space-y-4">
+              <div>
+                <h3 className="text-base font-semibold text-white">Dashboard URL & Public Hostname</h3>
+                <p className="mt-1 text-xs text-neutral-400">
+                  Configure the primary domain and path prefix used to access VersionGate in your browser.
+                </p>
+              </div>
 
-              <form onSubmit={(e) => void onSavePublicUrlEnv(e)} className="space-y-4">
+              <form id="public-url-form" onSubmit={(e) => void onSavePublicUrlEnv(e)} className="space-y-4">
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <p className="text-sm font-medium text-foreground">Hostname (domain)</p>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-neutral-300">
+                      Hostname (domain or IP)
+                    </label>
                     <Input
-                      placeholder="versiongate.example.com"
+                      placeholder="e.g. versiongate.example.com"
                       value={publicDomainDraft}
                       onChange={(e) => setPublicDomainDraft(e.target.value)}
                       autoComplete="off"
+                      className={inputClass}
                     />
-                    <p className="text-xs text-muted-foreground">
-                      DNS name or IP shown in the browser. TLS needs a hostname, not only an IP.
+                    <p className="text-[11px] text-neutral-500">
+                      DNS A record must point to this server's IPv4 before requesting SSL.
                     </p>
                   </div>
-                  <div className="space-y-2">
-                    <p className="text-sm font-medium text-foreground">URL path (optional)</p>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-neutral-300">
+                      URL Path (optional)
+                    </label>
                     <Input
                       placeholder="/ or /versiongate"
                       value={publicBasePathDraft}
                       onChange={(e) => setPublicBasePathDraft(e.target.value)}
                       autoComplete="off"
+                      className={inputClass}
                     />
-                    <p className="text-xs text-muted-foreground">
-                      Path after the hostname if VersionGate is not at the site root.
+                    <p className="text-[11px] text-neutral-500">
+                      Path prefix when running behind a shared reverse proxy subpath.
                     </p>
                   </div>
                 </div>
-                <div className="space-y-2 sm:max-w-md">
-                  <p className="text-sm font-medium text-foreground">Let&apos;s Encrypt contact email</p>
+
+                <div className="space-y-1.5 max-w-md">
+                  <label className="text-xs font-medium text-neutral-300">
+                    Let's Encrypt Contact Email
+                  </label>
                   <Input
                     type="email"
-                    placeholder="you@example.com"
+                    placeholder="admin@example.com"
                     value={certbotEmailDraft}
                     onChange={(e) => setCertbotEmailDraft(e.target.value)}
                     autoComplete="email"
+                    className={inputClass}
                   />
                 </div>
-                {publicUrlPreview ? (
-                  <p className="text-sm text-muted-foreground">
-                    Preview:&nbsp;
-                    <span className="font-mono text-foreground">{publicUrlPreview}</span>
-                  </p>
-                ) : null}
-                <div className="flex flex-wrap gap-2">
-                  <Button type="submit" size="sm" disabled={publicUrlSaving}>
-                    {publicUrlSaving ? "Saving…" : "Save to .env"}
-                  </Button>
-                  <Button type="button" variant="outline" size="sm" disabled={nginxApplying} onClick={() => void onApplyNginxSite()}>
-                    {nginxApplying ? "Applying…" : "Write nginx config & reload"}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    disabled={
-                      certbotRunning ||
-                      looksLikeIpv4(publicDomainDraft) ||
-                      !publicDomainDraft.trim() ||
-                      !certbotEmailDraft.trim()
-                    }
-                    onClick={() => void onRunCertbotSsl()}
-                  >
-                    {certbotRunning ? "Certbot…" : "Obtain SSL (certbot --nginx)"}
-                  </Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
 
-          {/* Reserved & Excluded Host Ports Card */}
-          <Card className="border-border bg-card">
-            <CardHeader>
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <CardTitle className="text-base font-semibold">
-                      Reserved &amp; Excluded Host Ports
-                    </CardTitle>
-                    <Badge variant="outline" className="font-mono text-[10px] uppercase tracking-wider">
-                      [ PORT SAFETY ]
-                    </Badge>
+                {publicUrlPreview ? (
+                  <div className="rounded-md border border-neutral-800 bg-black/60 p-3 text-xs text-neutral-400">
+                    Configured URL Preview:{" "}
+                    <span className="font-mono font-medium text-emerald-400">{publicUrlPreview}</span>
                   </div>
-                  <CardDescription className="text-xs">
-                    Prevent VersionGate from assigning ports already used by other services, containers, or host processes on this server.
-                  </CardDescription>
-                </div>
+                ) : null}
+              </form>
+            </div>
+
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-t border-neutral-800 bg-black px-6 py-3 text-xs text-neutral-500">
+              <span>Writes configuration directly to server .env and manages Nginx.</span>
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  type="submit"
+                  form="public-url-form"
+                  size="sm"
+                  disabled={publicUrlSaving}
+                  className="bg-white text-black font-semibold hover:bg-neutral-200 text-xs"
+                >
+                  {publicUrlSaving ? "Saving..." : "Save to .env"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={nginxApplying}
+                  onClick={() => void onApplyNginxSite()}
+                  className="border-neutral-800 text-neutral-300 hover:text-white text-xs"
+                >
+                  {nginxApplying ? "Applying..." : "Reload Nginx"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={
+                    certbotRunning ||
+                    looksLikeIpv4(publicDomainDraft) ||
+                    !publicDomainDraft.trim() ||
+                    !certbotEmailDraft.trim()
+                  }
+                  onClick={() => void onRunCertbotSsl()}
+                  className="border-neutral-800 text-neutral-300 hover:text-white text-xs"
+                >
+                  {certbotRunning ? "Obtaining..." : "Obtain SSL (Certbot)"}
+                </Button>
               </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <form onSubmit={(e) => void onSaveExcludedPorts(e)} className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground font-mono">
-                    Excluded Ports &amp; Ranges (Comma-separated)
+            </div>
+          </div>
+
+          {/* Reserved Host Ports Card */}
+          <div className="overflow-hidden rounded-xl border border-neutral-800 bg-[#0a0a0a]">
+            <div className="p-6 space-y-4">
+              <div>
+                <h3 className="text-base font-semibold text-white">Reserved Host Ports</h3>
+                <p className="mt-1 text-xs text-neutral-400">
+                  Prevent VersionGate from assigning ports already used by other host processes, system databases, or Docker containers.
+                </p>
+              </div>
+
+              <form id="excluded-ports-form" onSubmit={(e) => void onSaveExcludedPorts(e)} className="space-y-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-neutral-300">
+                    Excluded Ports & Ranges (comma-separated)
                   </label>
                   <Input
                     placeholder="e.g. 80, 443, 3000, 5173, 5432, 6379, 8000-8080, 9090"
                     value={excludedPortsDraft}
                     onChange={(e) => setExcludedPortsDraft(e.target.value)}
-                    className="font-mono text-xs"
+                    className={cn(inputClass, "font-mono")}
                     disabled={savingExcludedPorts}
                   />
-                  <p className="text-xs text-muted-foreground font-sans">
-                    Enter individual ports (e.g. <code className="font-mono text-foreground">3000</code>) or ranges (e.g. <code className="font-mono text-foreground">8000-8050</code>). VersionGate automatically checks and avoids these ports plus any active host listeners during deployment slot allocation.
+                  <p className="text-[11px] text-neutral-500">
+                    Supports individual ports (<code className="font-mono text-neutral-300">3000</code>) and inclusive ranges (<code className="font-mono text-neutral-300">8000-8050</code>).
                   </p>
                 </div>
-
-                <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
-                  <span className="text-[11px] font-mono text-muted-foreground">
-                    Active Protection: <strong className="text-foreground">{excludedPortsCount} ports excluded</strong>
-                  </span>
-                  <Button
-                    type="submit"
-                    size="sm"
-                    disabled={savingExcludedPorts || excludedPortsDraft === (instance.excludedPorts ?? "80,443,3000,5173,5432,6379,9090")}
-                    className="font-mono text-xs"
-                  >
-                    {savingExcludedPorts ? "Saving..." : "Save Excluded Ports"}
-                  </Button>
-                </div>
               </form>
-            </CardContent>
-          </Card>
+            </div>
+
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-t border-neutral-800 bg-black px-6 py-3 text-xs text-neutral-500">
+              <span>Active Protection: <strong className="text-white">{excludedPortsCount} ports</strong> excluded from allocation.</span>
+              <Button
+                type="submit"
+                form="excluded-ports-form"
+                size="sm"
+                disabled={savingExcludedPorts || excludedPortsDraft === (instance.excludedPorts ?? "80,443,3000,5173,5432,6379,9090")}
+                className="bg-white text-black font-semibold hover:bg-neutral-200 text-xs"
+              >
+                {savingExcludedPorts ? "Saving..." : "Save Reserved Ports"}
+              </Button>
+            </div>
+          </div>
         </TabsContent>
 
+        {/* TAB 3: SECURITY */}
         <TabsContent value="security" className="space-y-6">
           <ChangePasswordCard />
           <ApiTokensCard />
         </TabsContent>
 
+        {/* TAB 4: UPDATES */}
         <TabsContent value="updates" className="space-y-6">
-          <Card id="application-updates" className="border-border/50 bg-card/60 ring-1 ring-border/30 scroll-mt-24">
-            <CardHeader>
-              <CardTitle>Application updates</CardTitle>
-              <CardDescription>
-                Pull new VersionGate commits from git, install dependencies, run migrations, rebuild the dashboard, and reload PM2.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge variant={selfUpdateSafe.configured ? "default" : "secondary"} className="font-mono text-xs">
-                  {selfUpdateSafe.configured ? "Self-update enabled" : "Not enabled"}
-                </Badge>
-                {!selfUpdateSafe.configured ? (
-                  <Button type="button" size="sm" disabled={suBusy !== null} onClick={() => void onEnableSelfUpdate()}>
-                    {suBusy === "enable" ? "Enabling…" : "Enable in-dashboard updates"}
-                  </Button>
-                ) : null}
+          <div id="application-updates" className="overflow-hidden rounded-xl border border-neutral-800 bg-[#0a0a0a] scroll-mt-24">
+            <div className="p-6 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div>
+                  <h3 className="text-base font-semibold text-white">Application Updates</h3>
+                  <p className="mt-1 text-xs text-neutral-400">
+                    Pull latest commits from Git, run migrations, rebuild control plane, and reload PM2 automatically.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span
+                    className={cn(
+                      "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium border",
+                      selfUpdateSafe.configured
+                        ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
+                        : "border-neutral-700 bg-neutral-900 text-neutral-400"
+                    )}
+                  >
+                    <span className={cn("size-1.5 rounded-full shrink-0", selfUpdateSafe.configured ? "bg-emerald-500" : "bg-neutral-500")} />
+                    {selfUpdateSafe.configured ? "Self-update Active" : "Disabled"}
+                  </span>
+                  {!selfUpdateSafe.configured ? (
+                    <Button
+                      type="button"
+                      size="sm"
+                      disabled={suBusy !== null}
+                      onClick={() => void onEnableSelfUpdate()}
+                      className="bg-white text-black font-semibold hover:bg-neutral-200 text-xs"
+                    >
+                      {suBusy === "enable" ? "Enabling..." : "Enable Updates"}
+                    </Button>
+                  ) : null}
+                </div>
               </div>
 
               {selfUpdateSafe.configured ? (
                 <>
-                  <dl className="space-y-3">
-                    <Row label="Tracked branch" value={selfUpdateSafe.branch} />
-                    <Row label="Poll interval (ms)" value={selfUpdateSafe.pollMs > 0 ? String(selfUpdateSafe.pollMs) : "off"} />
-                    <Row label="Auto-apply on poll" value={boolBadge(selfUpdateSafe.autoApply, "Yes", "No")} />
+                  <dl className="divide-y divide-neutral-800/60">
+                    <Row label="Tracked Branch" value={selfUpdateSafe.branch} />
+                    <Row label="Polling Interval" value={selfUpdateSafe.pollMs > 0 ? `${selfUpdateSafe.pollMs} ms` : "Manual only"} />
+                    <Row label="Auto-apply on poll" value={boolPill(selfUpdateSafe.autoApply, "Enabled", "Disabled")} />
                   </dl>
-                  {selfUpdateSafe.git ? (
-                    <div className="rounded-lg border border-border/60 bg-muted/20 px-3 py-2 text-sm">
-                      <p className="font-mono text-xs text-muted-foreground">
-                        Local{" "}
-                        <span className="text-foreground">
-                          {selfUpdateSafe.git.currentCommit ? selfUpdateSafe.git.currentCommit.slice(0, 7) : "—"}
-                        </span>
-                        {selfUpdateSafe.git.remoteCommit ? (
-                          <>
-                            {" "}
-                            · remote <span className="text-foreground">{selfUpdateSafe.git.remoteCommit.slice(0, 7)}</span>
-                          </>
-                        ) : null}
-                      </p>
-                      {selfUpdateSafe.git.message ? (
-                        <p className="mt-1 text-amber-400">{selfUpdateSafe.git.message}</p>
-                      ) : selfUpdateSafe.git.behind ? (
-                        <p className="mt-1 text-foreground">Remote is ahead — you can update.</p>
-                      ) : selfUpdateSafe.git.isGitRepo ? (
-                        <p className="mt-1 text-muted-foreground">Up to date with origin.</p>
-                      ) : (
-                        <p className="mt-1 text-muted-foreground">Not a git checkout — use your image or package pipeline.</p>
-                      )}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">Run “Check for updates” to compare with origin.</p>
-                  )}
 
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Button type="button" variant="outline" size="sm" disabled={suBusy !== null} onClick={() => void onCheckSelfUpdate()}>
-                      {suBusy === "check" ? "Checking…" : "Check for updates"}
+                  {selfUpdateSafe.git ? (
+                    <div className="rounded-lg border border-neutral-800 bg-black/60 p-4 text-xs">
+                      <div className="flex items-center justify-between">
+                        <span className="text-neutral-400">Git Commit State:</span>
+                        <div className="flex items-center gap-2 font-mono text-[11px]">
+                          <span className="rounded bg-neutral-900 px-2 py-0.5 text-neutral-300">
+                            local: {selfUpdateSafe.git.currentCommit ? selfUpdateSafe.git.currentCommit.slice(0, 7) : "—"}
+                          </span>
+                          {selfUpdateSafe.git.remoteCommit ? (
+                            <span className="rounded bg-neutral-900 px-2 py-0.5 text-neutral-300">
+                              remote: {selfUpdateSafe.git.remoteCommit.slice(0, 7)}
+                            </span>
+                          ) : null}
+                        </div>
+                      </div>
+                      <div className="mt-2">
+                        {selfUpdateSafe.git.message ? (
+                          <p className="text-amber-400">{selfUpdateSafe.git.message}</p>
+                        ) : selfUpdateSafe.git.behind ? (
+                          <p className="text-emerald-400 font-medium">New commits available on origin. Ready to update.</p>
+                        ) : selfUpdateSafe.git.isGitRepo ? (
+                          <p className="text-neutral-400">Up to date with origin remote.</p>
+                        ) : (
+                          <p className="text-neutral-500">Not a git checkout directory.</p>
+                        )}
+                      </div>
+                    </div>
+                  ) : null}
+
+                  <div className="flex flex-wrap items-center gap-2 pt-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={suBusy !== null}
+                      onClick={() => void onCheckSelfUpdate()}
+                      className="border-neutral-800 text-neutral-300 hover:text-white text-xs"
+                    >
+                      {suBusy === "check" ? "Checking..." : "Check for Updates"}
                     </Button>
                     <Button
                       type="button"
@@ -962,21 +1070,17 @@ export function Settings() {
                         suBusy !== null || !selfUpdateSafe.git?.isGitRepo || !selfUpdateSafe.git.behind || Boolean(selfUpdateSafe.git.message)
                       }
                       onClick={() => void onApplySelfUpdate()}
+                      className="bg-white text-black font-semibold hover:bg-neutral-200 text-xs"
                     >
-                      {suBusy === "apply" ? "Updating…" : "Update and restart PM2"}
+                      {suBusy === "apply" ? "Updating..." : "Update & Reload PM2"}
                     </Button>
-                    <span className="font-mono text-[11px] text-muted-foreground">
-                      [ NOTE: Browser page refresh required after update finishes to load new assets ]
-                    </span>
                   </div>
 
-                  <Separator className="bg-border/50" />
-
-                  <form onSubmit={(e) => void onSaveSelfUpdateOpts(e)} className="space-y-4">
+                  <form id="su-opts-form" onSubmit={(e) => void onSaveSelfUpdateOpts(e)} className="mt-4 space-y-4 pt-4 border-t border-neutral-800">
                     <div className="grid gap-4 sm:grid-cols-3">
-                      <div className="space-y-2">
-                        <label className="text-xs font-medium text-muted-foreground" htmlFor="su-branch">
-                          SELF_UPDATE_GIT_BRANCH
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-medium text-neutral-300" htmlFor="su-branch">
+                          Git Branch
                         </label>
                         <Input
                           id="su-branch"
@@ -984,11 +1088,12 @@ export function Settings() {
                           onChange={(e) => setSuOpts((o) => ({ ...o, branch: e.target.value }))}
                           placeholder="main"
                           autoComplete="off"
+                          className={inputClass}
                         />
                       </div>
-                      <div className="space-y-2">
-                        <label className="text-xs font-medium text-muted-foreground" htmlFor="su-poll">
-                          SELF_UPDATE_POLL_MS
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-medium text-neutral-300" htmlFor="su-poll">
+                          Poll Interval (ms)
                         </label>
                         <Input
                           id="su-poll"
@@ -997,75 +1102,84 @@ export function Settings() {
                           placeholder="0 = off"
                           inputMode="numeric"
                           autoComplete="off"
+                          className={inputClass}
                         />
                       </div>
-                      <div className="space-y-2">
-                        <label className="text-xs font-medium text-muted-foreground" htmlFor="su-auto">
-                          SELF_UPDATE_AUTO_APPLY
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-medium text-neutral-300" htmlFor="su-auto">
+                          Auto-apply on poll
                         </label>
                         <select
                           id="su-auto"
                           value={suOpts.autoApply}
                           onChange={(e) => setSuOpts((o) => ({ ...o, autoApply: e.target.value }))}
-                          className="h-8 w-full rounded-lg border border-input bg-muted/40 px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                          className={cn(inputClass, "h-9")}
                         >
-                          <option value="false">false</option>
-                          <option value="true">true</option>
+                          <option value="false">false (manual approval)</option>
+                          <option value="true">true (automatic rebuild)</option>
                         </select>
                       </div>
                     </div>
-                    <Button type="submit" size="sm" variant="secondary" disabled={suBusy !== null}>
-                      {suBusy === "saveOpts" ? "Saving…" : "Save self-update options"}
-                    </Button>
                   </form>
                 </>
               ) : null}
-            </CardContent>
-          </Card>
+            </div>
+
+            {selfUpdateSafe.configured ? (
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-t border-neutral-800 bg-black px-6 py-3 text-xs text-neutral-500">
+                <span>Save background polling cadence and automated branch pull triggers.</span>
+                <Button
+                  type="submit"
+                  form="su-opts-form"
+                  size="sm"
+                  disabled={suBusy !== null}
+                  className="bg-white text-black font-semibold hover:bg-neutral-200 text-xs"
+                >
+                  {suBusy === "saveOpts" ? "Saving..." : "Save Options"}
+                </Button>
+              </div>
+            ) : null}
+          </div>
         </TabsContent>
 
+        {/* TAB 5: ADVANCED & ENVIRONMENT */}
         <TabsContent value="advanced" className="space-y-6">
-          <Card className="border-border/50 bg-card/60 ring-1 ring-border/30">
-            <CardHeader>
-              <CardTitle>Environment and database</CardTitle>
-              <CardDescription>Connection state is checked live. Values such as DATABASE_URL are stored in the server .env file.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-3">
-                <h3 className="text-sm font-medium text-foreground">Setup wizard status</h3>
-                <dl className="space-y-3">
-                  <Row label="Configured" value={boolBadge(setup.configured)} />
-                  <Row label="Database reachable" value={boolBadge(setup.dbConnected)} />
-                  <Row label="Process needs restart" value={boolBadge(setup.needsRestart, "Yes — restart API", "No")} />
-                </dl>
+          <div className="overflow-hidden rounded-xl border border-neutral-800 bg-[#0a0a0a]">
+            <div className="p-6 space-y-4">
+              <div>
+                <h3 className="text-base font-semibold text-white">Database & Service Connectivity</h3>
+                <p className="mt-1 text-xs text-neutral-400">
+                  Real-time connectivity verification between the VersionGate control plane, database, and encryption keys.
+                </p>
               </div>
 
-              <Separator className="bg-border/50" />
+              <dl className="divide-y divide-neutral-800/60">
+                <Row label="Setup Wizard Complete" value={boolPill(setup.configured)} />
+                <Row label="Database Engine Reachable" value={boolPill(setup.dbConnected)} />
+                <Row label="Pending Restart" value={boolPill(!setup.needsRestart, "Clean State", "Restart Pending")} />
+                <Row label="DATABASE_URL loaded in process" value={boolPill(instance.databaseUrlLoaded)} />
+                <Row label="Database responds to queries" value={boolPill(instance.databaseReachable)} />
+                <Row label="ENCRYPTION_KEY Configured" value={boolPill(instance.encryptionKeyConfigured)} />
+                <Row label="GEMINI_API_KEY Configured" value={boolPill(instance.geminiConfigured, "Configured", "Optional / Unset")} />
+              </dl>
+            </div>
+            <div className="border-t border-neutral-800 bg-black px-6 py-3 text-xs text-neutral-500">
+              Connection health checked on request
+            </div>
+          </div>
 
-              <div className="space-y-3">
-                <h3 className="text-sm font-medium text-foreground">Runtime checks</h3>
-                <dl className="space-y-3">
-                  <Row label="DATABASE_URL in .env file" value={boolBadge(instance.databaseUrlInEnvFile)} />
-                  <Row label="DATABASE_URL loaded in process" value={boolBadge(instance.databaseUrlLoaded)} />
-                  <Row label="Database responds" value={boolBadge(instance.databaseReachable)} />
-                  <Row label="ENCRYPTION_KEY set" value={boolBadge(instance.encryptionKeyConfigured)} />
-                  <Row label="GEMINI_API_KEY set" value={boolBadge(instance.geminiConfigured)} />
-                </dl>
+          <div className="overflow-hidden rounded-xl border border-neutral-800 bg-[#0a0a0a]">
+            <div className="p-6 space-y-4">
+              <div>
+                <h3 className="text-base font-semibold text-white">Server Environment Configuration (.env)</h3>
+                <p className="mt-1 text-xs text-neutral-400">
+                  Update server-level environment variables. Existing lines are replaced by key; new keys are appended.
+                </p>
               </div>
-            </CardContent>
-          </Card>
 
-          <Card className="border-border/50 bg-card/60 ring-1 ring-border/30">
-            <CardHeader>
-              <CardTitle>Update server environment (.env)</CardTitle>
-              <CardDescription>
-                Merges only the fields you fill in. Existing lines are replaced by key; new keys are appended.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={(e) => void onSaveEnv(e)} className="space-y-6">
-                <div className="space-y-2">
-                  <label className="text-xs font-medium text-muted-foreground" htmlFor="env-database-url">
+              <form id="server-env-form" onSubmit={(e) => void onSaveEnv(e)} className="space-y-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-neutral-300" htmlFor="env-database-url">
                     DATABASE_URL
                   </label>
                   <textarea
@@ -1073,26 +1187,26 @@ export function Settings() {
                     value={envDraft.DATABASE_URL ?? ""}
                     onChange={(e) => setEnvField("DATABASE_URL", e.target.value)}
                     className={textareaClass}
-                    placeholder="postgresql://…"
+                    placeholder="postgresql://..."
                     autoComplete="off"
                   />
                 </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-medium text-muted-foreground" htmlFor="env-direct-database-url">
-                    DIRECT_DATABASE_URL <span className="font-normal text-muted-foreground/80">(optional, Neon unpooled)</span>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-neutral-300" htmlFor="env-direct-database-url">
+                    DIRECT_DATABASE_URL <span className="text-neutral-500">(optional, Neon unpooled)</span>
                   </label>
                   <textarea
                     id="env-direct-database-url"
                     value={envDraft.DIRECT_DATABASE_URL ?? ""}
                     onChange={(e) => setEnvField("DIRECT_DATABASE_URL", e.target.value)}
                     className={textareaClass}
-                    placeholder="postgresql://…-direct… or non-pooler host"
+                    placeholder="postgresql://...-direct... or non-pooler host"
                     autoComplete="off"
                   />
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <label className="text-xs font-medium text-muted-foreground" htmlFor="env-enc">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-neutral-300" htmlFor="env-enc">
                       ENCRYPTION_KEY
                     </label>
                     <Input
@@ -1100,12 +1214,13 @@ export function Settings() {
                       type="password"
                       value={envDraft.ENCRYPTION_KEY ?? ""}
                       onChange={(e) => setEnvField("ENCRYPTION_KEY", e.target.value)}
-                      placeholder="64-char hex"
+                      placeholder="64-character hex key"
                       autoComplete="new-password"
+                      className={inputClass}
                     />
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-medium text-muted-foreground" htmlFor="env-gemini">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-neutral-300" htmlFor="env-gemini">
                       GEMINI_API_KEY
                     </label>
                     <Input
@@ -1115,32 +1230,54 @@ export function Settings() {
                       onChange={(e) => setEnvField("GEMINI_API_KEY", e.target.value)}
                       placeholder="Optional"
                       autoComplete="new-password"
+                      className={inputClass}
                     />
                   </div>
                 </div>
-                <div className="flex flex-wrap gap-2 pt-2">
-                  <Button type="submit" disabled={envSaving}>
-                    {envSaving ? "Saving…" : "Save configuration"}
-                  </Button>
-                  <Button type="button" variant="secondary" disabled={envSaving} onClick={() => setEnvDraft({})}>
-                    Discard changes
-                  </Button>
-                </div>
               </form>
-            </CardContent>
-          </Card>
+            </div>
 
-          <Card className="border-destructive/40 bg-destructive/5 ">
-            <CardHeader>
-              <CardTitle className="text-destructive">Danger zone</CardTitle>
-              <CardDescription>
-                VersionGate does not expose a remote &quot;destroy instance&quot; API. Removing the engine requires SSH access.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-wrap gap-2">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-t border-neutral-800 bg-black px-6 py-3 text-xs text-neutral-500">
+              <span>Applies to the server environment file. A service reload might be required.</span>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={envSaving || Object.keys(envDraft).length === 0}
+                  onClick={() => setEnvDraft({})}
+                  className="border-neutral-800 text-neutral-400 hover:text-white text-xs"
+                >
+                  Discard
+                </Button>
+                <Button
+                  type="submit"
+                  form="server-env-form"
+                  size="sm"
+                  disabled={envSaving || Object.keys(envDraft).length === 0}
+                  className="bg-white text-black font-semibold hover:bg-neutral-200 text-xs"
+                >
+                  {envSaving ? "Saving..." : "Save Configuration"}
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {/* Danger Zone */}
+          <div className="overflow-hidden rounded-xl border border-red-900/40 bg-black">
+            <div className="p-6 space-y-2">
+              <h3 className="text-base font-semibold text-red-400">Danger Zone</h3>
+              <p className="text-xs text-neutral-400">
+                VersionGate does not expose an unauthenticated remote "destroy instance" API. Removing the engine requires direct SSH host access.
+              </p>
+            </div>
+            <div className="flex items-center justify-between border-t border-red-950/60 bg-red-950/10 px-6 py-3">
+              <span className="text-xs text-red-300/80">Uninstalling removes all local Docker containers and control plane assets.</span>
               <Button
                 type="button"
                 variant="destructive"
+                size="sm"
+                className="bg-red-600 hover:bg-red-700 text-xs text-white"
                 onClick={() =>
                   toast.info("Host uninstall is manual", {
                     description:
@@ -1148,10 +1285,10 @@ export function Settings() {
                   })
                 }
               >
-                Uninstall guidance
+                Uninstall Guidance
               </Button>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </TabsContent>
       </Tabs>
 

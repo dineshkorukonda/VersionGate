@@ -1,6 +1,4 @@
 import { useEffect, useState } from "react";
-import { PageHeader } from "@/components/PageHeader";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
   listManagedDatabases,
@@ -19,6 +17,7 @@ import { LinkDatabaseModal } from "@/components/modals/LinkDatabaseModal";
 import { DatabaseStudioModal } from "@/components/modals/DatabaseStudioModal";
 import { ConfirmDialog } from "@/components/modals/ConfirmDialog";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 export function Databases() {
   const [databases, setDatabases] = useState<ManagedDatabase[]>([]);
@@ -44,7 +43,7 @@ export function Databases() {
       ]);
       setDatabases(dbRes.databases);
       setProjects(projRes.projects);
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Failed to load databases");
     } finally {
       setLoading(false);
@@ -60,7 +59,7 @@ export function Databases() {
       const res = await getManagedDatabase(id);
       setInspectDb(res.database);
       setDetailsOpen(true);
-    } catch (err: any) {
+    } catch {
       toast.error("Failed to fetch database details");
     }
   };
@@ -70,13 +69,13 @@ export function Databases() {
     try {
       if (db.running) {
         await stopManagedDatabase(db.id);
-        toast.success(`[ OK ] Database ${db.name} stopped`);
+        toast.success(`Database ${db.name} stopped`);
       } else {
         await startManagedDatabase(db.id);
-        toast.success(`[ OK ] Database ${db.name} started`);
+        toast.success(`Database ${db.name} started`);
       }
       await load();
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Failed to toggle database state");
     } finally {
       setActionInProgress(null);
@@ -94,10 +93,10 @@ export function Databases() {
     setActionInProgress(db.id);
     try {
       await deleteManagedDatabase(db.id, dropVolumeChecked);
-      toast.success(`[ OK ] Database ${db.name} deleted`);
+      toast.success(`Database ${db.name} deleted`);
       setDeleteTargetDb(null);
       await load();
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Failed to delete database");
     } finally {
       setActionInProgress(null);
@@ -109,209 +108,220 @@ export function Databases() {
   const redisCount = databases.filter((d) => d.engine === "redis").length;
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Managed Databases"
-        description="Provision, monitor, and auto-link isolated server databases (PostgreSQL, Redis, MySQL, MongoDB) directly on the host."
-        actions={
+    <div className="space-y-6 font-sans">
+      {/* Vercel Header Bar */}
+      <div className="flex flex-col gap-4 border-b border-neutral-800 pb-6 lg:flex-row lg:items-center lg:justify-between">
+        <div className="space-y-1">
+          <h1 className="text-2xl font-bold tracking-tight text-white md:text-3xl">
+            Storage & Databases
+          </h1>
+          <p className="text-xs text-neutral-400">
+            Provision, monitor, and auto-link isolated databases directly on host container networks.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => void load()}
+            className="border-neutral-800 bg-neutral-900/80 text-neutral-300 hover:text-white text-xs h-8"
+          >
+            Refresh
+          </Button>
           <Button
             onClick={() => setCreateOpen(true)}
-            className="bg-emerald-500 font-mono text-xs font-semibold text-black hover:bg-emerald-400"
+            size="sm"
+            className="bg-white text-black font-semibold hover:bg-neutral-200 text-xs h-8"
           >
-            + Provision Database
+            + Create Database
           </Button>
-        }
-      />
-
-      {/* Metrics Row */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card className="border-neutral-800 bg-neutral-950">
-          <CardHeader className="pb-2">
-            <CardDescription className="font-mono text-[10px] uppercase tracking-wider text-neutral-400">
-              Total Instances
-            </CardDescription>
-            <CardTitle className="font-mono text-2xl text-white">{databases.length}</CardTitle>
-          </CardHeader>
-        </Card>
-        <Card className="border-neutral-800 bg-neutral-950">
-          <CardHeader className="pb-2">
-            <CardDescription className="font-mono text-[10px] uppercase tracking-wider text-neutral-400">
-              Active / Running
-            </CardDescription>
-            <CardTitle className="font-mono text-2xl text-emerald-400">{activeCount}</CardTitle>
-          </CardHeader>
-        </Card>
-        <Card className="border-neutral-800 bg-neutral-950">
-          <CardHeader className="pb-2">
-            <CardDescription className="font-mono text-[10px] uppercase tracking-wider text-neutral-400">
-              PostgreSQL
-            </CardDescription>
-            <CardTitle className="font-mono text-2xl text-white">{postgresCount}</CardTitle>
-          </CardHeader>
-        </Card>
-        <Card className="border-neutral-800 bg-neutral-950">
-          <CardHeader className="pb-2">
-            <CardDescription className="font-mono text-[10px] uppercase tracking-wider text-neutral-400">
-              Redis Caches
-            </CardDescription>
-            <CardTitle className="font-mono text-2xl text-white">{redisCount}</CardTitle>
-          </CardHeader>
-        </Card>
+        </div>
       </div>
 
-      {/* Database Table */}
-      <Card className="border-neutral-800 bg-neutral-950">
-        <CardHeader className="border-b border-neutral-800/80 pb-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="font-mono text-sm uppercase tracking-wider text-white">
-                Server Databases
-              </CardTitle>
-              <CardDescription className="text-xs text-neutral-400">
-                Managed container instances running with persistent Docker volumes.
-              </CardDescription>
-            </div>
+      {/* Metrics Row */}
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="rounded-xl border border-neutral-800 bg-[#0a0a0a] p-4">
+          <span className="text-xs font-medium text-neutral-500">Total Instances</span>
+          <p className="mt-1 font-mono text-2xl font-bold text-white">{databases.length}</p>
+        </div>
+        <div className="rounded-xl border border-neutral-800 bg-[#0a0a0a] p-4">
+          <span className="text-xs font-medium text-emerald-400">Active / Running</span>
+          <p className="mt-1 font-mono text-2xl font-bold text-emerald-400">{activeCount}</p>
+        </div>
+        <div className="rounded-xl border border-neutral-800 bg-[#0a0a0a] p-4">
+          <span className="text-xs font-medium text-neutral-500">PostgreSQL</span>
+          <p className="mt-1 font-mono text-2xl font-bold text-white">{postgresCount}</p>
+        </div>
+        <div className="rounded-xl border border-neutral-800 bg-[#0a0a0a] p-4">
+          <span className="text-xs font-medium text-neutral-500">Redis Caches</span>
+          <p className="mt-1 font-mono text-2xl font-bold text-white">{redisCount}</p>
+        </div>
+      </div>
+
+      {/* Database Table Card */}
+      <div className="overflow-hidden rounded-xl border border-neutral-800 bg-[#0a0a0a]">
+        <div className="p-6 border-b border-neutral-800 flex items-center justify-between">
+          <div>
+            <h3 className="text-base font-semibold text-white">Database Instances</h3>
+            <p className="mt-1 text-xs text-neutral-400">
+              Managed container instances running with persistent host-backed Docker volumes.
+            </p>
+          </div>
+          <span className="text-xs font-mono text-neutral-500">
+            {databases.length} {databases.length === 1 ? "instance" : "instances"}
+          </span>
+        </div>
+
+        {loading ? (
+          <div className="p-12 text-center text-xs text-neutral-500">
+            Loading database instances...
+          </div>
+        ) : databases.length === 0 ? (
+          <div className="p-12 text-center space-y-3">
+            <p className="text-sm font-medium text-white">No managed databases provisioned</p>
+            <p className="text-xs text-neutral-400 max-w-md mx-auto">
+              Create your first PostgreSQL or Redis instance to auto-link connection strings directly to your project environments.
+            </p>
             <Button
-              variant="outline"
+              onClick={() => setCreateOpen(true)}
               size="sm"
-              onClick={() => void load()}
-              className="border-neutral-800 font-mono text-xs text-neutral-400 hover:text-white"
+              className="bg-white text-black font-semibold hover:bg-neutral-200 text-xs h-8"
             >
-              [ Refresh ]
+              + Create Database
             </Button>
           </div>
-        </CardHeader>
-        <CardContent className="p-0">
-          {loading ? (
-            <div className="p-8 text-center font-mono text-xs text-neutral-500">
-              Loading database instances...
-            </div>
-          ) : databases.length === 0 ? (
-            <div className="p-12 text-center">
-              <span className="font-mono text-xs uppercase tracking-widest text-neutral-500">
-                No managed databases provisioned
-              </span>
-              <p className="mt-2 text-xs text-neutral-400">
-                Create your first PostgreSQL or Redis instance to auto-link with your projects.
-              </p>
-              <Button
-                onClick={() => setCreateOpen(true)}
-                className="mt-4 bg-emerald-500 font-mono text-xs font-semibold text-black hover:bg-emerald-400"
-              >
-                + Provision Database
-              </Button>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs font-mono">
-                <thead>
-                  <tr className="border-b border-neutral-800 bg-neutral-900/40 text-[10px] uppercase text-neutral-400">
-                    <th className="px-4 py-3">Instance</th>
-                    <th className="px-4 py-3">Engine</th>
-                    <th className="px-4 py-3">Host Port</th>
-                    <th className="px-4 py-3">Container</th>
-                    <th className="px-4 py-3">Linked Project</th>
-                    <th className="px-4 py-3">Status</th>
-                    <th className="px-4 py-3 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-neutral-800/60">
-                  {databases.map((db) => {
-                    const linkedProj = projects.find((p) => p.id === db.linkedProjectId);
-                    return (
-                      <tr key={db.id} className="hover:bg-neutral-900/30 transition-colors">
-                        <td className="px-4 py-3 font-semibold text-white">
-                          <button
-                            type="button"
-                            onClick={() => void handleInspect(db.id)}
-                            className="hover:text-emerald-400 transition-colors text-left"
-                          >
-                            {db.name}
-                          </button>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className="border border-neutral-800 bg-neutral-900 px-2 py-0.5 text-[10px] uppercase text-neutral-300">
-                            {db.engine}
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead>
+                <tr className="border-b border-neutral-800 text-neutral-500">
+                  <th className="px-6 py-3 font-medium">Instance</th>
+                  <th className="px-4 py-3 font-medium">Engine</th>
+                  <th className="px-4 py-3 font-medium">Host Port</th>
+                  <th className="px-4 py-3 font-medium">Container</th>
+                  <th className="px-4 py-3 font-medium">Linked Project</th>
+                  <th className="px-4 py-3 font-medium">Status</th>
+                  <th className="px-6 py-3 text-right font-medium">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-neutral-800/50">
+                {databases.map((db) => {
+                  const linkedProj = projects.find((p) => p.id === db.linkedProjectId);
+                  return (
+                    <tr key={db.id} className="hover:bg-neutral-900/40 transition-colors">
+                      <td className="px-6 py-3.5 font-medium text-white">
+                        <button
+                          type="button"
+                          onClick={() => void handleInspect(db.id)}
+                          className="hover:underline text-left font-semibold text-white"
+                        >
+                          {db.name}
+                        </button>
+                      </td>
+                      <td className="px-4 py-3.5">
+                        <span className="rounded border border-neutral-800 bg-neutral-900 px-2 py-0.5 font-mono text-[11px] uppercase text-neutral-300">
+                          {db.engine}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3.5 font-mono text-neutral-300">:{db.hostPort}</td>
+                      <td className="px-4 py-3.5 font-mono text-neutral-400">{db.containerName}</td>
+                      <td className="px-4 py-3.5">
+                        {linkedProj ? (
+                          <span className="text-white hover:underline cursor-pointer">
+                            {linkedProj.name}
                           </span>
-                        </td>
-                        <td className="px-4 py-3 text-emerald-400">{db.hostPort}</td>
-                        <td className="px-4 py-3 text-neutral-400">{db.containerName}</td>
-                        <td className="px-4 py-3">
-                          {linkedProj ? (
-                            <span className="text-white hover:underline cursor-pointer">
-                              {linkedProj.name}
-                            </span>
-                          ) : (
-                            <span className="text-neutral-600">—</span>
+                        ) : (
+                          <span className="text-neutral-600">—</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3.5">
+                        <span
+                          className={cn(
+                            "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium border",
+                            db.running
+                              ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
+                              : "border-neutral-800 bg-neutral-900 text-neutral-400"
                           )}
-                        </td>
-                        <td className="px-4 py-3">
+                        >
                           <span
-                            className={`border px-2 py-0.5 text-[10px] uppercase font-semibold ${
-                              db.running
-                                ? "border-emerald-500/40 bg-emerald-950/40 text-emerald-400"
-                                : "border-neutral-700 bg-neutral-900 text-neutral-400"
-                            }`}
+                            className={cn(
+                              "size-1.5 rounded-full shrink-0",
+                              db.running ? "bg-emerald-500" : "bg-neutral-600"
+                            )}
+                          />
+                          {db.running ? "Running" : "Stopped"}
+                        </span>
+                      </td>
+                      <td className="px-6 py-3.5 text-right">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="h-7 text-xs border-neutral-800 text-neutral-300 hover:text-white"
+                            onClick={() => {
+                              setStudioDb(db);
+                              setStudioOpen(true);
+                            }}
                           >
-                            [{db.running ? "RUNNING" : "STOPPED"}]
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setStudioDb(db);
-                                setStudioOpen(true);
-                              }}
-                              className="text-primary hover:underline font-semibold"
-                            >
-                              [ Studio ]
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setLinkingDb(db);
-                                setLinkModalOpen(true);
-                              }}
-                              className="text-emerald-400 hover:underline"
-                            >
-                              {db.linkedProjectId ? "[ Re-link ]" : "[ Link Project ]"}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => void handleInspect(db.id)}
-                              className="text-neutral-300 hover:underline"
-                            >
-                              [ Details ]
-                            </button>
-                            <button
-                              type="button"
-                              disabled={actionInProgress === db.id}
-                              onClick={() => void handleToggleState(db)}
-                              className="text-neutral-400 hover:text-white"
-                            >
-                              {db.running ? "[ Stop ]" : "[ Start ]"}
-                            </button>
-                            <button
-                              type="button"
-                              disabled={actionInProgress === db.id}
-                              onClick={() => requestDelete(db)}
-                              className="text-red-400 hover:underline"
-                            >
-                              [ Delete ]
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                            Studio
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="h-7 text-xs border-neutral-800 text-neutral-300 hover:text-white"
+                            onClick={() => {
+                              setLinkingDb(db);
+                              setLinkModalOpen(true);
+                            }}
+                          >
+                            {db.linkedProjectId ? "Re-link" : "Link"}
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="h-7 text-xs border-neutral-800 text-neutral-300 hover:text-white"
+                            onClick={() => void handleInspect(db.id)}
+                          >
+                            Details
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            disabled={actionInProgress === db.id}
+                            onClick={() => void handleToggleState(db)}
+                            className="h-7 text-xs border-neutral-800 text-neutral-300 hover:text-white"
+                          >
+                            {db.running ? "Stop" : "Start"}
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            disabled={actionInProgress === db.id}
+                            onClick={() => requestDelete(db)}
+                            className="h-7 text-xs border-red-900/40 text-red-400 hover:bg-red-950/20"
+                          >
+                            Delete
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        <div className="border-t border-neutral-800 bg-black px-6 py-3 text-xs text-neutral-500">
+          Database volumes are persisted at <code className="font-mono text-neutral-400">/var/lib/docker/volumes</code>
+        </div>
+      </div>
 
       {/* Modals */}
       <CreateDatabaseModal
@@ -351,19 +361,26 @@ export function Databases() {
         onOpenChange={(open) => {
           if (!open) setDeleteTargetDb(null);
         }}
-        title={`Delete database "${deleteTargetDb?.name}"?`}
-        description={`This will stop and remove container ${deleteTargetDb?.containerName}. Any running projects connected to this database will lose connection.`}
-        checkboxLabel={
-          deleteTargetDb
-            ? `Permanently delete data volume "${deleteTargetDb.volumeName}" (all stored data will be destroyed)`
-            : undefined
+        title={`Delete Database "${deleteTargetDb?.name}"?`}
+        description={
+          <div className="space-y-3 pt-1">
+            <p className="text-xs text-neutral-400">
+              Are you sure you want to delete this database? All active connections will be severed immediately.
+            </p>
+            <label className="flex items-center gap-2 text-xs text-red-400 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={dropVolumeChecked}
+                onChange={(e) => setDropVolumeChecked(e.target.checked)}
+                className="rounded border-neutral-800 bg-black"
+              />
+              <span>Also permanently purge Docker storage volume (Data loss!)</span>
+            </label>
+          </div>
         }
-        checkboxChecked={dropVolumeChecked}
-        onCheckboxChange={setDropVolumeChecked}
-        confirmLabel="Delete Database"
+        confirmLabel={dropVolumeChecked ? "Destroy Database & Volume" : "Delete Database"}
         variant="destructive"
-        busy={actionInProgress === deleteTargetDb?.id}
-        onConfirm={executeDelete}
+        onConfirm={() => void executeDelete()}
       />
     </div>
   );

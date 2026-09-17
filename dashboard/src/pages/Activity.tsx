@@ -3,10 +3,7 @@ import { DonutChart } from "@/components/charts/DonutChart";
 import { ActivityLineChart, type ActivityDayPoint } from "@/components/charts/ActivityLineChart";
 import { Link } from "react-router-dom";
 import { listAllJobs, getAllDeployments, type JobRecord, type Deployment } from "@/lib/api";
-import { PageHeader } from "@/components/PageHeader";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button, buttonVariants } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
@@ -80,13 +77,13 @@ function exportJobsCsv(jobs: JobRecord[]) {
   a.download = `versiongate-activity-${new Date().toISOString().slice(0, 10)}.csv`;
   a.click();
   URL.revokeObjectURL(url);
-  toast.success("Exported CSV");
+  toast.success("Exported activity CSV");
 }
 
 export function Activity() {
   const [jobs, setJobs] = useState<JobRecord[]>([]);
   const [deployments, setDeployments] = useState<Deployment[]>([]);
-  const [activeTab, setActiveTab] = useState<"jobs" | "deployments">("deployments");
+  const [activeTab, setActiveTab] = useState<"deployments" | "jobs">("deployments");
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -120,12 +117,6 @@ export function Activity() {
     if (statusFilter === "all") return jobs;
     return jobs.filter((j) => j.status === statusFilter);
   }, [jobs, statusFilter]);
-
-  const badgeFor = (status: string) => {
-    if (status === "FAILED" || status === "CANCELLED") return "destructive" as const;
-    if (status === "COMPLETE") return "default" as const;
-    return "secondary" as const;
-  };
 
   const jobsByStatus = useMemo(() => {
     const m = new Map<string, number>();
@@ -162,206 +153,249 @@ export function Activity() {
   }, [jobs]);
 
   return (
-    <div className="w-full space-y-8">
-      <PageHeader
-        title="Logs"
-        description="Deployment history and pipeline jobs across all projects"
-                actions={
-          <div className="flex flex-wrap items-center gap-2">
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="h-8 rounded-lg border border-input bg-card px-2 text-xs font-medium"
-            >
-              <option value="all">All statuses</option>
-              <option value="PENDING">Pending</option>
-              <option value="RUNNING">Running</option>
-              <option value="COMPLETE">Complete</option>
-              <option value="FAILED">Failed</option>
-              <option value="CANCELLED">Cancelled</option>
-            </select>
-            <Button type="button" variant="outline" size="sm" onClick={() => exportJobsCsv(filteredJobs)}>
-              Export CSV
-            </Button>
-            <Button type="button" variant="outline" size="sm" onClick={() => void load()}>
-              Refresh
-            </Button>
+    <div className="w-full space-y-8 font-sans">
+      {/* Vercel Header Bar */}
+      <div className="flex flex-col gap-4 border-b border-neutral-800 pb-6 lg:flex-row lg:items-center lg:justify-between">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2 text-xs text-neutral-400">
+            <span>Audit</span>
+            <span>/</span>
+            <span className="text-neutral-200">Activity</span>
           </div>
-        }
-      />
+          <h1 className="text-2xl font-bold tracking-tight text-white md:text-3xl">
+            Activity & Event Log
+          </h1>
+          <p className="text-xs text-neutral-400">
+            Global deployment events, automated builds, and rollback audit history across all projects.
+          </p>
+        </div>
 
+        <div className="flex flex-wrap items-center gap-2">
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="h-8 rounded-md border border-neutral-800 bg-black px-2.5 text-xs text-neutral-300 outline-none hover:border-neutral-700"
+          >
+            <option value="all">All statuses</option>
+            <option value="PENDING">Pending</option>
+            <option value="RUNNING">Running</option>
+            <option value="COMPLETE">Complete</option>
+            <option value="FAILED">Failed</option>
+            <option value="CANCELLED">Cancelled</option>
+          </select>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="border-neutral-800 bg-neutral-900/80 text-neutral-300 hover:text-white text-xs h-8"
+            onClick={() => exportJobsCsv(filteredJobs)}
+          >
+            Export CSV
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="border-neutral-800 bg-neutral-900/80 text-neutral-300 hover:text-white text-xs h-8"
+            onClick={() => void load()}
+          >
+            Refresh
+          </Button>
+        </div>
+      </div>
+
+      {/* Analytics Row */}
       {!loading && jobs.length > 0 ? (
-        <div className="grid gap-4 lg:grid-cols-2">
-          <Card className="border-border bg-card">
-            <CardHeader>
-              <CardTitle className="text-base">Jobs by status</CardTitle>
-              <CardDescription>Sample up to 200 loaded jobs · {total} total in database</CardDescription>
-            </CardHeader>
-            <CardContent>
+        <div className="grid gap-6 lg:grid-cols-2">
+          <div className="overflow-hidden rounded-xl border border-neutral-800 bg-[#0a0a0a]">
+            <div className="p-6 border-b border-neutral-800">
+              <h3 className="text-base font-semibold text-white">Jobs by Status</h3>
+              <p className="mt-1 text-xs text-neutral-400">
+                Loaded {jobs.length} recent jobs ({total} total in database)
+              </p>
+            </div>
+            <div className="p-6 flex justify-center">
               <DonutChart data={jobsByStatus} />
-            </CardContent>
-          </Card>
-          <Card className="border-border bg-card">
-            <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-2">
+            </div>
+          </div>
+
+          <div className="overflow-hidden rounded-xl border border-neutral-800 bg-[#0a0a0a]">
+            <div className="p-6 border-b border-neutral-800 flex items-center justify-between">
               <div>
-                <CardTitle className="text-base">Jobs by type (7 days)</CardTitle>
-                <CardDescription>
-                  Peak volume: {peak} jobs/day · {successRate != null ? `Terminal success: ${successRate}%` : "No terminal jobs yet"}
-                </CardDescription>
+                <h3 className="text-base font-semibold text-white">Execution Frequency (7 Days)</h3>
+                <p className="mt-1 text-xs text-neutral-400">
+                  Peak: {peak} jobs/day · Success: {successRate != null ? `${successRate}%` : "—"}
+                </p>
               </div>
-              <div className="flex gap-1 rounded-lg border border-border/80 bg-muted/30 p-0.5">
+
+              <div className="flex rounded-md border border-neutral-800 bg-black p-0.5">
                 {(["all", "deploy", "rollback"] as const).map((m) => (
                   <button
                     key={m}
                     type="button"
                     onClick={() => setChartMode(m)}
                     className={cn(
-                      "rounded-md px-2 py-1 text-[10px] font-semibold uppercase tracking-wide",
-                      chartMode === m ? "bg-card text-primary " : "text-muted-foreground hover:text-foreground"
+                      "rounded px-2 py-0.5 text-xs font-medium transition-colors capitalize",
+                      chartMode === m ? "bg-neutral-800 text-white" : "text-neutral-400 hover:text-white"
                     )}
                   >
-                    {m === "all" ? "All" : m}
+                    {m}
                   </button>
                 ))}
               </div>
-            </CardHeader>
-            <CardContent>
+            </div>
+            <div className="p-6">
               <ActivityLineChart data={dayBuckets} highlight={chartMode} />
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
       ) : null}
 
-      <div>
-        <div className="pb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-col gap-1">
-            <h2 className="text-lg font-semibold">{activeTab === "jobs" ? "Jobs history" : "All Deployments"}</h2>
-            <p className="text-sm text-muted-foreground">
-              {activeTab === "jobs"
-                ? "Open a row for streamed logs. Pending work requires versiongate-worker."
-                : "Active and historical deployment records across all projects with version logs."}
-            </p>
-          </div>
-          <div className="flex gap-1 rounded-lg border border-border/80 bg-muted/30 p-0.5 self-start">
-            <button
-              type="button"
-              onClick={() => setActiveTab("jobs")}
-              className={cn(
-                "rounded-md px-3 py-1 text-xs font-medium transition-colors",
-                activeTab === "jobs" ? "bg-card text-foreground" : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              Jobs ({jobs.length})
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab("deployments")}
-              className={cn(
-                "rounded-md px-3 py-1 text-xs font-medium transition-colors",
-                activeTab === "deployments" ? "bg-card text-foreground" : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              Deployments ({deployments.length})
-            </button>
-          </div>
+      {/* Main Content Tabs */}
+      <div className="space-y-4">
+        <div className="flex border-b border-neutral-800 gap-6">
+          <button
+            type="button"
+            onClick={() => setActiveTab("deployments")}
+            className={cn(
+              "pb-3 text-sm font-medium border-b-2 transition-colors",
+              activeTab === "deployments"
+                ? "border-white text-white"
+                : "border-transparent text-neutral-400 hover:text-neutral-200"
+            )}
+          >
+            Deployments ({deployments.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("jobs")}
+            className={cn(
+              "pb-3 text-sm font-medium border-b-2 transition-colors",
+              activeTab === "jobs"
+                ? "border-white text-white"
+                : "border-transparent text-neutral-400 hover:text-neutral-200"
+            )}
+          >
+            Jobs History ({jobs.length})
+          </button>
         </div>
 
-        <div className="pt-0 border-t border-border">
-          {loading && (activeTab === "jobs" ? jobs.length === 0 : deployments.length === 0) ? (
-            <div className="space-y-2 px-6 pb-6 pt-4">
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-10 w-full" />
-            </div>
-          ) : activeTab === "jobs" ? (
-            <Table>
-              <TableHeader>
-                <TableRow className="border-border/50 hover:bg-transparent">
-                  <TableHead className="pl-6">When</TableHead>
-                  <TableHead>Project</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="pr-6 text-right">Logs</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredJobs.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={5} className="py-16 text-center text-muted-foreground">
-                      No jobs match this filter.
-                    </TableCell>
+        {loading && (activeTab === "jobs" ? jobs.length === 0 : deployments.length === 0) ? (
+          <div className="space-y-2 p-6">
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+          </div>
+        ) : activeTab === "jobs" ? (
+          <div className="overflow-hidden rounded-xl border border-neutral-800 bg-[#0a0a0a]">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-neutral-800 text-neutral-500 text-xs">
+                    <TableHead className="pl-6">Timestamp</TableHead>
+                    <TableHead>Project</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="pr-6 text-right">Logs</TableHead>
                   </TableRow>
-                ) : (
-                  filteredJobs.map((job) => (
-                    <TableRow key={job.id} className="border-border/40">
-                      <TableCell className="pl-6 text-sm text-muted-foreground relative">
-                        <div className={`absolute left-0 top-1/2 -translate-y-1/2 w-1 h-full rounded-r-md ${job.status === "COMPLETE" ? "bg-emerald-500" : job.status === "FAILED" ? "bg-red-500" : "bg-amber-500"}`} />
-                        {new Date(job.createdAt).toLocaleString()}
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        <Link to={`/projects/${job.projectId}`} className="text-primary hover:underline">
-                          {job.project?.name ?? "—"}
-                        </Link>
-                        <div className="font-text-xs text-muted-foreground">commit: {jobArtifactLabel(job)}</div>
-                      </TableCell>
-                      <TableCell className="font-text-sm">{job.type}</TableCell>
-                      <TableCell>
-                        <Badge variant={badgeFor(job.status)} className="font-text-xs">
-                          {job.status}
-                        </Badge>
-                        {job.error ? (
-                          <p className="mt-1 max-w-md truncate text-xs text-red-700" title={job.error}>
-                            {job.error}
-                          </p>
-                        ) : null}
-                      </TableCell>
-                      <TableCell className="pr-6 text-right">
-                        <Link
-                          to={`/projects/${job.projectId}/deploy/${job.id}`}
-                          className={buttonVariants({ variant: "outline", size: "sm" })}
-                        >
-                          View log
-                        </Link>
+                </TableHeader>
+                <TableBody>
+                  {filteredJobs.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="py-16 text-center text-xs text-neutral-500">
+                        No jobs match this filter.
                       </TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          ) : (
-            <div className="space-y-4 px-1 pb-4">
-              <DeploymentLogFilters
-                statusFilter={depStatusFilter}
-                envFilter={depEnvFilter}
-                onStatusChange={setDepStatusFilter}
-                onEnvChange={setDepEnvFilter}
-                onClear={() => {
-                  setDepStatusFilter("all");
-                  setDepEnvFilter("all");
-                }}
-                count={filteredDeployments.length}
-              />
-              <DeploymentList
-                deployments={filteredDeployments}
-                showProject
-                emptyMessage="No deployments match your filters."
-              />
+                  ) : (
+                    filteredJobs.map((job) => (
+                      <TableRow key={job.id} className="border-neutral-800/50 text-xs hover:bg-neutral-900/40">
+                        <TableCell className="pl-6 text-neutral-400">
+                          {new Date(job.createdAt).toLocaleString()}
+                        </TableCell>
+                        <TableCell className="font-medium text-white">
+                          <Link to={`/projects/${job.projectId}`} className="hover:underline text-white font-semibold">
+                            {job.project?.name ?? "—"}
+                          </Link>
+                          <div className="font-mono text-[11px] text-neutral-500">
+                            commit: {jobArtifactLabel(job)}
+                          </div>
+                        </TableCell>
+                        <TableCell className="font-mono text-neutral-300">{job.type}</TableCell>
+                        <TableCell>
+                          <span
+                            className={cn(
+                              "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-medium border",
+                              job.status === "COMPLETE"
+                                ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
+                                : job.status === "FAILED"
+                                  ? "border-red-500/30 bg-red-500/10 text-red-400"
+                                  : "border-amber-500/30 bg-amber-500/10 text-amber-400"
+                            )}
+                          >
+                            <span
+                              className={cn(
+                                "size-1.5 rounded-full shrink-0",
+                                job.status === "COMPLETE"
+                                  ? "bg-emerald-500"
+                                  : job.status === "FAILED"
+                                    ? "bg-red-500"
+                                    : "bg-amber-500"
+                              )}
+                            />
+                            {job.status}
+                          </span>
+                          {job.error ? (
+                            <p className="mt-1 max-w-md truncate font-mono text-[11px] text-red-400" title={job.error}>
+                              {job.error}
+                            </p>
+                          ) : null}
+                        </TableCell>
+                        <TableCell className="pr-6 text-right">
+                          <Link
+                            to={`/projects/${job.projectId}/deploy/${job.id}`}
+                            className="inline-flex items-center justify-center rounded-md border border-neutral-800 bg-neutral-900/80 px-2.5 py-1 text-xs text-neutral-300 hover:text-white transition-colors"
+                          >
+                            View Log
+                          </Link>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
             </div>
-          )}
-          {!loading && (activeTab === "jobs" ? total > 0 : deployments.length > 0) ? (
-            <p className="border-t border-border/40 px-6 py-3 text-xs text-muted-foreground">
-              {activeTab === "jobs"
-                ? `Showing ${filteredJobs.length} of ${total} jobs`
-                : `Showing ${deployments.length} total deployments across all projects`}
-            </p>
-          ) : null}
-        </div>
+
+            <div className="border-t border-neutral-800 bg-black px-6 py-3 text-xs text-neutral-500">
+              Showing {filteredJobs.length} of {total} jobs
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <DeploymentLogFilters
+              statusFilter={depStatusFilter}
+              envFilter={depEnvFilter}
+              onStatusChange={setDepStatusFilter}
+              onEnvChange={setDepEnvFilter}
+              onClear={() => {
+                setDepStatusFilter("all");
+                setDepEnvFilter("all");
+              }}
+              count={filteredDeployments.length}
+            />
+            <DeploymentList
+              deployments={filteredDeployments}
+              showProject
+              emptyMessage="No deployments match your filters."
+            />
+          </div>
+        )}
       </div>
 
-      <section className="space-y-2">
-        <h2 className="text-sm font-medium text-muted-foreground">Live system log stream</h2>
+      {/* Aggregate Global Log Stream */}
+      <div className="space-y-3">
+        <h3 className="text-xs font-semibold uppercase tracking-wider text-neutral-400">Live Aggregate System Stream</h3>
         <AggregateJobLogStream title="Aggregate job tail" pollMs={6000} />
-      </section>
+      </div>
     </div>
   );
 }
