@@ -14,14 +14,11 @@ import {
   type ManagedDatabase,
   type RepoStackDetection,
 } from "@/lib/api";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { GithubRepoPicker } from "@/components/GithubRepoPicker";
-import { PageHeader } from "@/components/PageHeader";
 import { cn } from "@/lib/utils";
 
 const NAME_PATTERN = /^[a-z0-9-]+$/;
@@ -35,8 +32,8 @@ const ROOT_PRESETS = [
 ] as const;
 
 const selectClass = cn(
-  "h-9 w-full min-w-0 rounded-lg border border-border bg-background px-3 py-1 text-sm text-foreground outline-none transition-colors",
-  "focus-visible:border-neutral-500 focus-visible:ring-1 focus-visible:ring-neutral-500",
+  "h-9 w-full min-w-0 rounded-md border border-neutral-800 bg-black px-3 py-1 text-xs text-white outline-none transition-colors",
+  "focus-visible:border-neutral-500",
   "disabled:cursor-not-allowed disabled:opacity-50"
 );
 
@@ -163,7 +160,7 @@ export function CreateProject() {
       owner = slash >= 0 ? selectedGithubRepo.fullName.slice(0, slash) : "";
       repoName = slash >= 0 ? selectedGithubRepo.fullName.slice(slash + 1) : "";
     } else if (repoUrl.trim()) {
-      const match = repoUrl.trim().match(/github\.com[:/]([^/]+)\/([^/.]+?)(?:\.git)?$/);
+      const match = repoUrl.trim().match(/github\.com[:/]([^/]+)\/([^/.]+?)(?:\\.git)?$/);
       if (match) {
         owner = match[1];
         repoName = match[2];
@@ -232,7 +229,7 @@ export function CreateProject() {
       const existing = prev.filter((p) => p.key !== key);
       return [...existing, { key, value: uri }];
     });
-    toast.success(`[ OK ] Attached ${db.name} as ${key}`);
+    toast.success(`Attached ${db.name} as ${key}`);
   };
 
   const onSubmit = async (e: FormEvent) => {
@@ -280,7 +277,7 @@ export function CreateProject() {
         startCommand: startCommand.trim() || undefined,
         env: Object.keys(envMap).length > 0 ? envMap : undefined,
       });
-      toast.success("[ OK ] Project created successfully");
+      toast.success("Project created successfully");
 
       if (enableInitialCron && (cronName.trim() || cronHttpPath.trim() || cronCommand.trim())) {
         try {
@@ -293,7 +290,7 @@ export function CreateProject() {
             command: cronTargetType === "COMMAND" ? cronCommand.trim() : undefined,
             projectId: project.id,
           });
-          toast.success("[ OK ] Initial cron routine scheduled");
+          toast.success("Initial cron routine scheduled");
         } catch {
           toast.error("Project created, but initial cron schedule failed");
         }
@@ -308,82 +305,61 @@ export function CreateProject() {
   };
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6 pb-16">
-      <div className="flex items-center gap-2 text-xs font-mono text-muted-foreground">
-        <Link to="/projects" className="hover:text-foreground">
-          Projects
-        </Link>
-        <span>/</span>
-        <span className="text-foreground">New Project</span>
+    <div className="mx-auto max-w-4xl space-y-8 pb-16 font-sans">
+      {/* Vercel Header Bar */}
+      <div className="flex flex-col gap-4 border-b border-neutral-800 pb-6 lg:flex-row lg:items-center lg:justify-between">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2 text-xs text-neutral-400">
+            <Link to="/projects" className="hover:text-white transition-colors">
+              Projects
+            </Link>
+            <span>/</span>
+            <span className="text-neutral-200">New</span>
+          </div>
+          <h1 className="text-2xl font-bold tracking-tight text-white md:text-3xl">
+            Create a New Project
+          </h1>
+          <p className="text-xs text-neutral-400">
+            Import a Git repository and configure zero-downtime blue/green deployment slots.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="border-neutral-800 bg-neutral-900/80 text-neutral-300 hover:text-white text-xs h-8"
+            onClick={() => navigate("/projects")}
+          >
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            form="create-project-form"
+            size="sm"
+            disabled={submitting}
+            className="bg-white text-black font-semibold hover:bg-neutral-200 text-xs h-8"
+          >
+            {submitting ? "Initializing..." : "Create & Deploy"}
+          </Button>
+        </div>
       </div>
 
-      <PageHeader
-        title="Create New Project"
-        description="Deploy Docker containers or native PM2 processes with zero-downtime blue/green routing."
-        actions={
-          <div className="flex items-center gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => navigate("/projects")}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              form="create-project-form"
-              size="sm"
-              disabled={submitting}
-            >
-              {submitting ? "Initializing…" : "Create & Initialize Project"}
-            </Button>
-          </div>
-        }
-      />
-
       <form id="create-project-form" onSubmit={(e) => void onSubmit(e)} className="space-y-6">
-        {/* Section 1: General Info */}
-        <Card className="border-border bg-card">
-          <CardHeader>
-            <CardTitle className="text-base">01 // Project Details</CardTitle>
-            <CardDescription>
-              Assign a unique identifier for your project. Two dedicated host ports are automatically reserved.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-1.5">
-              <label htmlFor="cp-name" className="text-sm font-medium">
-                Project Name (slug)
-              </label>
-              <Input
-                id="cp-name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="e.g. core-api-service"
-                autoComplete="off"
-                className="max-w-md font-mono text-sm"
-                required
-              />
-              <p className="text-xs text-muted-foreground">
-                Lowercase letters, numbers, and hyphens only. Used for routing and container names.
+        {/* Section 1: Import Git Repository */}
+        <div className="overflow-hidden rounded-xl border border-neutral-800 bg-[#0a0a0a]">
+          <div className="p-6 space-y-6">
+            <div>
+              <h3 className="text-base font-semibold text-white">Import Git Repository</h3>
+              <p className="mt-1 text-xs text-neutral-400">
+                Select a GitHub repository to enable automated webhook triggers on git push.
               </p>
             </div>
-          </CardContent>
-        </Card>
 
-        {/* Section 2: Repository Source */}
-        <Card className="border-border bg-card">
-          <CardHeader>
-            <CardTitle className="text-base">02 // Repository &amp; Source</CardTitle>
-            <CardDescription>
-              Connect to your GitHub repository or enter a custom Git clone URL.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
             {ghLoading ? (
-              <div className="rounded-lg border border-border bg-muted/20 px-4 py-8 text-center text-sm text-muted-foreground">
-                Loading GitHub integration status…
+              <div className="rounded-lg border border-neutral-800 bg-black/40 p-8 text-center text-xs text-neutral-500">
+                Loading GitHub integration status...
               </div>
             ) : ghConnected ? (
               <Tabs
@@ -395,17 +371,28 @@ export function CreateProject() {
                     setBranchNames([]);
                   }
                 }}
+                className="space-y-4"
               >
-                <TabsList variant="line" className="w-full justify-start border-b border-border">
-                  <TabsTrigger value="github">GitHub App Integration</TabsTrigger>
-                  <TabsTrigger value="manual">Manual Git URL</TabsTrigger>
+                <TabsList className="flex h-auto w-full justify-start gap-6 rounded-none border-b border-neutral-800 bg-transparent p-0">
+                  <TabsTrigger
+                    value="github"
+                    className="rounded-none border-b-2 border-transparent bg-transparent pb-3 pt-2 text-xs font-medium text-neutral-400 transition-colors data-[state=active]:border-white data-[state=active]:text-white hover:text-neutral-200"
+                  >
+                    GitHub App
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="manual"
+                    className="rounded-none border-b-2 border-transparent bg-transparent pb-3 pt-2 text-xs font-medium text-neutral-400 transition-colors data-[state=active]:border-white data-[state=active]:text-white hover:text-neutral-200"
+                  >
+                    Manual Git URL
+                  </TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="github" className="mt-4 space-y-4">
+                <TabsContent value="github" className="space-y-4 pt-2">
                   {ghInstallations.length > 1 ? (
-                    <div className="grid gap-1.5">
-                      <label htmlFor="cp-gh-install" className="text-sm font-medium">
-                        GitHub Installation
+                    <div className="space-y-1.5">
+                      <label htmlFor="cp-gh-install" className="text-xs font-medium text-neutral-300">
+                        GitHub Organization / Account
                       </label>
                       <select
                         id="cp-gh-install"
@@ -427,8 +414,8 @@ export function CreateProject() {
                     </div>
                   ) : null}
 
-                  <div className="grid gap-1.5">
-                    <span className="text-sm font-medium">Select Repository</span>
+                  <div className="space-y-1.5">
+                    <span className="text-xs font-medium text-neutral-300">Select Repository</span>
                     <GithubRepoPicker
                       installationId={selectedInstallationId}
                       selectedFullName={selectedGithubRepo?.fullName ?? null}
@@ -436,12 +423,12 @@ export function CreateProject() {
                     />
                   </div>
 
-                  <div className="grid max-w-md gap-1.5">
-                    <label htmlFor="cp-branch-gh" className="text-sm font-medium">
-                      Deployment Branch
+                  <div className="space-y-1.5 max-w-md">
+                    <label htmlFor="cp-branch-gh" className="text-xs font-medium text-neutral-300">
+                      Target Production Branch
                     </label>
                     {branchesLoading ? (
-                      <p className="text-xs text-muted-foreground font-mono">Loading repository branches…</p>
+                      <p className="text-xs text-neutral-500 font-mono">Fetching repository branches...</p>
                     ) : branchNames.length > 0 ? (
                       <select
                         id="cp-branch-gh"
@@ -462,19 +449,19 @@ export function CreateProject() {
                         onChange={(e) => setBranch(e.target.value)}
                         placeholder={selectedGithubRepo ? "main" : "Select a repository first"}
                         disabled={!selectedGithubRepo}
-                        className="font-mono text-sm"
+                        className="font-mono text-xs bg-black border-neutral-800 text-white"
                       />
                     )}
-                    <p className="text-xs text-muted-foreground">
-                      Automatic webhook deploys trigger when pushes occur on this branch.
+                    <p className="text-[11px] text-neutral-500">
+                      Pushes to this branch trigger an atomic blue-green deployment.
                     </p>
                   </div>
                 </TabsContent>
 
-                <TabsContent value="manual" className="mt-4 space-y-4">
-                  <div className="grid gap-1.5">
-                    <label htmlFor="cp-repo-manual" className="text-sm font-medium">
-                      Git Repository URL
+                <TabsContent value="manual" className="space-y-4 pt-2">
+                  <div className="space-y-1.5">
+                    <label htmlFor="cp-repo-manual" className="text-xs font-medium text-neutral-300">
+                      Git Clone URL
                     </label>
                     <Input
                       id="cp-repo-manual"
@@ -482,12 +469,12 @@ export function CreateProject() {
                       onChange={(e) => setRepoUrl(e.target.value)}
                       placeholder="https://github.com/organization/repository.git"
                       autoComplete="off"
-                      className="font-mono text-sm"
+                      className="font-mono text-xs bg-black border-neutral-800 text-white"
                       required={ghSource === "manual"}
                     />
                   </div>
-                  <div className="grid max-w-md gap-1.5">
-                    <label htmlFor="cp-branch-manual" className="text-sm font-medium">
+                  <div className="space-y-1.5 max-w-md">
+                    <label htmlFor="cp-branch-manual" className="text-xs font-medium text-neutral-300">
                       Default Branch
                     </label>
                     <Input
@@ -495,26 +482,26 @@ export function CreateProject() {
                       value={branch}
                       onChange={(e) => setBranch(e.target.value)}
                       placeholder="main"
-                      className="font-mono text-sm"
+                      className="font-mono text-xs bg-black border-neutral-800 text-white"
                     />
                   </div>
                 </TabsContent>
               </Tabs>
             ) : (
               <div className="space-y-4">
-                <Alert className="border-border bg-muted/20">
-                  <AlertTitle className="text-sm">GitHub App Not Connected</AlertTitle>
-                  <AlertDescription className="text-xs">
-                    Install the VersionGate GitHub App to browse repositories automatically.&nbsp;
-                    <Link to="/dashboard/integrations" className="font-medium text-foreground underline hover:no-underline">
+                <div className="rounded-lg border border-neutral-800 bg-neutral-950 p-4 text-xs">
+                  <span className="font-semibold text-white">GitHub App Not Connected</span>
+                  <p className="mt-1 text-neutral-400">
+                    Connect the VersionGate GitHub App to browse and import repositories directly.{" "}
+                    <Link to="/integrations" className="text-white underline hover:text-neutral-300">
                       Open Integrations
                     </Link>
-                  </AlertDescription>
-                </Alert>
+                  </p>
+                </div>
 
-                <div className="grid gap-1.5">
-                  <label htmlFor="cp-repo-manual" className="text-sm font-medium">
-                    Git Repository URL
+                <div className="space-y-1.5">
+                  <label htmlFor="cp-repo-manual" className="text-xs font-medium text-neutral-300">
+                    Git Clone URL
                   </label>
                   <Input
                     id="cp-repo-manual"
@@ -522,12 +509,12 @@ export function CreateProject() {
                     onChange={(e) => setRepoUrl(e.target.value)}
                     placeholder="https://github.com/organization/repository.git"
                     autoComplete="off"
-                    className="font-mono text-sm"
+                    className="font-mono text-xs bg-black border-neutral-800 text-white"
                     required
                   />
                 </div>
-                <div className="grid max-w-md gap-1.5">
-                  <label htmlFor="cp-branch-manual" className="text-sm font-medium">
+                <div className="space-y-1.5 max-w-md">
+                  <label htmlFor="cp-branch-manual" className="text-xs font-medium text-neutral-300">
                     Default Branch
                   </label>
                   <Input
@@ -535,7 +522,7 @@ export function CreateProject() {
                     value={branch}
                     onChange={(e) => setBranch(e.target.value)}
                     placeholder="main"
-                    className="font-mono text-sm"
+                    className="font-mono text-xs bg-black border-neutral-800 text-white"
                   />
                 </div>
               </div>
@@ -543,94 +530,114 @@ export function CreateProject() {
 
             {/* Stack auto-detection badge */}
             {stackDetecting ? (
-              <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/30 px-3 py-2 text-xs font-mono text-muted-foreground">
-                <span className="font-semibold text-sky-400">[ SCANNING STACK ]</span>
-                <span>Inspecting repository structure and package manifests…</span>
+              <div className="flex items-center gap-2 rounded-lg border border-neutral-800 bg-black/60 px-3 py-2 text-xs font-mono text-neutral-400">
+                <span className="size-1.5 rounded-full bg-blue-500 animate-pulse" />
+                <span>Analyzing repository framework and package manifests...</span>
               </div>
             ) : detectedStack ? (
-              <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/5 px-3 py-2 text-xs">
+              <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/5 px-4 py-2.5 text-xs">
                 <div className="flex items-center gap-2">
-                  <span className="rounded border border-emerald-500/40 bg-emerald-500/10 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-emerald-300">
-                    [ STACK: {detectedStack.label.toUpperCase()} ]
+                  <span className="size-1.5 rounded-full bg-emerald-500" />
+                  <span className="font-semibold text-white">
+                    Framework: {detectedStack.label}
                   </span>
-                  <span className="text-muted-foreground">
-                    Recommended port: {detectedStack.recommendedPort} // health: {detectedStack.recommendedHealthPath}
+                  <span className="text-neutral-400">
+                    (Port {detectedStack.recommendedPort}, Health {detectedStack.recommendedHealthPath})
                   </span>
                 </div>
-                <span className="font-mono text-[10px] uppercase text-emerald-400/80">
+                <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 font-mono text-[10px] text-emerald-400">
                   {detectedStack.confidence} confidence
                 </span>
               </div>
             ) : null}
-          </CardContent>
-        </Card>
+          </div>
 
-        {/* Section 3: Runtime & Framework Architecture */}
-        <Card className="border-border bg-card">
-          <CardHeader>
-            <CardTitle className="text-base">03 // Runtime &amp; Framework Engine</CardTitle>
-            <CardDescription>
-              Choose between containerized Docker execution or bare-metal PM2 process supervision.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {/* Engine Selection Tiles */}
-            <div className="grid gap-3 sm:grid-cols-2">
-              <button
-                type="button"
-                onClick={() => setDeploymentType("docker")}
-                className={cn(
-                  "flex flex-col gap-2 rounded-lg border p-4 text-left transition-colors",
-                  deploymentType === "docker"
-                    ? "border-primary bg-primary/5 ring-1 ring-primary/30"
-                    : "border-border bg-muted/10 hover:bg-muted/20"
-                )}
-              >
-                <div className="flex items-center justify-between">
-                  <span className="font-mono text-xs font-semibold text-foreground">
-                    [ DOCKER CONTAINER ]
-                  </span>
-                  {deploymentType === "docker" ? (
-                    <span className="rounded bg-primary px-1.5 py-0.5 text-[10px] font-bold text-primary-foreground">
-                      SELECTED
-                    </span>
-                  ) : null}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Runs inside an isolated container with zero-downtime blue/green port swapping.
-                </p>
-              </button>
+          <div className="border-t border-neutral-800 bg-black px-6 py-3 text-xs text-neutral-500">
+            VersionGate clones over HTTPS. Deploy keys or personal access tokens are supported.
+          </div>
+        </div>
 
-              <button
-                type="button"
-                onClick={() => setDeploymentType("pm2")}
-                className={cn(
-                  "flex flex-col gap-2 rounded-lg border p-4 text-left transition-colors",
-                  deploymentType === "pm2"
-                    ? "border-primary bg-primary/5 ring-1 ring-primary/30"
-                    : "border-border bg-muted/10 hover:bg-muted/20"
-                )}
-              >
-                <div className="flex items-center justify-between">
-                  <span className="font-mono text-xs font-semibold text-foreground">
-                    [ HOST PM2 PROCESS ]
-                  </span>
-                  {deploymentType === "pm2" ? (
-                    <span className="rounded bg-primary px-1.5 py-0.5 text-[10px] font-bold text-primary-foreground">
-                      SELECTED
-                    </span>
-                  ) : null}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Direct host execution under PM2 process supervisor. Ideal for Node, Python, Go, and Rust.
-                </p>
-              </button>
+        {/* Section 2: Project & Runtime Configuration */}
+        <div className="overflow-hidden rounded-xl border border-neutral-800 bg-[#0a0a0a]">
+          <div className="p-6 space-y-6">
+            <div>
+              <h3 className="text-base font-semibold text-white">Configure Project</h3>
+              <p className="mt-1 text-xs text-neutral-400">
+                Configure execution runtime, build context, and network parameters.
+              </p>
             </div>
 
-            {/* Package Manager & Paths */}
+            {/* Project Slug */}
+            <div className="space-y-1.5 max-w-md">
+              <label htmlFor="cp-name" className="text-xs font-medium text-neutral-300">
+                Project Name
+              </label>
+              <Input
+                id="cp-name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="my-cool-app"
+                autoComplete="off"
+                className="font-mono text-xs bg-black border-neutral-800 text-white"
+                required
+              />
+              <p className="text-[11px] text-neutral-500">
+                Lowercase letters, numbers, and hyphens only.
+              </p>
+            </div>
+
+            {/* Runtime Selection */}
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-neutral-300">Deployment Runtime</label>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <button
+                  type="button"
+                  onClick={() => setDeploymentType("docker")}
+                  className={cn(
+                    "flex flex-col gap-2 rounded-lg border p-4 text-left transition-all",
+                    deploymentType === "docker"
+                      ? "border-white bg-neutral-900/90 text-white shadow-sm"
+                      : "border-neutral-800 bg-black/40 text-neutral-400 hover:border-neutral-700 hover:text-neutral-300"
+                  )}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-white">Docker Container</span>
+                    {deploymentType === "docker" ? (
+                      <span className="size-2 rounded-full bg-white" />
+                    ) : null}
+                  </div>
+                  <p className="text-xs text-neutral-400">
+                    Runs inside isolated Docker containers with automated zero-downtime blue/green port swapping.
+                  </p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setDeploymentType("pm2")}
+                  className={cn(
+                    "flex flex-col gap-2 rounded-lg border p-4 text-left transition-all",
+                    deploymentType === "pm2"
+                      ? "border-white bg-neutral-900/90 text-white shadow-sm"
+                      : "border-neutral-800 bg-black/40 text-neutral-400 hover:border-neutral-700 hover:text-neutral-300"
+                  )}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-white">Host PM2 Process</span>
+                    {deploymentType === "pm2" ? (
+                      <span className="size-2 rounded-full bg-white" />
+                    ) : null}
+                  </div>
+                  <p className="text-xs text-neutral-400">
+                    Direct host execution under PM2 process supervisor. Ideal for Node, Bun, Python, Go, and Rust.
+                  </p>
+                </button>
+              </div>
+            </div>
+
+            {/* Toolchain & Context */}
             <div className="grid gap-4 sm:grid-cols-2">
-              <div className="grid gap-1.5">
-                <label htmlFor="cp-pkg-mgr" className="text-sm font-medium">
+              <div className="space-y-1.5">
+                <label htmlFor="cp-pkg-mgr" className="text-xs font-medium text-neutral-300">
                   Package Manager / Toolchain
                 </label>
                 <select
@@ -650,32 +657,29 @@ export function CreateProject() {
                   <option value="cargo">Rust (Cargo)</option>
                   <option value="composer">PHP (Composer)</option>
                 </select>
-                <p className="text-xs text-muted-foreground">
-                  Toolchain used to install dependencies and run build scripts.
-                </p>
               </div>
 
-              <div className="grid gap-1.5">
-                <label htmlFor="cp-ctx" className="text-sm font-medium">
-                  Build Context Directory
+              <div className="space-y-1.5">
+                <label htmlFor="cp-ctx" className="text-xs font-medium text-neutral-300">
+                  Root Directory / Build Context
                 </label>
                 <Input
                   id="cp-ctx"
                   value={buildContext}
                   onChange={(e) => setBuildContext(e.target.value)}
                   placeholder="."
-                  className="font-mono text-sm"
+                  className="font-mono text-xs bg-black border-neutral-800 text-white"
                 />
-                <div className="flex flex-wrap gap-1.5 pt-1">
+                <div className="flex flex-wrap gap-1 pt-1">
                   {contextPresets.map((p) => (
                     <button
                       key={p.value}
                       type="button"
                       className={cn(
-                        "rounded border px-2 py-0.5 font-mono text-[10px] transition-colors",
+                        "rounded px-2 py-0.5 font-mono text-[10px] transition-colors border",
                         buildContext === p.value
-                          ? "border-primary bg-primary text-primary-foreground font-semibold"
-                          : "border-border bg-muted/30 text-muted-foreground hover:text-foreground"
+                          ? "border-neutral-700 bg-neutral-800 text-white"
+                          : "border-neutral-800/80 bg-neutral-900/60 text-neutral-400 hover:text-white"
                       )}
                       onClick={() => setBuildContext(p.value)}
                     >
@@ -688,8 +692,8 @@ export function CreateProject() {
 
             {/* Ports and Healthcheck */}
             <div className="grid gap-4 sm:grid-cols-2">
-              <div className="grid gap-1.5">
-                <label htmlFor="cp-port" className="text-sm font-medium">
+              <div className="space-y-1.5">
+                <label htmlFor="cp-port" className="text-xs font-medium text-neutral-300">
                   Internal Application Port
                 </label>
                 <Input
@@ -698,16 +702,16 @@ export function CreateProject() {
                   value={appPort}
                   onChange={(e) => setAppPort(e.target.value)}
                   placeholder="3000"
-                  className="font-mono text-sm"
+                  className="font-mono text-xs bg-black border-neutral-800 text-white"
                   required
                 />
-                <p className="text-xs text-muted-foreground">
-                  Port your application listens on internally (e.g. 3000, 8080).
+                <p className="text-[11px] text-neutral-500">
+                  Port your application listens on internally inside container.
                 </p>
               </div>
 
-              <div className="grid gap-1.5">
-                <label htmlFor="cp-health" className="text-sm font-medium">
+              <div className="space-y-1.5">
+                <label htmlFor="cp-health" className="text-xs font-medium text-neutral-300">
                   Health Check Endpoint
                 </label>
                 <Input
@@ -715,90 +719,93 @@ export function CreateProject() {
                   value={healthPath}
                   onChange={(e) => setHealthPath(e.target.value)}
                   placeholder="/health"
-                  className="font-mono text-sm"
+                  className="font-mono text-xs bg-black border-neutral-800 text-white"
                   required
                 />
-                <p className="text-xs text-muted-foreground">
-                  HTTP endpoint checked before switching blue/green traffic.
+                <p className="text-[11px] text-neutral-500">
+                  Endpoint polled to verify ready status before traffic transition.
                 </p>
               </div>
             </div>
 
             {/* Custom Build Commands Collapsible */}
-            <div className="space-y-3 rounded-lg border border-border/80 bg-muted/15 p-4">
+            <div className="rounded-lg border border-neutral-800 bg-black/40 p-4 space-y-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <h4 className="text-xs font-mono font-semibold uppercase text-foreground">
-                    Custom Script Overrides
-                  </h4>
-                  <p className="text-xs text-muted-foreground">
-                    Override default install, build, and start commands for bespoke setups.
+                  <h4 className="text-xs font-semibold text-white">Build and Output Settings</h4>
+                  <p className="text-[11px] text-neutral-400">
+                    Override default install, build, and start commands.
                   </p>
                 </div>
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
-                  className="h-7 font-mono text-xs"
+                  className="h-7 text-xs border-neutral-800 text-neutral-300 hover:text-white"
                   onClick={() => setShowAdvancedRuntime((prev) => !prev)}
                 >
-                  {showAdvancedRuntime ? "[ HIDE COMMANDS ]" : "[ CONFIGURE COMMANDS ]"}
+                  {showAdvancedRuntime ? "Hide Overrides" : "Customize"}
                 </Button>
               </div>
 
               {showAdvancedRuntime ? (
-                <div className="space-y-3 pt-2">
-                  <div className="grid gap-1.5">
-                    <label htmlFor="cp-install-cmd" className="font-mono text-xs font-medium text-muted-foreground">
-                      Custom Install Command (Optional)
+                <div className="space-y-3 pt-3 border-t border-neutral-800/80">
+                  <div className="space-y-1.5">
+                    <label htmlFor="cp-install-cmd" className="text-xs text-neutral-400">
+                      Install Command
                     </label>
                     <Input
                       id="cp-install-cmd"
                       value={installCommand}
                       onChange={(e) => setInstallCommand(e.target.value)}
                       placeholder="e.g. bun install --frozen-lockfile"
-                      className="font-mono text-xs"
+                      className="font-mono text-xs bg-black border-neutral-800 text-white"
                     />
                   </div>
-                  <div className="grid gap-1.5">
-                    <label htmlFor="cp-build-cmd" className="font-mono text-xs font-medium text-muted-foreground">
-                      Custom Build Command (Optional)
+                  <div className="space-y-1.5">
+                    <label htmlFor="cp-build-cmd" className="text-xs text-neutral-400">
+                      Build Command
                     </label>
                     <Input
                       id="cp-build-cmd"
                       value={buildCommand}
                       onChange={(e) => setBuildCommand(e.target.value)}
-                      placeholder="e.g. bun run build or cargo build --release"
-                      className="font-mono text-xs"
+                      placeholder="e.g. bun run build"
+                      className="font-mono text-xs bg-black border-neutral-800 text-white"
                     />
                   </div>
-                  <div className="grid gap-1.5">
-                    <label htmlFor="cp-start-cmd" className="font-mono text-xs font-medium text-muted-foreground">
-                      Custom Start Command (Optional)
+                  <div className="space-y-1.5">
+                    <label htmlFor="cp-start-cmd" className="text-xs text-neutral-400">
+                      Start Command
                     </label>
                     <Input
                       id="cp-start-cmd"
                       value={startCommand}
                       onChange={(e) => setStartCommand(e.target.value)}
-                      placeholder="e.g. bun run start or uvicorn main:app --host 0.0.0.0 --port $PORT"
-                      className="font-mono text-xs"
+                      placeholder="e.g. bun run start"
+                      className="font-mono text-xs bg-black border-neutral-800 text-white"
                     />
                   </div>
                 </div>
               ) : null}
             </div>
-          </CardContent>
-        </Card>
+          </div>
 
-        {/* Section 4: Environment Variables */}
-        <Card className="border-border bg-card">
-          <CardHeader>
-            <CardTitle className="text-base">04 // Environment Variables</CardTitle>
-            <CardDescription>
-              Encrypted at rest with AES-256-GCM. Injected automatically into the deployment runtime.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+          <div className="border-t border-neutral-800 bg-black px-6 py-3 text-xs text-neutral-500">
+            VersionGate will allocate two consecutive host ports for blue/green routing.
+          </div>
+        </div>
+
+        {/* Section 3: Environment Variables */}
+        <div className="overflow-hidden rounded-xl border border-neutral-800 bg-[#0a0a0a]">
+          <div className="p-6 space-y-4">
+            <div>
+              <h3 className="text-base font-semibold text-white">Environment Variables</h3>
+              <p className="mt-1 text-xs text-neutral-400">
+                Encrypted at rest with AES-256-GCM. Injected automatically at build and runtime.
+              </p>
+            </div>
+
             <EnvVariablesEditor
               pairs={envPairs.length > 0 ? envPairs : [{ key: "", value: "" }]}
               onChange={setEnvPairs}
@@ -806,124 +813,145 @@ export function CreateProject() {
               onAttachDatabase={handleAttachDatabase}
               maxHeightClass="max-h-72"
             />
-          </CardContent>
-        </Card>
+          </div>
 
-        {/* Section 5: Scheduled Cron Automation */}
-        <Card className="border-border bg-card">
-          <CardHeader>
+          <div className="border-t border-neutral-800 bg-black px-6 py-3 text-xs text-neutral-500">
+            Secrets are decrypted in-memory only during container startup.
+          </div>
+        </div>
+
+        {/* Section 4: Scheduled Cron Automation */}
+        <div className="overflow-hidden rounded-xl border border-neutral-800 bg-[#0a0a0a]">
+          <div className="p-6 space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-base">05 // Scheduled Cron Automation</CardTitle>
-                <CardDescription>
-                  Optional recurring HTTP webhook dispatches or in-container command jobs.
-                </CardDescription>
+                <h3 className="text-base font-semibold text-white">Scheduled Automation (Cron)</h3>
+                <p className="mt-1 text-xs text-neutral-400">
+                  Optional recurring HTTP webhook dispatches or internal runtime shell commands.
+                </p>
               </div>
-              <button
+              <Button
                 type="button"
+                variant="outline"
+                size="sm"
                 onClick={() => setEnableInitialCron((prev) => !prev)}
-                className={`border px-3 py-1 font-mono text-xs font-semibold uppercase transition-colors ${
+                className={cn(
+                  "h-7 text-xs",
                   enableInitialCron
-                    ? "border-emerald-500 bg-emerald-950/40 text-emerald-400"
-                    : "border-neutral-800 bg-neutral-900 text-neutral-400 hover:text-white"
-                }`}
+                    ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20"
+                    : "border-neutral-800 text-neutral-400 hover:text-white"
+                )}
               >
-                {enableInitialCron ? "[ ENABLED ]" : "[ DISABLED ]"}
-              </button>
+                {enableInitialCron ? "Enabled" : "Disabled"}
+              </Button>
             </div>
-          </CardHeader>
-          {enableInitialCron && (
-            <CardContent className="space-y-4 pt-2 font-mono text-xs">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-1.5">
-                  <label htmlFor="cp-cron-name" className="text-neutral-300">Task Name</label>
-                  <Input
-                    id="cp-cron-name"
-                    value={cronName}
-                    onChange={(e) => setCronName(e.target.value)}
-                    placeholder="e.g. daily-cache-warmup"
-                    className="font-mono text-xs"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label htmlFor="cp-cron-sched" className="text-neutral-300">Cron Schedule</label>
-                  <Input
-                    id="cp-cron-sched"
-                    value={cronSchedule}
-                    onChange={(e) => setCronSchedule(e.target.value)}
-                    placeholder="0 0 * * *"
-                    className="font-mono text-xs text-emerald-400"
-                  />
-                </div>
-              </div>
 
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-1.5">
-                  <label className="text-neutral-300">Target Type</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setCronTargetType("HTTP")}
-                      className={`border px-2 py-1.5 text-center text-xs uppercase ${
-                        cronTargetType === "HTTP"
-                          ? "border-blue-500 bg-blue-950/40 text-blue-400 font-semibold"
-                          : "border-neutral-800 bg-neutral-900 text-neutral-400"
-                      }`}
-                    >
-                      HTTP Webhook
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setCronTargetType("COMMAND")}
-                      className={`border px-2 py-1.5 text-center text-xs uppercase ${
-                        cronTargetType === "COMMAND"
-                          ? "border-purple-500 bg-purple-950/40 text-purple-400 font-semibold"
-                          : "border-neutral-800 bg-neutral-900 text-neutral-400"
-                      }`}
-                    >
-                      Shell Command
-                    </button>
+            {enableInitialCron && (
+              <div className="space-y-4 pt-3 border-t border-neutral-800">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <label htmlFor="cp-cron-name" className="text-xs font-medium text-neutral-300">Task Name</label>
+                    <Input
+                      id="cp-cron-name"
+                      value={cronName}
+                      onChange={(e) => setCronName(e.target.value)}
+                      placeholder="daily-cache-cleanup"
+                      className="font-mono text-xs bg-black border-neutral-800 text-white"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label htmlFor="cp-cron-sched" className="text-xs font-medium text-neutral-300">Cron Schedule</label>
+                    <Input
+                      id="cp-cron-sched"
+                      value={cronSchedule}
+                      onChange={(e) => setCronSchedule(e.target.value)}
+                      placeholder="0 0 * * *"
+                      className="font-mono text-xs bg-black border-neutral-800 text-emerald-400"
+                    />
                   </div>
                 </div>
 
-                <div className="space-y-1.5">
-                  <label htmlFor="cp-cron-target" className="text-neutral-300">
-                    {cronTargetType === "HTTP" ? "Endpoint Path (e.g. /api/cron)" : "Command (Inside runtime)"}
-                  </label>
-                  {cronTargetType === "HTTP" ? (
-                    <Input
-                      id="cp-cron-target"
-                      value={cronHttpPath}
-                      onChange={(e) => setCronHttpPath(e.target.value)}
-                      placeholder="/api/cron"
-                      className="font-mono text-xs"
-                    />
-                  ) : (
-                    <Input
-                      id="cp-cron-target"
-                      value={cronCommand}
-                      onChange={(e) => setCronCommand(e.target.value)}
-                      placeholder="bun run cleanup.ts"
-                      className="font-mono text-xs"
-                    />
-                  )}
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-neutral-300">Target Type</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setCronTargetType("HTTP")}
+                        className={cn(
+                          "rounded-md border py-1.5 text-xs font-medium transition-colors",
+                          cronTargetType === "HTTP"
+                            ? "border-white bg-neutral-900 text-white"
+                            : "border-neutral-800 bg-black text-neutral-400 hover:text-white"
+                        )}
+                      >
+                        HTTP Webhook
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setCronTargetType("COMMAND")}
+                        className={cn(
+                          "rounded-md border py-1.5 text-xs font-medium transition-colors",
+                          cronTargetType === "COMMAND"
+                            ? "border-white bg-neutral-900 text-white"
+                            : "border-neutral-800 bg-black text-neutral-400 hover:text-white"
+                        )}
+                      >
+                        Shell Command
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label htmlFor="cp-cron-target" className="text-xs font-medium text-neutral-300">
+                      {cronTargetType === "HTTP" ? "Endpoint Path" : "Command"}
+                    </label>
+                    {cronTargetType === "HTTP" ? (
+                      <Input
+                        id="cp-cron-target"
+                        value={cronHttpPath}
+                        onChange={(e) => setCronHttpPath(e.target.value)}
+                        placeholder="/api/cron"
+                        className="font-mono text-xs bg-black border-neutral-800 text-white"
+                      />
+                    ) : (
+                      <Input
+                        id="cp-cron-target"
+                        value={cronCommand}
+                        onChange={(e) => setCronCommand(e.target.value)}
+                        placeholder="bun run cleanup.ts"
+                        className="font-mono text-xs bg-black border-neutral-800 text-white"
+                      />
+                    )}
+                  </div>
                 </div>
               </div>
-            </CardContent>
-          )}
-        </Card>
+            )}
+          </div>
+
+          <div className="border-t border-neutral-800 bg-black px-6 py-3 text-xs text-neutral-500">
+            Cron execution history will be recorded under the project's Cron Jobs tab.
+          </div>
+        </div>
 
         {/* Action Footer */}
-        <div className="flex items-center justify-end gap-3 border-t border-border pt-4">
+        <div className="flex items-center justify-end gap-3 pt-4">
           <Button
             type="button"
             variant="outline"
+            size="sm"
+            className="border-neutral-800 bg-neutral-900/80 text-neutral-300 hover:text-white text-xs h-9 px-4"
             onClick={() => navigate("/projects")}
           >
             Cancel
           </Button>
-          <Button type="submit" disabled={submitting}>
-            {submitting ? "Initializing project…" : "Create & Initialize Project"}
+          <Button
+            type="submit"
+            disabled={submitting}
+            size="sm"
+            className="bg-white text-black font-semibold hover:bg-neutral-200 text-xs h-9 px-5"
+          >
+            {submitting ? "Initializing project..." : "Create & Deploy Project"}
           </Button>
         </div>
       </form>

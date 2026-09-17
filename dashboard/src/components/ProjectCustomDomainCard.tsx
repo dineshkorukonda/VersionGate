@@ -1,10 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import {
   attachProjectDomain,
@@ -28,62 +24,27 @@ interface ProjectCustomDomainCardProps {
 function sslStatusLabel(status: ProjectDomainSslStatus): string {
   switch (status) {
     case "issued":
-      return "TLS active";
+      return "TLS Active";
     case "http":
-      return "HTTP only";
+      return "HTTP Only";
     case "failed":
-      return "TLS failed";
+      return "TLS Failed";
     default:
-      return "TLS pending";
+      return "TLS Pending";
   }
 }
 
 function sslStatusBadgeClass(status: ProjectDomainSslStatus): string {
   switch (status) {
     case "issued":
-      return "border-emerald-500/40 bg-emerald-600/12 text-emerald-800 dark:text-emerald-300";
+      return "border-emerald-500/30 bg-emerald-500/10 text-emerald-400";
     case "failed":
-      return "border-red-500/40 bg-red-500/10 text-red-800 dark:text-red-300";
+      return "border-red-500/30 bg-red-500/10 text-red-400";
     case "http":
-      return "border-sky-500/40 bg-sky-500/10 text-sky-800 dark:text-sky-300";
+      return "border-sky-500/30 bg-sky-500/10 text-sky-400";
     default:
-      return "border-border/60 bg-muted/30 text-muted-foreground";
+      return "border-neutral-800 bg-neutral-900 text-neutral-400";
   }
-}
-
-function StepPill({
-  step,
-  label,
-  done,
-  active,
-}: {
-  step: number;
-  label: string;
-  done: boolean;
-  active: boolean;
-}) {
-  return (
-    <div
-      className={cn(
-        "flex min-w-0 flex-1 items-center gap-2 rounded-lg border px-3 py-2.5",
-        done && "border-emerald-500/35 bg-emerald-500/[0.06]",
-        active && !done && "border-primary/40 bg-primary/[0.06]",
-        !done && !active && "border-border/60 bg-muted/20"
-      )}
-    >
-      <span
-        className={cn(
-          "flex size-7 shrink-0 items-center justify-center rounded-full font-mono text-xs font-semibold",
-          done && "bg-emerald-600 text-white",
-          active && !done && "bg-primary text-primary-foreground",
-          !done && !active && "bg-muted text-muted-foreground"
-        )}
-      >
-        {done ? "OK" : step}
-      </span>
-      <span className="text-xs font-medium leading-tight text-foreground sm:text-sm">{label}</span>
-    </div>
-  );
 }
 
 export function ProjectCustomDomainCard({
@@ -94,7 +55,7 @@ export function ProjectCustomDomainCard({
 }: ProjectCustomDomainCardProps) {
   const [domains, setDomains] = useState<ProjectDomain[]>([]);
   const [expectedIpv4, setExpectedIpv4] = useState<string | null>(null);
-  const [resolvedPort, setResolvedPort] = useState<number | null>(null);
+  const [, setResolvedPort] = useState<number | null>(null);
   const [hostnameDraft, setHostnameDraft] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -120,8 +81,6 @@ export function ProjectCustomDomainCard({
   }, [load]);
 
   const primary = domains[0];
-  const hasDeploy = resolvedPort != null && resolvedPort > 0;
-  const dnsReady = Boolean(primary?.dnsOk);
   const sslIssued = primary?.sslStatus === "issued";
 
   const previewUrl = useMemo(() => {
@@ -137,13 +96,13 @@ export function ProjectCustomDomainCard({
       return;
     }
     if (primary) {
-      toast.error("Remove the current domain before attaching a different hostname");
+      toast.error("Remove current domain before attaching a new one");
       return;
     }
     setSaving(true);
     try {
       await attachProjectDomain(projectId, host);
-      toast.success("Custom domain attached — point DNS A record to this server");
+      toast.success("Domain attached — configure DNS A record to complete");
       await load();
       onUpdated?.();
     } catch (e) {
@@ -158,7 +117,7 @@ export function ProjectCustomDomainCard({
     setSaving(true);
     try {
       await removeProjectDomain(projectId, primary.id);
-      toast.success("Custom domain removed");
+      toast.success("Domain removed");
       setHostnameDraft("");
       await load();
       onUpdated?.();
@@ -174,7 +133,7 @@ export function ProjectCustomDomainCard({
     setSslRunning(true);
     try {
       await issueProjectDomainSsl(projectId, primary.id);
-      toast.success("TLS certificate issued");
+      toast.success("TLS certificate issued successfully");
       await load();
       onUpdated?.();
     } catch (e) {
@@ -221,300 +180,210 @@ export function ProjectCustomDomainCard({
   };
 
   return (
-    <Card id="custom-domain" className="scroll-mt-24 border-border/50 bg-card/60 ring-1 ring-border/30">
-      <CardHeader className="space-y-3">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div className="space-y-1.5">
-            <CardTitle className="text-lg font-semibold">Production custom domain</CardTitle>
-            <CardDescription className="max-w-2xl text-sm leading-relaxed">
-              Serve this app on your own hostname (for example <span className="font-mono">app.example.com</span>).
-              VersionGate writes isolated nginx files and can obtain Let&apos;s Encrypt TLS. Staging hostnames are planned for a later release.
-            </CardDescription>
+    <div id="custom-domain" className="overflow-hidden rounded-xl border border-neutral-800 bg-[#0a0a0a]">
+      <div className="p-6 space-y-6">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h3 className="text-base font-semibold text-white">Production Domains</h3>
+            <p className="mt-1 text-xs text-neutral-400">
+              Serve your project on your own custom domain (e.g. <span className="font-mono text-neutral-300">api.example.com</span>).
+              VersionGate handles isolated Nginx configs and automatic Let's Encrypt TLS certificates.
+            </p>
           </div>
           {primary ? (
-            <Badge variant="outline" className="shrink-0 font-mono text-xs uppercase tracking-wide">
-              1 hostname attached
-            </Badge>
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-neutral-800 bg-neutral-900 px-2.5 py-0.5 text-xs font-medium text-neutral-300">
+              <span className="size-1.5 rounded-full bg-emerald-500" />
+              1 domain configured
+            </span>
           ) : null}
         </div>
-      </CardHeader>
-
-      <CardContent className="space-y-6">
-        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-          <StepPill step={1} label="Point DNS A record" done={dnsReady} active={!dnsReady} />
-          <StepPill step={2} label="Attach hostname" done={Boolean(primary)} active={!primary} />
-          <StepPill step={3} label="Issue TLS" done={sslIssued} active={Boolean(primary) && dnsReady && !sslIssued} />
-          <StepPill step={4} label="Deploy production" done={hasDeploy} active={Boolean(primary) && !hasDeploy} />
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-3">
-          <div className="rounded-xl border border-border/60 bg-muted/15 p-4">
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">DNS A record target</p>
-            {expectedIpv4 ? (
-              <div className="mt-2 flex flex-wrap items-center gap-2">
-                <p className="font-mono text-lg font-semibold tabular-nums text-foreground">{expectedIpv4}</p>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => copyValue(expectedIpv4, "Server IPv4")}
-                >
-                  Copy
-                </Button>
-              </div>
-            ) : (
-              <p className="mt-2 text-sm text-muted-foreground">
-                Set <span className="font-mono">SERVER_PUBLIC_IPV4</span> or use an IP in{" "}
-                <span className="font-mono">PUBLIC_DOMAIN</span> so the dashboard can show the DNS target.
-              </p>
-            )}
-            <p className="mt-2 text-xs text-muted-foreground">
-              Create an A record at your DNS provider pointing your hostname to this IPv4.
-            </p>
-          </div>
-
-          <div className="rounded-xl border border-border/60 bg-muted/15 p-4">
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Production traffic</p>
-            {hasDeploy ? (
-              <p className="mt-2 font-mono text-lg font-semibold tabular-nums text-foreground">Port {resolvedPort}</p>
-            ) : (
-              <p className="mt-2 text-sm font-medium text-amber-700 dark:text-amber-400">No ACTIVE deploy</p>
-            )}
-            <p className="mt-2 text-xs text-muted-foreground">
-              {hasDeploy
-                ? "Nginx upstream switches automatically on blue/green deploys."
-                : "The hostname returns 502/503 until the first healthy production deploy."}
-            </p>
-          </div>
-
-          <div className="rounded-xl border border-border/60 bg-muted/15 p-4">
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">TLS status</p>
-            {primary ? (
-              <div className="mt-2 flex flex-wrap items-center gap-2">
-                <Badge className={cn("font-mono text-xs", sslStatusBadgeClass(primary.sslStatus))}>
-                  {sslStatusLabel(primary.sslStatus)}
-                </Badge>
-                {primary.dnsOk ? (
-                  <span className="text-sm font-medium text-emerald-700 dark:text-emerald-400">DNS resolved</span>
-                ) : (
-                  <span className="text-sm text-muted-foreground">Waiting for DNS</span>
-                )}
-              </div>
-            ) : (
-              <p className="mt-2 text-sm text-muted-foreground">Attach a hostname to begin.</p>
-            )}
-            {primary?.lastError ? (
-              <p className="mt-2 text-xs text-red-700 dark:text-red-400" title={primary.lastError}>
-                {primary.lastError}
-              </p>
-            ) : null}
-          </div>
-        </div>
-
-        {!hasDeploy ? (
-          <Alert>
-            <AlertTitle>Deploy required for live traffic</AlertTitle>
-            <AlertDescription>
-              You can attach the domain before deploying. Visitors will see 502/503 until production has an ACTIVE
-              container. Run <strong>Deploy Production</strong> above when you are ready.
-            </AlertDescription>
-          </Alert>
-        ) : null}
-
-        {primary && !primary.dnsOk ? (
-          <Alert>
-            <AlertTitle>DNS not detected yet</AlertTitle>
-            <AlertDescription>
-              Propagation can take a few minutes. Confirm the A record points to{" "}
-              {expectedIpv4 ? <span className="font-mono">{expectedIpv4}</span> : "this server"} before running Certbot.
-              {primary.dnsA.length > 0 ? (
-                <>
-                  {" "}
-                  Currently resolving to: <span className="font-mono">{primary.dnsA.join(", ")}</span>
-                </>
-              ) : null}
-            </AlertDescription>
-          </Alert>
-        ) : null}
-
-        <Separator />
 
         {primary ? (
-          <div className="space-y-4">
-            <div className="rounded-xl border border-border/60 bg-muted/10 p-4 space-y-3">
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <h4 className="text-sm font-semibold tracking-wide text-foreground">DNS Record Configuration</h4>
-                  <p className="text-xs text-muted-foreground">
-                    Set up this record at your DNS provider (Cloudflare, Route53, GoDaddy, etc.) before running Certbot:
-                  </p>
+          <div className="space-y-6">
+            {/* Domain Item Card */}
+            <div className="rounded-lg border border-neutral-800 bg-black/50 p-5 space-y-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-base font-semibold font-mono text-white">{primary.hostname}</span>
+                    <span
+                      className={cn(
+                        "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium border",
+                        primary.dnsOk
+                          ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
+                          : "border-amber-500/30 bg-amber-500/10 text-amber-400"
+                      )}
+                    >
+                      <span className={cn("size-1.5 rounded-full", primary.dnsOk ? "bg-emerald-500" : "bg-amber-500")} />
+                      {primary.dnsOk ? "Valid Configuration" : "Invalid Configuration"}
+                    </span>
+                    <span className={cn("inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium border", sslStatusBadgeClass(primary.sslStatus))}>
+                      {sslStatusLabel(primary.sslStatus)}
+                    </span>
+                  </div>
+                  {previewUrl ? (
+                    <p className="text-xs text-neutral-400">
+                      Live URL:{" "}
+                      <a href={previewUrl} target="_blank" rel="noreferrer" className="font-mono text-emerald-400 hover:underline">
+                        {previewUrl} ↗
+                      </a>
+                    </p>
+                  ) : null}
                 </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  disabled={verifyingDns}
-                  onClick={() => void onVerifyDns()}
-                >
-                  {verifyingDns ? "Verifying DNS..." : "Verify DNS Record"}
-                </Button>
-              </div>
 
-              <div className="overflow-x-auto">
-                <table className="w-full text-left font-mono text-xs">
-                  <thead>
-                    <tr className="border-b border-border/40 text-muted-foreground">
-                      <th className="pb-2 font-medium">TYPE</th>
-                      <th className="pb-2 font-medium">NAME / HOST</th>
-                      <th className="pb-2 font-medium">TARGET / VALUE</th>
-                      <th className="pb-2 font-medium">CURRENT RESOLVED</th>
-                      <th className="pb-2 font-medium text-right">STATUS</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border/20">
-                    <tr>
-                      <td className="py-2.5 font-bold text-foreground">A</td>
-                      <td className="py-2.5 text-foreground">
-                        <div className="flex items-center gap-1.5">
-                          <span className="font-semibold">{primary.hostname}</span>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="h-6 px-1.5 text-[10px] font-mono"
-                            onClick={() => copyValue(primary.hostname, "Hostname")}
-                          >
-                            Copy
-                          </Button>
-                        </div>
-                      </td>
-                      <td className="py-2.5 text-foreground">
-                        {expectedIpv4 ? (
-                          <div className="flex items-center gap-1.5">
-                            <span className="font-semibold">{expectedIpv4}</span>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              className="h-6 px-1.5 text-[10px] font-mono"
-                              onClick={() => copyValue(expectedIpv4, "Target IPv4")}
-                            >
-                              Copy
-                            </Button>
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground">Not set</span>
-                        )}
-                      </td>
-                      <td className="py-2.5 text-foreground">
-                        {primary.dnsA.length > 0 ? (
-                          primary.dnsA.join(", ")
-                        ) : dnsResult?.records.a.length ? (
-                          dnsResult.records.a.join(", ")
-                        ) : (
-                          <span className="text-muted-foreground">None resolved</span>
-                        )}
-                      </td>
-                      <td className="py-2.5 text-right">
-                        {primary.dnsOk ? (
-                          <Badge className="border-emerald-500/40 bg-emerald-600/15 text-emerald-700 dark:text-emerald-300 font-mono text-[11px]">
-                            [ MATCH ]
-                          </Badge>
-                        ) : primary.dnsA.length > 0 ? (
-                          <Badge className="border-amber-500/40 bg-amber-500/15 text-amber-700 dark:text-amber-300 font-mono text-[11px]">
-                            [ MISMATCH ]
-                          </Badge>
-                        ) : (
-                          <Badge className="border-border/60 bg-muted/30 text-muted-foreground font-mono text-[11px]">
-                            [ PENDING ]
-                          </Badge>
-                        )}
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-
-              {dnsResult ? (
-                <div className="border-t border-border/30 pt-2 text-xs font-mono text-muted-foreground">
-                  <span className="text-foreground font-semibold">Preflight Check:</span> {dnsResult.message}
-                </div>
-              ) : null}
-            </div>
-
-            <div className="flex flex-col gap-4 rounded-xl border border-border/60 bg-background/40 p-5 sm:flex-row sm:items-center sm:justify-between">
-              <div className="min-w-0 space-y-1">
-                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Attached hostname</p>
-                <p className="truncate font-mono text-xl font-semibold text-foreground sm:text-2xl">{primary.hostname}</p>
-                {previewUrl ? (
-                  <p className="truncate text-sm text-muted-foreground">
-                    Public URL: <span className="font-mono text-foreground">{previewUrl}</span>
-                  </p>
-                ) : null}
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {previewUrl || liveUrl ? (
-                  <a
-                    href={previewUrl ?? liveUrl ?? "#"}
-                    target="_blank"
-                    rel="noreferrer"
-                    className={cn(
-                      buttonVariants({ variant: "default", size: "default" }),
-                      "bg-emerald-600 hover:bg-emerald-700 text-white"
-                    )}
+                <div className="flex flex-wrap items-center gap-2">
+                  {previewUrl || liveUrl ? (
+                    <a
+                      href={previewUrl ?? liveUrl ?? "#"}
+                      target="_blank"
+                      rel="noreferrer"
+                      className={buttonVariants({
+                        size: "sm",
+                        className: "bg-white text-black font-semibold hover:bg-neutral-200 text-xs h-8",
+                      })}
+                    >
+                      Visit
+                    </a>
+                  ) : null}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={sslRunning || !primary.dnsOk || primary.sslStatus === "issued"}
+                    onClick={() => void onSsl()}
+                    className="border-neutral-800 text-neutral-300 hover:text-white text-xs h-8"
                   >
-                    Open live app
-                  </a>
+                    {sslRunning ? "Requesting TLS..." : primary.sslStatus === "issued" ? "TLS Issued" : "Obtain SSL"}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={saving}
+                    onClick={() => void onRemove()}
+                    className="border-red-900/40 text-red-400 hover:bg-red-950/20 text-xs h-8"
+                  >
+                    Remove
+                  </Button>
+                </div>
+              </div>
+
+              {/* DNS Table */}
+              <div className="rounded-lg border border-neutral-800/80 bg-[#050505] p-4 space-y-3">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <span className="text-xs font-semibold text-neutral-300">DNS Configuration Record</span>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={verifyingDns}
+                    onClick={() => void onVerifyDns()}
+                    className="h-7 text-xs border-neutral-800 text-neutral-300 hover:text-white"
+                  >
+                    {verifyingDns ? "Verifying..." : "Verify DNS"}
+                  </Button>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left font-mono text-xs">
+                    <thead>
+                      <tr className="border-b border-neutral-800 text-[11px] text-neutral-500">
+                        <th className="pb-2 font-medium">TYPE</th>
+                        <th className="pb-2 font-medium">NAME</th>
+                        <th className="pb-2 font-medium">VALUE</th>
+                        <th className="pb-2 font-medium">RESOLVED IP</th>
+                        <th className="pb-2 font-medium text-right">STATUS</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-neutral-800/40 text-neutral-300">
+                      <tr>
+                        <td className="py-2.5 font-bold text-white">A</td>
+                        <td className="py-2.5">
+                          <span className="cursor-pointer hover:underline" onClick={() => copyValue(primary.hostname, "Hostname")}>
+                            {primary.hostname}
+                          </span>
+                        </td>
+                        <td className="py-2.5">
+                          {expectedIpv4 ? (
+                            <span className="cursor-pointer font-semibold text-white hover:underline" onClick={() => copyValue(expectedIpv4, "Target IPv4")}>
+                              {expectedIpv4}
+                            </span>
+                          ) : (
+                            <span className="text-neutral-500">Not configured</span>
+                          )}
+                        </td>
+                        <td className="py-2.5 text-neutral-400">
+                          {primary.dnsA.length > 0 ? primary.dnsA.join(", ") : "None resolved"}
+                        </td>
+                        <td className="py-2.5 text-right">
+                          {primary.dnsOk ? (
+                            <span className="inline-flex items-center gap-1 text-emerald-400 font-medium">
+                              <span className="size-1.5 rounded-full bg-emerald-500" />
+                              Valid
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-amber-400 font-medium">
+                              <span className="size-1.5 rounded-full bg-amber-500" />
+                              Pending
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                {dnsResult ? (
+                  <p className="border-t border-neutral-800 pt-2 text-[11px] font-mono text-neutral-400">
+                    DNS Status: {dnsResult.message}
+                  </p>
                 ) : null}
-                <Button
-                  type="button"
-                  variant="outline"
-                  disabled={sslRunning || !primary.dnsOk || primary.sslStatus === "issued"}
-                  onClick={() => void onSsl()}
-                >
-                  {sslRunning ? "Running Certbot…" : primary.sslStatus === "issued" ? "TLS active" : "Obtain SSL (Certbot)"}
-                </Button>
-                <Button type="button" variant="ghost" disabled={saving} onClick={() => void onRemove()}>
-                  Remove domain
-                </Button>
               </div>
             </div>
           </div>
         ) : (
           <form
-            className="space-y-4"
+            className="space-y-4 max-w-lg"
             onSubmit={(e) => {
               e.preventDefault();
               void onSave();
             }}
           >
-            <div className="space-y-2">
-              <label htmlFor="project-custom-hostname" className="text-sm font-medium text-foreground">
-                Hostname
+            <div className="space-y-1.5">
+              <label htmlFor="project-custom-hostname" className="text-xs font-medium text-neutral-300">
+                Custom Domain Name
               </label>
-              <Input
-                id="project-custom-hostname"
-                className="h-11 font-mono text-base"
-                placeholder="app.example.com"
-                value={hostnameDraft}
-                onChange={(e) => setHostnameDraft(e.target.value)}
-                disabled={loading || saving}
-                autoComplete="off"
-                spellCheck={false}
-              />
-              <p className="text-xs text-muted-foreground">
-                Use a subdomain or apex hostname. Raw IPv4 addresses are not supported. Must differ from the VersionGate
-                dashboard domain (<span className="font-mono">PUBLIC_DOMAIN</span>).
+              <div className="flex items-center gap-2">
+                <Input
+                  id="project-custom-hostname"
+                  className="h-9 font-mono text-xs bg-black border-neutral-800 text-white focus-visible:border-neutral-500"
+                  placeholder="app.example.com"
+                  value={hostnameDraft}
+                  onChange={(e) => setHostnameDraft(e.target.value)}
+                  disabled={loading || saving}
+                  autoComplete="off"
+                  spellCheck={false}
+                />
+                <Button
+                  type="submit"
+                  size="sm"
+                  disabled={saving || loading || !hostnameDraft.trim()}
+                  className="bg-white text-black font-semibold hover:bg-neutral-200 text-xs shrink-0 h-9"
+                >
+                  {saving ? "Attaching..." : "Add Domain"}
+                </Button>
+              </div>
+              <p className="text-[11px] text-neutral-500">
+                Enter your apex domain or subdomain. An A record pointing to this host's IPv4 is required.
               </p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Button type="submit" disabled={saving || loading || !hostnameDraft.trim()}>
-                {saving ? "Attaching…" : "Attach production domain"}
-              </Button>
             </div>
           </form>
         )}
-      </CardContent>
-    </Card>
+      </div>
+
+      <div className="border-t border-neutral-800 bg-black px-6 py-3 text-xs text-neutral-500">
+        SSL certificates automatically renew before expiration using Certbot.
+      </div>
+    </div>
   );
 }

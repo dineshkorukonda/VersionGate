@@ -1,20 +1,19 @@
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { isDeploymentColor } from "@/lib/deployment-display";
 
 export function SlotBadge({ color }: { color: string }) {
   const valid = isDeploymentColor(color);
+  const upper = color.toUpperCase();
   return (
-    <Badge
-      variant="outline"
+    <span
       className={cn(
-        "font-mono text-xs font-semibold uppercase",
-        color === "BLUE" && "border-border bg-muted text-foreground",
-        color === "GREEN" && "border-foreground/40 bg-foreground/10 text-foreground",
-        !valid && "border-muted-foreground/40 text-muted-foreground"
+        "inline-flex items-center rounded px-1.5 py-0.5 font-mono text-[11px] font-medium border",
+        upper === "BLUE" && "border-sky-500/30 bg-sky-500/10 text-sky-400",
+        upper === "GREEN" && "border-emerald-500/30 bg-emerald-500/10 text-emerald-400",
+        !valid && "border-neutral-800 bg-neutral-900 text-neutral-400"
       )}
     >
       {valid ? color : "—"}
-    </Badge>
+    </span>
   );
 }

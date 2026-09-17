@@ -1,15 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { DonutChart } from "@/components/charts/DonutChart";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { cancelJob, createWebSocket, getJobStatus, getServerStats, type ServerStats } from "@/lib/api";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
-import { PageHeader } from "@/components/PageHeader";
-import { toast } from "sonner";
 import { Progress } from "@/components/ui/progress";
+import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 type LineKind = "info" | "success" | "error" | "step";
 
@@ -169,22 +164,6 @@ export function DeployLog() {
   const showWorkerHint =
     jobStatus === "PENDING" && pendingSince != null && clock - pendingSince > STUCK_PENDING_MS;
 
-  const badgeVariant =
-    jobStatus === "COMPLETE"
-      ? "default"
-      : jobStatus === "FAILED" || jobStatus === "CANCELLED"
-        ? "destructive"
-        : "secondary";
-
-  const statusColor =
-    jobStatus === "COMPLETE"
-      ? "text-emerald-600"
-      : jobStatus === "FAILED" || jobStatus === "CANCELLED"
-        ? "text-red-600"
-        : jobStatus === "RUNNING"
-          ? "text-sky-700"
-          : "text-amber-700";
-
   const copyLogs = () => {
     const text = lines.join("\n");
     void navigator.clipboard.writeText(text).then(
@@ -224,118 +203,186 @@ export function DeployLog() {
     }
   };
 
-  const logLineMix = useMemo(() => {
+  const statsBreakdown = useMemo(() => {
     let step = 0;
-    let info = 0;
-    let success = 0;
     let err = 0;
+    let success = 0;
     for (const line of lines) {
       const k = classifyLine(line);
       if (k === "step") step++;
-      else if (k === "success") success++;
       else if (k === "error") err++;
-      else info++;
+      else if (k === "success") success++;
     }
-    return [
-      { name: "Steps", value: step },
-      { name: "Info", value: info },
-      { name: "Success hints", value: success },
-      { name: "Errors", value: err },
-    ];
+    return { step, err, success, total: lines.length };
   }, [lines]);
 
-  const jobTitle = jobId ? `Job #${jobId.slice(0, 8)}` : "Deploy log";
+  const statusBadge = useMemo(() => {
+    switch (jobStatus) {
+      case "COMPLETE":
+        return {
+          label: "Ready",
+          dot: "bg-emerald-500",
+          pill: "border-emerald-500/30 bg-emerald-500/10 text-emerald-400",
+        };
+      case "FAILED":
+        return {
+          label: "Failed",
+          dot: "bg-red-500",
+          pill: "border-red-500/30 bg-red-500/10 text-red-400",
+        };
+      case "CANCELLED":
+        return {
+          label: "Cancelled",
+          dot: "bg-neutral-500",
+          pill: "border-neutral-800 bg-neutral-900 text-neutral-400",
+        };
+      case "RUNNING":
+        return {
+          label: "Building",
+          dot: "bg-blue-500 animate-pulse",
+          pill: "border-blue-500/30 bg-blue-500/10 text-blue-400",
+        };
+      default:
+        return {
+          label: "Queued",
+          dot: "bg-amber-500 animate-pulse",
+          pill: "border-amber-500/30 bg-amber-500/10 text-amber-400",
+        };
+    }
+  }, [jobStatus]);
 
   return (
-    <div className="w-full space-y-6">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div className="flex flex-wrap items-start gap-3">
-          {projectId && (
-            <Link
-              to={`/projects/${projectId}`}
-              className="mt-1 inline-flex min-w-[2.25rem] items-center justify-center rounded-lg border border-border/60 bg-card px-2 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted"
-            >
-              Back
-            </Link>
-          )}
-          <PageHeader
-            title={jobTitle}
-            description="Live deployment pipeline output"
-            mono
-          />
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="flex items-center gap-1.5 border border-border bg-muted px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-            {wsConnected ? (
-              <span className="text-emerald-400 font-semibold">[ WS LIVE ]</span>
-            ) : (
-              <span className="text-amber-400 font-semibold">[ WS RECONNECTING ]</span>
+    <div className="w-full space-y-6 font-sans">
+      {/* Vercel Deploy Log Header */}
+      <div className="flex flex-col gap-4 border-b border-neutral-800 pb-6 lg:flex-row lg:items-center lg:justify-between">
+        <div className="min-w-0 space-y-1.5">
+          <div className="flex items-center gap-2 text-xs text-neutral-400">
+            {projectId && (
+              <>
+                <Link to={`/projects/${projectId}`} className="hover:text-white transition-colors">
+                  Project
+                </Link>
+                <span>/</span>
+              </>
             )}
-          </span>
-          <Badge variant={badgeVariant} className={cn("shrink-0 font-mono text-xs", statusColor)}>
-            {jobStatus}
-          </Badge>
-          <Button type="button" variant="outline" size="sm" className="gap-1.5 font-sans text-xs" onClick={downloadLogs} disabled={lines.length === 0}>
-            Export logs
+            <span className="font-mono text-neutral-300">Deployment #{jobId?.slice(0, 8)}</span>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="text-2xl font-bold tracking-tight text-white md:text-3xl">
+              Deployment #{jobId?.slice(0, 8)}
+            </h1>
+            <span
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium border",
+                statusBadge.pill
+              )}
+            >
+              <span className={cn("size-1.5 rounded-full shrink-0", statusBadge.dot)} />
+              {statusBadge.label}
+            </span>
+
+            {/* WS Live Indicator */}
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-neutral-800 bg-neutral-900 px-2.5 py-0.5 text-[11px] font-mono text-neutral-400">
+              <span
+                className={cn(
+                  "size-1.5 rounded-full shrink-0",
+                  wsConnected ? "bg-emerald-500" : "bg-amber-500 animate-pulse"
+                )}
+              />
+              {wsConnected ? "Live WebSocket" : "Polling Stream"}
+            </span>
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="border-neutral-800 bg-neutral-900/80 text-neutral-300 hover:text-white text-xs h-8"
+            onClick={copyLogs}
+            disabled={lines.length === 0}
+          >
+            {copied ? "Copied!" : "Copy Logs"}
           </Button>
+
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="border-neutral-800 bg-neutral-900/80 text-neutral-300 hover:text-white text-xs h-8"
+            onClick={downloadLogs}
+            disabled={lines.length === 0}
+          >
+            Download Log
+          </Button>
+
           {jobStatus === "PENDING" && (
             <Button
               type="button"
               variant="destructive"
               size="sm"
-              className="gap-1.5 font-sans text-xs"
+              className="text-xs h-8 bg-red-600 hover:bg-red-700 text-white"
               disabled={cancelBusy}
               onClick={() => void onCancelJob()}
             >
-              {cancelBusy ? "Cancelling…" : "Cancel job"}
+              {cancelBusy ? "Cancelling..." : "Cancel"}
+            </Button>
+          )}
+
+          {projectId && (
+            <Button
+              size="sm"
+              className="bg-white text-black font-semibold hover:bg-neutral-200 text-xs h-8"
+              onClick={() => navigate(`/projects/${projectId}`)}
+            >
+              Back to Project
             </Button>
           )}
         </div>
       </div>
 
       {showWorkerHint && (
-        <Alert className="border-amber-500/40 bg-amber-500/10 text-amber-300">
-          <AlertTitle className="text-amber-200">Queued</AlertTitle>
-          <AlertDescription className="text-amber-400/90">
-            Worker idle — run <code className="rounded bg-muted px-1 text-xs text-foreground">pm2 restart versiongate-worker</code>
-          </AlertDescription>
-        </Alert>
+        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-xs text-amber-300">
+          <p className="font-semibold text-amber-200">Worker idle / Job queued</p>
+          <p className="mt-1 text-amber-400/90">
+            Worker might be restarting. Run <code className="rounded bg-black/40 px-1 py-0.5 font-mono text-white">pm2 restart versiongate-worker</code> if build does not start immediately.
+          </p>
+        </div>
       )}
 
       {jobError && (
-        <Alert variant="destructive">
-          <AlertTitle>Job error</AlertTitle>
-          <AlertDescription className="whitespace-pre-wrap font-mono text-xs">{jobError}</AlertDescription>
-        </Alert>
+        <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-xs text-red-300">
+          <p className="font-semibold text-red-200">Deployment Error</p>
+          <pre className="mt-1 font-mono text-xs text-red-400 whitespace-pre-wrap">{jobError}</pre>
+        </div>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_min(100%,320px)]">
+      {/* Main Grid: Console & Host Metrics */}
+      <div className="grid gap-6 lg:grid-cols-[1fr_300px]">
         <div className="min-w-0 space-y-4">
-          {lines.length > 0 ? (
-            <Card className="border-border bg-card">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base">Log line mix</CardTitle>
-                <p className="text-sm text-muted-foreground">Heuristic grouping of streamed lines.</p>
-              </CardHeader>
-              <CardContent>
-                <DonutChart data={logLineMix} />
-              </CardContent>
-            </Card>
-          ) : null}
+          {/* Stream Terminal Card */}
+          <div className="overflow-hidden rounded-xl border border-neutral-800 bg-[#050505]">
+            {/* Terminal Window Bar */}
+            <div className="flex items-center justify-between border-b border-neutral-800 bg-black px-4 py-2.5">
+              <div className="flex items-center gap-2">
+                <span className="flex gap-1.5" aria-hidden>
+                  <span className="size-2.5 rounded-full bg-neutral-700" />
+                  <span className="size-2.5 rounded-full bg-neutral-700" />
+                  <span className="size-2.5 rounded-full bg-neutral-700" />
+                </span>
+                <span className="font-mono text-[11px] text-neutral-400 pl-2">
+                  build-stream · {statsBreakdown.total} lines
+                </span>
+              </div>
 
-          <Card className="overflow-hidden border-border/80 bg-card shadow-md">
-            <div className="flex items-center gap-2 border-b border-border/60 bg-muted/40 px-3 py-2">
-              <span className="flex gap-1" aria-hidden>
-                <span className="size-2.5 rounded-full bg-red-400/90" />
-                <span className="size-2.5 rounded-full bg-amber-400/90" />
-                <span className="size-2.5 rounded-full bg-emerald-400/90" />
-              </span>
-              <span className="font-mono text-[11px] text-muted-foreground">deploy-pipeline — live</span>
-              <div className="ml-auto flex flex-wrap gap-1">
+              <div className="flex items-center gap-2">
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+                  className="h-7 text-xs text-neutral-400 hover:text-white"
                   onClick={() => setShowLineNumbers(!showLineNumbers)}
                 >
                   {showLineNumbers ? "Hide #" : "Line #"}
@@ -343,7 +390,7 @@ export function DeployLog() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+                  className="h-7 text-xs text-neutral-400 hover:text-white"
                   onClick={copyLogs}
                   disabled={lines.length === 0}
                 >
@@ -351,20 +398,22 @@ export function DeployLog() {
                 </Button>
               </div>
             </div>
-            <CardContent className="relative p-0">
+
+            {/* Terminal Console */}
+            <div className="relative">
               <pre
                 ref={preRef}
                 onScroll={handleScroll}
-                className="min-h-[48vh] max-h-[min(72vh,680px)] w-full overflow-auto bg-[#0a0a0f] p-4 font-mono text-xs leading-relaxed md:p-6 md:text-sm"
+                className="min-h-[50vh] max-h-[min(72vh,700px)] w-full overflow-auto bg-[#050505] p-4 font-mono text-xs leading-relaxed md:p-6"
                 style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}
               >
                 {lines.length === 0 ? (
-                  <span className="text-zinc-500">
+                  <span className="text-neutral-500">
                     {jobStatus === "PENDING"
-                      ? "Waiting for worker to pick up this job…"
+                      ? "Waiting for worker to pick up this job..."
                       : jobStatus === "RUNNING"
-                        ? "Starting…"
-                        : "No log lines yet."}
+                        ? "Streaming logs..."
+                        : "No log lines recorded."}
                   </span>
                 ) : null}
                 {lines.map((line, i) => {
@@ -374,14 +423,14 @@ export function DeployLog() {
                       key={`${i}-${line.slice(0, 24)}`}
                       className={cn(
                         "group/line flex hover:bg-white/[0.02]",
-                        kind === "success" && "text-emerald-400",
-                        kind === "error" && "text-red-400",
-                        kind === "step" && "mt-1 font-medium text-cyan-300",
-                        kind === "info" && "text-zinc-300"
+                        kind === "success" && "text-emerald-400 font-medium",
+                        kind === "error" && "text-red-400 font-medium",
+                        kind === "step" && "mt-1.5 text-cyan-300 font-semibold",
+                        kind === "info" && "text-neutral-300"
                       )}
                     >
                       {showLineNumbers && (
-                        <span className="mr-4 inline-block w-8 select-none text-right tabular-nums text-zinc-600">
+                        <span className="mr-4 inline-block w-8 select-none text-right tabular-nums text-neutral-600">
                           {i + 1}
                         </span>
                       )}
@@ -395,96 +444,87 @@ export function DeployLog() {
                 <button
                   type="button"
                   onClick={scrollToBottom}
-                  className="absolute bottom-4 right-4 rounded-lg border border-neutral-800 bg-[#0a0a0a] px-3 py-1.5 font-sans text-xs font-semibold text-white shadow-lg backdrop-blur transition-all hover:bg-neutral-900"
+                  className="absolute bottom-4 right-4 rounded-md border border-neutral-700 bg-neutral-900 px-3 py-1.5 text-xs font-medium text-white shadow-xl hover:bg-neutral-800 transition-colors"
                 >
-                  Jump to Latest Log
+                  Jump to Latest ↓
                 </button>
               )}
-            </CardContent>
-          </Card>
-
-          {projectId && (
-            <div className="flex flex-wrap gap-4 text-sm">
-              <Link to={`/projects/${projectId}`} className="text-muted-foreground transition-colors hover:text-primary">
-                Project detail
-              </Link>
-              <Link to="/activity" className="text-muted-foreground transition-colors hover:text-primary">
-                All activity
-              </Link>
             </div>
-          )}
+
+            {/* Terminal Footer */}
+            <div className="flex items-center justify-between border-t border-neutral-800 bg-black px-4 py-2 text-xs text-neutral-500 font-mono">
+              <span>{statsBreakdown.step} steps · {statsBreakdown.err} errors</span>
+              <span>{jobStatus}</span>
+            </div>
+          </div>
         </div>
 
-        <aside className="flex min-w-0 flex-col gap-4">
-          <Card className="border-border bg-card">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm">Host resources</CardTitle>
-              <CardDescription>Live host snapshot (not per-job cgroup).</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
+        {/* Host Resources Telemetry Aside */}
+        <aside className="space-y-4">
+          <div className="overflow-hidden rounded-xl border border-neutral-800 bg-[#0a0a0a]">
+            <div className="p-5 space-y-4">
+              <div>
+                <h3 className="text-sm font-semibold text-white">Host Telemetry</h3>
+                <p className="mt-0.5 text-xs text-neutral-400">Live hardware utilization.</p>
+              </div>
+
               {hostStats ? (
-                <>
+                <div className="space-y-4">
                   <div>
-                    <p className="text-xs font-medium text-muted-foreground">CPU</p>
-                    <p className="text-2xl font-semibold tabular-nums">{hostStats.cpu_percent.toFixed(1)}%</p>
-                    <Progress value={Math.min(100, hostStats.cpu_percent)} className="mt-1 h-1.5" />
+                    <div className="flex justify-between text-xs mb-1">
+                      <span className="text-neutral-400">CPU</span>
+                      <span className="font-mono text-white font-medium">{hostStats.cpu_percent.toFixed(1)}%</span>
+                    </div>
+                    <Progress value={Math.min(100, hostStats.cpu_percent)} className="h-1 bg-neutral-800" />
                   </div>
+
                   <div>
-                    <p className="text-xs font-medium text-muted-foreground">Memory</p>
-                    <p className="text-2xl font-semibold tabular-nums">{hostStats.memory_percent.toFixed(1)}%</p>
-                    <p className="text-xs text-muted-foreground">
+                    <div className="flex justify-between text-xs mb-1">
+                      <span className="text-neutral-400">Memory</span>
+                      <span className="font-mono text-white font-medium">{hostStats.memory_percent.toFixed(1)}%</span>
+                    </div>
+                    <Progress value={Math.min(100, hostStats.memory_percent)} className="h-1 bg-neutral-800" />
+                    <p className="mt-1 text-[11px] text-neutral-500 font-mono">
                       {fmtBytes(hostStats.memory_used)} / {fmtBytes(hostStats.memory_total)}
                     </p>
-                    <Progress value={Math.min(100, hostStats.memory_percent)} className="mt-1 h-1.5" />
                   </div>
-                </>
-              ) : (
-                <p className="text-xs text-muted-foreground">Loading host metrics…</p>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card className="border-border bg-card">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm">Network</CardTitle>
-              <CardDescription>Host interface totals (approximate).</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-2 text-xs">
-              <div className="flex justify-between gap-2">
-                <span className="text-muted-foreground">Dashboard</span>
-                <span className="truncate font-mono text-[11px]">{typeof window !== "undefined" ? window.location.host : "—"}</span>
-              </div>
-              {hostStats ? (
-                <div className="flex justify-between gap-2">
-                  <span className="text-muted-foreground">Traffic Δ</span>
-                  <span className="font-mono text-[11px]">
-                    ↑{fmtBytes(hostStats.network_sent_rate ?? 0)}/s · ↓{fmtBytes(hostStats.network_recv_rate ?? 0)}/s
-                  </span>
                 </div>
-              ) : null}
-            </CardContent>
-          </Card>
+              ) : (
+                <p className="text-xs text-neutral-500">Loading host metrics...</p>
+              )}
+            </div>
 
-          {projectId ? (
-            <Card className="border-primary/25 bg-primary text-primary-foreground shadow-md">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base text-primary-foreground">Rollback</CardTitle>
-                <CardDescription className="text-primary-foreground/85">
-                  Swap traffic to the previous healthy deployment from the project page.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  className="w-full bg-white text-primary hover:bg-white/90"
-                  onClick={() => navigate(`/projects/${projectId}`)}
+            {hostStats && (
+              <div className="border-t border-neutral-800 bg-black px-5 py-3 text-xs text-neutral-400 flex justify-between">
+                <span>Network Δ</span>
+                <span className="font-mono text-neutral-300">
+                  ↑{fmtBytes(hostStats.network_sent_rate ?? 0)}/s · ↓{fmtBytes(hostStats.network_recv_rate ?? 0)}/s
+                </span>
+              </div>
+            )}
+          </div>
+
+          {projectId && (
+            <div className="overflow-hidden rounded-xl border border-neutral-800 bg-[#0a0a0a] p-5 space-y-3">
+              <h4 className="text-xs font-semibold uppercase tracking-wider text-neutral-400">Quick Navigation</h4>
+              <div className="flex flex-col gap-2 text-xs">
+                <Link
+                  to={`/projects/${projectId}`}
+                  className="text-neutral-300 hover:text-white flex items-center justify-between py-1 border-b border-neutral-800/60"
                 >
-                  Manage Details
-                </Button>
-              </CardContent>
-            </Card>
-          ) : null}
+                  <span>Project Overview</span>
+                  <span>↗</span>
+                </Link>
+                <Link
+                  to="/activity"
+                  className="text-neutral-300 hover:text-white flex items-center justify-between py-1"
+                >
+                  <span>Global Activity</span>
+                  <span>↗</span>
+                </Link>
+              </div>
+            </div>
+          )}
         </aside>
       </div>
     </div>

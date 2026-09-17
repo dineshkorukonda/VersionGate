@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 interface Props {
   projectId?: string;
@@ -28,8 +29,8 @@ const CRON_PRESETS = [
   { label: "Every 5 Min", value: "*/5 * * * *" },
   { label: "Every 15 Min", value: "*/15 * * * *" },
   { label: "Hourly", value: "0 * * * *" },
-  { label: "Daily (Midnight)", value: "0 0 * * *" },
-  { label: "Weekly (Monday)", value: "0 0 * * 1" },
+  { label: "Daily", value: "0 0 * * *" },
+  { label: "Weekly", value: "0 0 * * 1" },
 ];
 
 export function CronJobsManager({ projectId, projects = [] }: Props) {
@@ -61,7 +62,7 @@ export function CronJobsManager({ projectId, projects = [] }: Props) {
       setLoading(true);
       const res = await listCronJobs(projectId);
       setJobs(res.cronJobs || []);
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Failed to load cron jobs");
     } finally {
       setLoading(false);
@@ -103,14 +104,14 @@ export function CronJobsManager({ projectId, projects = [] }: Props) {
         projectId: selectedProjectId || projectId || undefined,
       });
 
-      toast.success(`[ OK ] Cron job "${res.cronJob.name}" scheduled`);
+      toast.success(`Cron job "${res.cronJob.name}" scheduled`);
       setModalOpen(false);
       setName("");
       setSchedule("*/15 * * * *");
       setHttpPath("/api/cron");
       setCommand("");
       void fetchJobs();
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Failed to create cron job");
     } finally {
       setSubmitting(false);
@@ -121,8 +122,8 @@ export function CronJobsManager({ projectId, projects = [] }: Props) {
     try {
       const updated = await updateCronJob(job.id, { enabled: !job.enabled });
       setJobs((prev) => prev.map((j) => (j.id === job.id ? updated.cronJob : j)));
-      toast.success(updated.cronJob.enabled ? `[ ACTIVE ] ${job.name} enabled` : `[ PAUSED ] ${job.name} paused`);
-    } catch (err: any) {
+      toast.success(updated.cronJob.enabled ? `${job.name} enabled` : `${job.name} paused`);
+    } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Failed to update cron job");
     }
   };
@@ -132,8 +133,8 @@ export function CronJobsManager({ projectId, projects = [] }: Props) {
     try {
       await deleteCronJob(job.id);
       setJobs((prev) => prev.filter((j) => j.id !== job.id));
-      toast.success(`[ DELETED ] Cron job ${job.name} removed`);
-    } catch (err: any) {
+      toast.success(`Cron job ${job.name} removed`);
+    } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Failed to delete cron job");
     }
   };
@@ -143,12 +144,12 @@ export function CronJobsManager({ projectId, projects = [] }: Props) {
     try {
       const res = await triggerCronJob(job.id);
       if (res.status === "SUCCESS") {
-        toast.success(`[ OK ] ${job.name} executed successfully in ${res.durationMs}ms`);
+        toast.success(`${job.name} executed successfully in ${res.durationMs}ms`);
       } else {
-        toast.error(`[ ${res.status} ] Execution finished with error: ${res.output}`);
+        toast.error(`Execution failed: ${res.output}`);
       }
       void fetchJobs();
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Failed to trigger cron job");
     } finally {
       setTriggeringJobId(null);
@@ -162,7 +163,7 @@ export function CronJobsManager({ projectId, projects = [] }: Props) {
     try {
       const res = await getCronJobLogs(job.id, 50);
       setLogs(res.logs || []);
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Failed to fetch logs");
     } finally {
       setLogsLoading(false);
@@ -170,188 +171,211 @@ export function CronJobsManager({ projectId, projects = [] }: Props) {
   };
 
   return (
-    <div className="space-y-4">
-      {/* Header & Specs Banner */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border border-neutral-800 bg-neutral-950 p-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <h3 className="font-mono text-xs font-semibold uppercase tracking-wider text-white">
-              Scheduled Cron Jobs & Automation
-            </h3>
-            <span className="border border-neutral-800 bg-neutral-900 px-1.5 py-0.5 font-mono text-[10px] text-neutral-400">
-              {jobs.length} TASKS
-            </span>
-          </div>
-          <p className="mt-1 font-mono text-[11px] text-neutral-400">
-            Automated recurring HTTP webhook dispatches and in-container command routines.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          {specs && (
-            <div className="hidden md:flex flex-col items-end text-right font-mono text-[10px] text-neutral-400">
-              <span className="text-emerald-400">
-                [ MAX CONCURRENT: {specs.recommendations.cron.maxConcurrentJobs} ]
-              </span>
-              <span>
-                HOST: {specs.hardware.cpuCores} CORES / {specs.hardware.totalMemoryGb} GB
+    <div className="space-y-4 font-sans">
+      {/* Vercel Container */}
+      <div className="overflow-hidden rounded-xl border border-neutral-800 bg-[#0a0a0a]">
+        <div className="p-6 border-b border-neutral-800 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <div className="flex items-center gap-2">
+              <h3 className="text-base font-semibold text-white">
+                Scheduled Tasks
+              </h3>
+              <span className="rounded-full border border-neutral-800 bg-neutral-900 px-2.5 py-0.5 text-xs font-mono text-neutral-400">
+                {jobs.length}
               </span>
             </div>
-          )}
-          <Button
-            onClick={() => setModalOpen(true)}
-            className="bg-emerald-500 font-mono text-xs font-semibold text-black hover:bg-emerald-400"
-          >
-            + New Cron Job
-          </Button>
+            <p className="mt-1 text-xs text-neutral-400">
+              Automated recurring HTTP webhook dispatches and in-container command routines.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {specs && (
+              <div className="hidden md:flex flex-col items-end text-right font-mono text-[11px] text-neutral-400">
+                <span className="text-emerald-400">
+                  Max concurrent: {specs.recommendations.cron.maxConcurrentJobs}
+                </span>
+                <span>
+                  Host: {specs.hardware.cpuCores} cores · {specs.hardware.totalMemoryGb} GB
+                </span>
+              </div>
+            )}
+            <Button
+              onClick={() => setModalOpen(true)}
+              size="sm"
+              className="bg-white text-black font-semibold hover:bg-neutral-200 text-xs h-8"
+            >
+              + New Cron Job
+            </Button>
+          </div>
+        </div>
+
+        {/* Jobs List */}
+        {loading ? (
+          <div className="p-12 text-center text-xs text-neutral-500">
+            Loading scheduled jobs...
+          </div>
+        ) : jobs.length === 0 ? (
+          <div className="p-12 text-center space-y-3">
+            <p className="text-sm font-medium text-white">No scheduled cron jobs configured</p>
+            <p className="text-xs text-neutral-400 max-w-md mx-auto">
+              Create scheduled tasks to trigger database cleanups, search indexing, report generation, or health checks.
+            </p>
+            <Button
+              onClick={() => setModalOpen(true)}
+              size="sm"
+              className="bg-white text-black font-semibold hover:bg-neutral-200 text-xs h-8"
+            >
+              Configure First Cron Job
+            </Button>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead>
+                <tr className="border-b border-neutral-800 text-neutral-500">
+                  <th className="px-6 py-3 font-medium">Name / Schedule</th>
+                  <th className="px-4 py-3 font-medium">Target</th>
+                  <th className="px-4 py-3 font-medium">Last Run / Status</th>
+                  <th className="px-4 py-3 font-medium">State</th>
+                  <th className="px-6 py-3 text-right font-medium">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-neutral-800/50">
+                {jobs.map((job) => (
+                  <tr key={job.id} className="hover:bg-neutral-900/40 transition-colors">
+                    <td className="px-6 py-3.5">
+                      <div className="font-semibold text-white">{job.name}</div>
+                      <div className="mt-1 flex items-center gap-2">
+                        <span className="rounded border border-neutral-800 bg-neutral-900 px-2 py-0.5 font-mono text-[11px] text-neutral-300">
+                          {job.schedule}
+                        </span>
+                        <span className="text-[11px] text-neutral-500">
+                          {job.timeoutSeconds}s timeout
+                        </span>
+                      </div>
+                    </td>
+
+                    <td className="px-4 py-3.5">
+                      <div className="flex items-center gap-1.5">
+                        <span
+                          className={cn(
+                            "rounded border px-1.5 py-0.5 text-[10px] font-mono uppercase",
+                            job.targetType === "HTTP"
+                              ? "border-blue-500/30 bg-blue-500/10 text-blue-400"
+                              : "border-purple-500/30 bg-purple-500/10 text-purple-400"
+                          )}
+                        >
+                          {job.targetType}
+                        </span>
+                        {job.targetType === "HTTP" ? (
+                          <span className="text-neutral-300 font-mono text-xs">
+                            {job.httpMethod} <span className="text-neutral-400">{job.httpPath}</span>
+                          </span>
+                        ) : (
+                          <code className="text-neutral-300 font-mono text-xs">{job.command}</code>
+                        )}
+                      </div>
+                    </td>
+
+                    <td className="px-4 py-3.5">
+                      {job.lastStatus ? (
+                        <div>
+                          <span
+                            className={cn(
+                              "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-medium border",
+                              job.lastStatus === "SUCCESS"
+                                ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
+                                : job.lastStatus === "RUNNING"
+                                  ? "border-amber-500/30 bg-amber-500/10 text-amber-400"
+                                  : "border-red-500/30 bg-red-500/10 text-red-400"
+                            )}
+                          >
+                            <span
+                              className={cn(
+                                "size-1.5 rounded-full shrink-0",
+                                job.lastStatus === "SUCCESS"
+                                  ? "bg-emerald-500"
+                                  : job.lastStatus === "RUNNING"
+                                    ? "bg-amber-500 animate-pulse"
+                                    : "bg-red-500"
+                              )}
+                            />
+                            {job.lastStatus}
+                          </span>
+                          <div className="mt-1 text-[11px] text-neutral-500 font-mono">
+                            {job.lastRunAt ? new Date(job.lastRunAt).toLocaleTimeString() : "Never"}
+                            {job.lastDurationMs != null && ` (${job.lastDurationMs}ms)`}
+                          </div>
+                        </div>
+                      ) : (
+                        <span className="text-neutral-500 text-xs">Pending initial run</span>
+                      )}
+                    </td>
+
+                    <td className="px-4 py-3.5">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleToggle(job)}
+                        className={cn(
+                          "h-7 text-xs",
+                          job.enabled
+                            ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20"
+                            : "border-neutral-800 text-neutral-400 hover:text-white"
+                        )}
+                      >
+                        {job.enabled ? "Active" : "Paused"}
+                      </Button>
+                    </td>
+
+                    <td className="px-6 py-3.5 text-right">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={triggeringJobId === job.id}
+                          onClick={() => handleRunNow(job)}
+                          className="h-7 text-xs border-neutral-800 text-neutral-300 hover:text-white"
+                        >
+                          {triggeringJobId === job.id ? "Running..." : "Run Now"}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => openLogs(job)}
+                          className="h-7 text-xs border-neutral-800 text-neutral-300 hover:text-white"
+                        >
+                          Logs
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleDelete(job)}
+                          className="h-7 text-xs border-red-900/40 text-red-400 hover:bg-red-950/20"
+                        >
+                          Delete
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        <div className="border-t border-neutral-800 bg-black px-6 py-3 text-xs text-neutral-500">
+          Cron runners execute in dedicated isolated worker threads.
         </div>
       </div>
 
-      {/* Jobs List */}
-      {loading ? (
-        <div className="border border-neutral-800 bg-neutral-950/60 p-8 text-center font-mono text-xs text-neutral-500">
-          Loading scheduled jobs...
-        </div>
-      ) : jobs.length === 0 ? (
-        <div className="border border-dashed border-neutral-800 bg-neutral-950/40 p-8 text-center">
-          <p className="font-mono text-xs text-neutral-400">No scheduled cron jobs configured.</p>
-          <p className="mt-1 font-mono text-[11px] text-neutral-600">
-            Create scheduled tasks to trigger database cleanups, search indexing, report generation, or health checks.
-          </p>
-          <Button
-            onClick={() => setModalOpen(true)}
-            variant="outline"
-            className="mt-4 border-neutral-800 font-mono text-xs text-neutral-300 hover:text-white"
-          >
-            Configure First Cron Job
-          </Button>
-        </div>
-      ) : (
-        <div className="border border-neutral-800 bg-neutral-950">
-          <table className="w-full text-left font-mono text-xs">
-            <thead>
-              <tr className="border-b border-neutral-800 bg-neutral-900/50 text-[11px] uppercase tracking-wider text-neutral-400">
-                <th className="px-4 py-2.5">Name / Schedule</th>
-                <th className="px-4 py-2.5">Target</th>
-                <th className="px-4 py-2.5">Status / Last Run</th>
-                <th className="px-4 py-2.5">State</th>
-                <th className="px-4 py-2.5 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-neutral-800/60">
-              {jobs.map((job) => (
-                <tr key={job.id} className="hover:bg-neutral-900/30 transition-colors">
-                  <td className="px-4 py-3">
-                    <div className="font-medium text-white">{job.name}</div>
-                    <div className="mt-0.5 flex items-center gap-2">
-                      <span className="rounded bg-neutral-900 px-1.5 py-0.5 font-mono text-[11px] text-emerald-400 border border-neutral-800">
-                        {job.schedule}
-                      </span>
-                      <span className="text-[10px] text-neutral-500">
-                        Timeout: {job.timeoutSeconds}s
-                      </span>
-                    </div>
-                  </td>
-
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-1.5">
-                      <span
-                        className={`border px-1.5 py-0.5 text-[10px] font-semibold ${
-                          job.targetType === "HTTP"
-                            ? "border-blue-900/80 bg-blue-950/40 text-blue-400"
-                            : "border-purple-900/80 bg-purple-950/40 text-purple-400"
-                        }`}
-                      >
-                        [ {job.targetType} ]
-                      </span>
-                      {job.targetType === "HTTP" ? (
-                        <span className="text-neutral-300">
-                          {job.httpMethod} <code className="text-neutral-400">{job.httpPath}</code>
-                        </span>
-                      ) : (
-                        <code className="text-neutral-300 text-[11px]">{job.command}</code>
-                      )}
-                    </div>
-                  </td>
-
-                  <td className="px-4 py-3">
-                    {job.lastStatus ? (
-                      <div>
-                        <span
-                          className={`inline-block border px-1.5 py-0.5 text-[10px] font-semibold ${
-                            job.lastStatus === "SUCCESS"
-                              ? "border-emerald-900/80 bg-emerald-950/40 text-emerald-400"
-                              : job.lastStatus === "RUNNING"
-                              ? "border-amber-900/80 bg-amber-950/40 text-amber-400 animate-pulse"
-                              : "border-red-900/80 bg-red-950/40 text-red-400"
-                          }`}
-                        >
-                          [ {job.lastStatus} ]
-                        </span>
-                        <div className="mt-0.5 text-[10px] text-neutral-500">
-                          {job.lastRunAt ? new Date(job.lastRunAt).toLocaleTimeString() : "Never"}
-                          {job.lastDurationMs != null && ` (${job.lastDurationMs}ms)`}
-                        </div>
-                      </div>
-                    ) : (
-                      <span className="text-neutral-600 text-[11px]">[ PENDING FIRST RUN ]</span>
-                    )}
-                  </td>
-
-                  <td className="px-4 py-3">
-                    <button
-                      onClick={() => handleToggle(job)}
-                      className={`border px-2 py-0.5 text-[10px] font-semibold transition-colors ${
-                        job.enabled
-                          ? "border-emerald-800 bg-emerald-950/40 text-emerald-400 hover:bg-emerald-900/40"
-                          : "border-neutral-800 bg-neutral-900 text-neutral-500 hover:text-white"
-                      }`}
-                    >
-                      {job.enabled ? "[ ACTIVE ]" : "[ PAUSED ]"}
-                    </button>
-                  </td>
-
-                  <td className="px-4 py-3 text-right">
-                    <div className="flex items-center justify-end gap-1.5">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        disabled={triggeringJobId === job.id}
-                        onClick={() => handleRunNow(job)}
-                        className="h-7 border-neutral-800 font-mono text-[11px] text-neutral-300 hover:border-neutral-700 hover:text-white"
-                      >
-                        {triggeringJobId === job.id ? "Running..." : "Run Now"}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => openLogs(job)}
-                        className="h-7 border-neutral-800 font-mono text-[11px] text-neutral-400 hover:border-neutral-700 hover:text-white"
-                      >
-                        Logs
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleDelete(job)}
-                        className="h-7 border-neutral-800 font-mono text-[11px] text-red-400 hover:border-red-800 hover:bg-red-950/20"
-                      >
-                        Delete
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
       {/* Create Cron Job Modal */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="max-w-md border-neutral-800 bg-neutral-950 text-white font-mono">
+        <DialogContent className="max-w-md border-neutral-800 bg-[#0a0a0a] text-white">
           <DialogHeader>
-            <DialogTitle className="font-mono text-sm uppercase tracking-wider text-emerald-400">
+            <DialogTitle className="text-base font-semibold text-white">
               Schedule Cron Job
             </DialogTitle>
             <DialogDescription className="text-xs text-neutral-400">
@@ -360,32 +384,33 @@ export function CronJobsManager({ projectId, projects = [] }: Props) {
           </DialogHeader>
 
           <form onSubmit={handleCreate} className="space-y-4 pt-2 text-xs">
-            {/* Name */}
             <div className="space-y-1.5">
-              <label htmlFor="cron-name" className="text-neutral-300">Job Identifier</label>
+              <label htmlFor="cron-name" className="text-xs font-medium text-neutral-300">
+                Task Identifier
+              </label>
               <Input
                 id="cron-name"
                 placeholder="e.g. daily-db-cleanup or cache-warmup"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="border-neutral-800 bg-neutral-900 text-xs text-white placeholder:text-neutral-600 focus-visible:ring-emerald-500"
+                className="bg-black border-neutral-800 text-xs text-white"
               />
             </div>
 
-            {/* Schedule Presets */}
             <div className="space-y-1.5">
-              <label className="text-neutral-300">Schedule Preset</label>
+              <label className="text-xs font-medium text-neutral-300">Schedule Preset</label>
               <div className="grid grid-cols-3 gap-1.5">
                 {CRON_PRESETS.map((preset) => (
                   <button
                     key={preset.value}
                     type="button"
                     onClick={() => setSchedule(preset.value)}
-                    className={`border px-2 py-1.5 text-center text-[10px] uppercase transition-colors ${
+                    className={cn(
+                      "rounded-md border py-1.5 text-center text-xs transition-colors",
                       schedule === preset.value
-                        ? "border-emerald-500 bg-emerald-950/40 text-emerald-400 font-semibold"
-                        : "border-neutral-800 bg-neutral-900/60 text-neutral-400 hover:border-neutral-700 hover:text-white"
-                    }`}
+                        ? "border-white bg-neutral-900 text-white font-medium"
+                        : "border-neutral-800 bg-black text-neutral-400 hover:text-white"
+                    )}
                   >
                     {preset.label}
                   </button>
@@ -393,60 +418,63 @@ export function CronJobsManager({ projectId, projects = [] }: Props) {
               </div>
             </div>
 
-            {/* Cron Expression */}
             <div className="space-y-1.5">
-              <label htmlFor="cron-schedule" className="text-neutral-300">5-Part Cron Expression</label>
+              <label htmlFor="cron-schedule" className="text-xs font-medium text-neutral-300">
+                Cron Expression
+              </label>
               <Input
                 id="cron-schedule"
                 value={schedule}
                 onChange={(e) => setSchedule(e.target.value)}
                 placeholder="*/15 * * * *"
-                className="border-neutral-800 bg-neutral-900 text-xs text-emerald-400 placeholder:text-neutral-600 focus-visible:ring-emerald-500"
+                className="bg-black border-neutral-800 font-mono text-xs text-emerald-400"
               />
-              <p className="text-[10px] text-neutral-500">
-                Format: <code>minute hour day-of-month month day-of-week</code>
+              <p className="text-[11px] text-neutral-500">
+                Standard 5-part cron syntax (<code className="text-neutral-400">min hour day month weekday</code>)
               </p>
             </div>
 
-            {/* Target Type */}
             <div className="space-y-1.5">
-              <label className="text-neutral-300">Target Type</label>
+              <label className="text-xs font-medium text-neutral-300">Target Type</label>
               <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
                   onClick={() => setTargetType("HTTP")}
-                  className={`border px-3 py-2 text-center text-xs uppercase transition-colors ${
+                  className={cn(
+                    "rounded-md border py-2 text-center text-xs font-medium transition-colors",
                     targetType === "HTTP"
-                      ? "border-blue-500 bg-blue-950/40 text-blue-400 font-semibold"
-                      : "border-neutral-800 bg-neutral-900/60 text-neutral-400 hover:border-neutral-700 hover:text-white"
-                  }`}
+                      ? "border-white bg-neutral-900 text-white"
+                      : "border-neutral-800 bg-black text-neutral-400 hover:text-white"
+                  )}
                 >
                   HTTP Webhook
                 </button>
                 <button
                   type="button"
                   onClick={() => setTargetType("COMMAND")}
-                  className={`border px-3 py-2 text-center text-xs uppercase transition-colors ${
+                  className={cn(
+                    "rounded-md border py-2 text-center text-xs font-medium transition-colors",
                     targetType === "COMMAND"
-                      ? "border-purple-500 bg-purple-950/40 text-purple-400 font-semibold"
-                      : "border-neutral-800 bg-neutral-900/60 text-neutral-400 hover:border-neutral-700 hover:text-white"
-                  }`}
+                      ? "border-white bg-neutral-900 text-white"
+                      : "border-neutral-800 bg-black text-neutral-400 hover:text-white"
+                  )}
                 >
                   Shell Command
                 </button>
               </div>
             </div>
 
-            {/* HTTP Fields */}
             {targetType === "HTTP" ? (
               <div className="grid grid-cols-4 gap-2">
                 <div className="col-span-1 space-y-1.5">
-                  <label htmlFor="cron-method" className="text-neutral-300">Method</label>
+                  <label htmlFor="cron-method" className="text-xs font-medium text-neutral-300">
+                    Method
+                  </label>
                   <select
                     id="cron-method"
                     value={httpMethod}
-                    onChange={(e) => setHttpMethod(e.target.value as any)}
-                    className="w-full border border-neutral-800 bg-neutral-900 px-2 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                    onChange={(e) => setHttpMethod(e.target.value as "GET" | "POST" | "PUT")}
+                    className="w-full rounded-md border border-neutral-800 bg-black px-2 py-2 text-xs text-white outline-none"
                   >
                     <option value="GET">GET</option>
                     <option value="POST">POST</option>
@@ -454,76 +482,84 @@ export function CronJobsManager({ projectId, projects = [] }: Props) {
                   </select>
                 </div>
                 <div className="col-span-3 space-y-1.5">
-                  <label htmlFor="cron-path" className="text-neutral-300">Endpoint Path / URL</label>
+                  <label htmlFor="cron-path" className="text-xs font-medium text-neutral-300">
+                    Endpoint Path
+                  </label>
                   <Input
                     id="cron-path"
                     value={httpPath}
                     onChange={(e) => setHttpPath(e.target.value)}
-                    placeholder="/api/cron/cleanup"
-                    className="border-neutral-800 bg-neutral-900 text-xs text-white placeholder:text-neutral-600 focus-visible:ring-emerald-500"
+                    placeholder="/api/cron"
+                    className="bg-black border-neutral-800 font-mono text-xs text-white"
                   />
                 </div>
               </div>
             ) : (
               <div className="space-y-1.5">
-                <label htmlFor="cron-cmd" className="text-neutral-300">Command (Inside Container/Host)</label>
+                <label htmlFor="cron-cmd" className="text-xs font-medium text-neutral-300">
+                  Shell Command
+                </label>
                 <Input
                   id="cron-cmd"
                   value={command}
                   onChange={(e) => setCommand(e.target.value)}
-                  placeholder="bun run cleanup.ts or npm run sync"
-                  className="border-neutral-800 bg-neutral-900 text-xs text-white placeholder:text-neutral-600 focus-visible:ring-emerald-500"
+                  placeholder="bun run cleanup.ts or python -m scripts.sync"
+                  className="bg-black border-neutral-800 font-mono text-xs text-white"
                 />
               </div>
             )}
 
-            {/* Scope / Project */}
-            {!projectId && projects.length > 0 && (
+            {projects.length > 0 && !projectId && (
               <div className="space-y-1.5">
-                <label htmlFor="cron-project" className="text-neutral-300">Linked Project</label>
+                <label htmlFor="cron-proj" className="text-xs font-medium text-neutral-300">
+                  Target Project
+                </label>
                 <select
-                  id="cron-project"
+                  id="cron-proj"
                   value={selectedProjectId}
                   onChange={(e) => setSelectedProjectId(e.target.value)}
-                  className="w-full border border-neutral-800 bg-neutral-900 px-3 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                  className="w-full rounded-md border border-neutral-800 bg-black px-3 py-2 text-xs text-white outline-none"
                 >
-                  <option value="">Global / Host System Cron</option>
+                  <option value="">Global / Host-Level</option>
                   {projects.map((p) => (
                     <option key={p.id} value={p.id}>
-                      {p.name} ({p.deploymentType === "pm2" ? "PM2" : "Docker"})
+                      {p.name}
                     </option>
                   ))}
                 </select>
               </div>
             )}
 
-            {/* Timeout */}
             <div className="space-y-1.5">
-              <label htmlFor="cron-timeout" className="text-neutral-300">Timeout Seconds</label>
+              <label htmlFor="cron-timeout" className="text-xs font-medium text-neutral-300">
+                Execution Timeout (Seconds)
+              </label>
               <Input
                 id="cron-timeout"
                 type="number"
-                min={5}
-                max={600}
+                min="5"
+                max="3600"
                 value={timeoutSeconds}
-                onChange={(e) => setTimeoutSeconds(parseInt(e.target.value, 10) || 60)}
-                className="border-neutral-800 bg-neutral-900 text-xs text-white placeholder:text-neutral-600 focus-visible:ring-emerald-500"
+                onChange={(e) => setTimeoutSeconds(Number(e.target.value))}
+                className="bg-black border-neutral-800 text-xs text-white"
               />
             </div>
 
-            <DialogFooter className="pt-2">
+            <DialogFooter className="pt-4 border-t border-neutral-800">
               <Button
                 type="button"
                 variant="outline"
+                size="sm"
                 onClick={() => setModalOpen(false)}
-                className="border-neutral-800 text-neutral-400 hover:text-white"
+                className="border-neutral-800 bg-neutral-900/80 text-neutral-300 hover:text-white text-xs h-8"
               >
                 Cancel
               </Button>
               <Button
                 type="submit"
+                size="sm"
                 disabled={submitting}
-                className="bg-emerald-500 font-semibold text-black hover:bg-emerald-400"
+                className="bg-white text-black font-semibold hover:bg-neutral-200 text-xs h-8"
               >
                 {submitting ? "Scheduling..." : "Create Schedule"}
               </Button>
@@ -532,50 +568,56 @@ export function CronJobsManager({ projectId, projects = [] }: Props) {
         </DialogContent>
       </Dialog>
 
-      {/* Logs Drawer */}
+      {/* Logs Modal */}
       <Dialog open={logsModalOpen} onOpenChange={setLogsModalOpen}>
-        <DialogContent className="max-w-2xl border-neutral-800 bg-neutral-950 text-white font-mono">
-          <DialogHeader>
-            <DialogTitle className="font-mono text-sm uppercase tracking-wider text-emerald-400">
-              Execution Logs // {activeJobForLogs?.name}
+        <DialogContent className="max-w-3xl border-neutral-800 bg-[#050505] text-white">
+          <DialogHeader className="border-b border-neutral-800 pb-3">
+            <DialogTitle className="text-base font-semibold text-white">
+              Cron Execution History: {activeJobForLogs?.name}
             </DialogTitle>
             <DialogDescription className="text-xs text-neutral-400">
-              Schedule: <code className="text-neutral-300">{activeJobForLogs?.schedule}</code> | Target:{" "}
-              <code className="text-neutral-300">{activeJobForLogs?.targetType}</code>
+              Last 50 automated executions and runtime output streams.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="max-h-[60vh] overflow-y-auto space-y-2 pt-2">
+          <div className="max-h-[60vh] overflow-auto py-2 space-y-2">
             {logsLoading ? (
-              <div className="p-4 text-center text-xs text-neutral-500">Loading execution history...</div>
+              <div className="p-8 text-center text-xs text-neutral-500 font-mono">
+                Loading execution logs...
+              </div>
             ) : logs.length === 0 ? (
-              <div className="p-6 text-center text-xs text-neutral-500 border border-neutral-900">
-                No recorded execution runs yet.
+              <div className="p-8 text-center text-xs text-neutral-500 font-mono">
+                No execution history recorded yet.
               </div>
             ) : (
               logs.map((log) => (
-                <div key={log.id} className="border border-neutral-800/80 bg-neutral-900/40 p-3 text-xs">
+                <div
+                  key={log.id}
+                  className="rounded-lg border border-neutral-800 bg-black/60 p-3 text-xs space-y-1"
+                >
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
+                    <span
+                      className={cn(
+                        "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-medium border",
+                        log.status === "SUCCESS"
+                          ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
+                          : "border-red-500/30 bg-red-500/10 text-red-400"
+                      )}
+                    >
                       <span
-                        className={`border px-1.5 py-0.2 text-[10px] font-semibold ${
-                          log.status === "SUCCESS"
-                            ? "border-emerald-800 bg-emerald-950/40 text-emerald-400"
-                            : "border-red-800 bg-red-950/40 text-red-400"
-                        }`}
-                      >
-                        [ {log.status} ]
-                      </span>
-                      <span className="text-[10px] text-neutral-500">
-                        {new Date(log.createdAt).toLocaleString()}
-                      </span>
-                    </div>
-                    <div className="text-[10px] text-neutral-400">
-                      Duration: <span className="text-white">{log.durationMs}ms</span> ({log.triggeredBy})
-                    </div>
+                        className={cn(
+                          "size-1.5 rounded-full shrink-0",
+                          log.status === "SUCCESS" ? "bg-emerald-500" : "bg-red-500"
+                        )}
+                      />
+                      {log.status}
+                    </span>
+                    <span className="font-mono text-[11px] text-neutral-500">
+                      {new Date(log.createdAt).toLocaleString()} ({log.durationMs}ms)
+                    </span>
                   </div>
                   {log.output && (
-                    <pre className="mt-2 overflow-x-auto rounded bg-black/60 p-2 text-[11px] text-neutral-300 font-mono">
+                    <pre className="mt-2 max-h-40 overflow-auto rounded border border-neutral-800/80 bg-[#030303] p-2 font-mono text-[11px] text-neutral-300 whitespace-pre-wrap">
                       {log.output}
                     </pre>
                   )}
@@ -583,16 +625,6 @@ export function CronJobsManager({ projectId, projects = [] }: Props) {
               ))
             )}
           </div>
-
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setLogsModalOpen(false)}
-              className="border-neutral-800 text-neutral-400 hover:text-white text-xs"
-            >
-              Close
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

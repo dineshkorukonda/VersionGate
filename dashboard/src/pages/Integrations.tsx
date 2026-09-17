@@ -1,10 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
-import { PageHeader } from "@/components/PageHeader";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   ApiError,
@@ -16,22 +12,18 @@ import {
   type GithubInstallationSummary,
   type GithubDiagnosticsResponse,
 } from "@/lib/api";
-import { Separator } from "@/components/ui/separator";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ConfirmDialog } from "@/components/modals/ConfirmDialog";
 
 const MANAGE_APP_HREF = "https://github.com/apps/VersionGate-App/installations";
 const INSTALL_HREF = "/api/auth/github/install";
-/** Central relay — GitHub App "Callback URL" (fixed for all self-hosted instances). */
 const GITHUB_APP_RELAY_CALLBACK = "https://versiongate.tech/api/github/callback";
 
 export function Integrations() {
   const [searchParams, setSearchParams] = useSearchParams();
 
-  /** Until first `/api/github/installation` response — avoid flashing Connect vs Connected. */
   const [gateReady, setGateReady] = useState(false);
   const [primaryInstallation, setPrimaryInstallation] = useState<GithubInstallationSummary | null>(null);
   const [installationsList, setInstallationsList] = useState<GithubInstallationSummary[]>([]);
@@ -53,9 +45,9 @@ export function Integrations() {
       const res = await testGithubConnection(installationId ?? primaryInstallation?.installationId);
       setDiagnostics(res);
       if (res.healthy) {
-        toast.success("[ OK ] All GitHub integration checkpoints passed.");
+        toast.success("All GitHub integration checkpoints passed.");
       } else {
-        toast.error("[ ATTENTION ] One or more integration checkpoints reported issues.");
+        toast.error("One or more integration checkpoints reported issues.");
       }
     } catch (err) {
       const msg = err instanceof ApiError ? err.message : "Failed to run diagnostics probe.";
@@ -108,7 +100,6 @@ export function Integrations() {
     };
   }, []);
 
-  /** Optional avatar when GitHub App credentials exist on the server (does not affect connected/disconnected). */
   useEffect(() => {
     if (!primaryInstallation) {
       setAvatarUrl(null);
@@ -148,7 +139,7 @@ export function Integrations() {
       bad_installation: { type: "error", text: "Could not read installation details from GitHub." },
       bad_state: {
         type: "error",
-        text: "Install state does not match this instance — check PUBLIC_URL and GITHUB_STATE_SECRET match the relay.",
+        text: "Install state does not match this instance — check PUBLIC_URL and GITHUB_STATE_SECRET.",
       },
     };
     const m = messages[githubQuery];
@@ -189,7 +180,7 @@ export function Integrations() {
     const label = targetId ? `installation #${targetId}` : "all connected GitHub installations";
     try {
       await deleteGithubInstallation(targetId);
-      toast.success(`[ OK ] Disconnected ${label}`);
+      toast.success(`Disconnected ${label}`);
       setDisconnectTarget(null);
       await fetchStatus();
     } catch (err) {
@@ -202,188 +193,198 @@ export function Integrations() {
   const connected = primaryInstallation !== null;
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-8">
-      <PageHeader
-        title="Integrations"
-        description="Connect external services for project setup and automation"
-        mono
-      />
-
-      <Alert className="border-border bg-muted">
-        <AlertTitle className="font-mono text-xs uppercase tracking-wider">Primary Integration Mode — Central Cloud Relay</AlertTitle>
-        <AlertDescription className="space-y-2 text-muted-foreground [&_p]:text-sm">
-          <p>
-            VersionGate uses zero-config <strong className="text-foreground">Central Cloud Relay Mode</strong> via{" "}
-            <code className="font-mono text-xs text-foreground">versiongate.tech</code>. You do <strong className="text-foreground">not</strong> need to create a custom GitHub App.
+    <div className="mx-auto flex w-full max-w-4xl flex-col gap-8 pb-16 font-sans">
+      {/* Vercel Header Bar */}
+      <div className="flex flex-col gap-4 border-b border-neutral-800 pb-6 lg:flex-row lg:items-center lg:justify-between">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2 text-xs text-neutral-400">
+            <span>Workspace</span>
+            <span>/</span>
+            <span className="text-neutral-200">Integrations</span>
+          </div>
+          <h1 className="text-2xl font-bold tracking-tight text-white md:text-3xl">
+            Integrations & Git
+          </h1>
+          <p className="text-xs text-neutral-400">
+            Connect external Git providers and cloud relay webhooks for automated deployments.
           </p>
-          <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Relay Webhook URL (fixed)</p>
-          <code className="block max-w-full overflow-x-auto break-all border border-border bg-background px-2 py-1.5 font-mono text-xs text-foreground">
-            {webhookUrlHint}
-          </code>
-          <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Relay Callback URL (fixed)</p>
-          <code className="block max-w-full overflow-x-auto break-all border border-border bg-background px-2 py-1.5 font-mono text-xs text-foreground">
-            {GITHUB_APP_RELAY_CALLBACK}
-          </code>
-        </AlertDescription>
-      </Alert>
+        </div>
 
-      {/* Main GitHub Integration Card (Central Relay Mode) */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-start justify-between gap-4">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <CardTitle className="text-lg">
-                  GitHub Integration
-                </CardTitle>
-                <Badge variant="outline" className="font-sans text-[10px] uppercase tracking-wider">
-                  Primary // Relay
-                </Badge>
-              </div>
-              <CardDescription>
-                Install the official VersionGate GitHub App to connect your repositories and enable automated git push deploys.
-              </CardDescription>
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={checking}
+            onClick={() => void fetchStatus()}
+            className="border-neutral-800 bg-neutral-900/80 text-neutral-300 hover:text-white text-xs h-8"
+          >
+            {checking ? "Checking..." : "Refresh Status"}
+          </Button>
+        </div>
+      </div>
+
+      {/* Central Cloud Relay Notice Card */}
+      <div className="overflow-hidden rounded-xl border border-neutral-800 bg-[#0a0a0a]">
+        <div className="p-6 space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-base font-semibold text-white">Central Cloud Relay Mode</h3>
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-neutral-800 bg-neutral-900 px-2.5 py-0.5 text-xs text-neutral-300">
+              <span className="size-1.5 rounded-full bg-emerald-500" />
+              Standard Zero-Config
+            </span>
+          </div>
+          <p className="text-xs text-neutral-400 leading-relaxed">
+            VersionGate leverages the central cloud relay at <code className="text-white font-mono">versiongate.tech</code> so you don't have to manually configure a dedicated GitHub App or public TLS webhook listener.
+          </p>
+
+          <div className="grid gap-3 sm:grid-cols-2 pt-2">
+            <div className="rounded-lg border border-neutral-800 bg-black/60 p-3 space-y-1">
+              <span className="text-[10px] font-mono uppercase tracking-wider text-neutral-500">
+                Relay Webhook URL
+              </span>
+              <p className="font-mono text-xs text-neutral-300 truncate">{webhookUrlHint}</p>
+            </div>
+            <div className="rounded-lg border border-neutral-800 bg-black/60 p-3 space-y-1">
+              <span className="text-[10px] font-mono uppercase tracking-wider text-neutral-500">
+                Relay Callback URL
+              </span>
+              <p className="font-mono text-xs text-neutral-300 truncate">{GITHUB_APP_RELAY_CALLBACK}</p>
             </div>
           </div>
-        </CardHeader>
-        <CardContent className="space-y-6">
+        </div>
+
+        <div className="border-t border-neutral-800 bg-black px-6 py-3 text-xs text-neutral-500">
+          Relay communication is cryptographically verified via mutual HMAC state secrets.
+        </div>
+      </div>
+
+      {/* Main GitHub Connection Card */}
+      <div className="overflow-hidden rounded-xl border border-neutral-800 bg-[#0a0a0a]">
+        <div className="p-6 space-y-6">
+          <div>
+            <h3 className="text-base font-semibold text-white">GitHub Integration</h3>
+            <p className="mt-1 text-xs text-neutral-400">
+              Authorize VersionGate to read your repositories and register blue-green build triggers.
+            </p>
+          </div>
+
           {!gateReady ? (
-            <div className="space-y-4" aria-busy="true" aria-label="Loading GitHub integration">
-              <div className="flex items-center gap-4">
-                <Skeleton className="size-14 shrink-0 rounded-full" />
-                <div className="grid min-w-0 flex-1 gap-2">
-                  <Skeleton className="h-5 w-48 max-w-full" />
-                  <Skeleton className="h-4 w-72 max-w-full" />
-                  <Skeleton className="h-4 w-40 max-w-full" />
-                </div>
-              </div>
-              <Skeleton className="h-9 w-full max-w-xs rounded-lg" />
+            <div className="rounded-lg border border-neutral-800 bg-black/40 p-8 text-center text-xs text-neutral-500">
+              Loading GitHub integration status...
             </div>
           ) : gateError ? (
-            <div className="rounded-lg border border-destructive/25 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+            <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-4 text-xs text-red-400">
               {gateError}
             </div>
           ) : connected && primaryInstallation ? (
-            <>
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                <div className="flex items-start gap-4">
-                  <Avatar size="lg" className="size-14 border border-border">
+            <div className="space-y-6">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-4">
+                  <Avatar className="size-14 border border-neutral-800">
                     {avatarUrl ? <AvatarImage src={avatarUrl} alt="" /> : null}
-                    <AvatarFallback className="bg-muted text-lg font-semibold">
+                    <AvatarFallback className="bg-neutral-900 text-lg font-semibold text-white">
                       {primaryInstallation.githubAccountLogin.slice(0, 2).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
-                  <div className="min-w-0 space-y-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <p className="truncate font-mono text-base font-semibold text-foreground">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-white text-base">
                         {primaryInstallation.githubAccountLogin}
-                      </p>
-                      <Badge className="font-normal">Connected</Badge>
-                      <Badge variant="outline" className="font-normal capitalize">
+                      </span>
+                      <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-medium text-emerald-400">
+                        <span className="size-1.5 rounded-full bg-emerald-500" />
+                        Connected
+                      </span>
+                      <span className="rounded border border-neutral-800 bg-neutral-900 px-2 py-0.5 font-mono text-[10px] uppercase text-neutral-400">
                         {primaryInstallation.githubAccountType}
-                      </Badge>
+                      </span>
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      Installation ID <span className="font-mono">{primaryInstallation.installationId}</span>
+                    <p className="text-xs text-neutral-400 font-mono">
+                      Installation ID: {primaryInstallation.installationId}
                     </p>
-                    {installationsList.length > 1 ? (
-                      <p className="text-xs text-muted-foreground">
-                        + {installationsList.length - 1} other installation
-                        {installationsList.length > 2 ? "s" : ""} linked to your account
-                      </p>
-                    ) : null}
                   </div>
                 </div>
-                <div className="flex shrink-0 flex-wrap gap-2">
+
+                <div className="flex flex-wrap items-center gap-2">
                   <a
                     href={MANAGE_APP_HREF}
                     target="_blank"
                     rel="noreferrer"
-                    className={cn(buttonVariants({ variant: "outline", size: "sm" }), "inline-flex gap-1.5 font-sans text-xs")}
+                    className="inline-flex items-center justify-center rounded-md border border-neutral-800 bg-neutral-900/80 px-3 py-1.5 text-xs text-neutral-300 hover:text-white transition-colors"
                   >
-                    Manage on GitHub
+                    Manage on GitHub ↗
                   </a>
-                  <a href={INSTALL_HREF} className={cn(buttonVariants({ variant: "secondary", size: "sm" }), "font-sans text-xs")}>
-                    Add another org
+                  <a
+                    href={INSTALL_HREF}
+                    className="inline-flex items-center justify-center rounded-md border border-neutral-800 bg-neutral-900/80 px-3 py-1.5 text-xs text-neutral-300 hover:text-white transition-colors"
+                  >
+                    Add Another Org
                   </a>
                   <Button
                     type="button"
-                    variant="ghost"
+                    variant="outline"
                     size="sm"
-                    className="text-neutral-400 hover:text-rose-400 text-xs font-sans"
+                    className="h-8 border-red-900/40 text-red-400 hover:bg-red-950/20 text-xs"
                     onClick={() => setDisconnectTarget("ALL")}
                   >
                     Disconnect
                   </Button>
                 </div>
               </div>
-              {installationsList.length > 1 ? (
-                <>
-                  <Separator />
-                  <div>
-                    <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground font-mono">
-                      All installations
-                    </p>
-                    <ul className="grid gap-2 text-sm">
-                      {installationsList.map((i) => (
-                        <li
-                          key={i.installationId}
-                          className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border bg-muted/30 px-3 py-2"
+
+              {installationsList.length > 1 && (
+                <div className="pt-4 border-t border-neutral-800 space-y-2">
+                  <span className="text-xs font-medium text-neutral-400 uppercase tracking-wider">
+                    All Linked Organizations
+                  </span>
+                  <div className="space-y-2">
+                    {installationsList.map((i) => (
+                      <div
+                        key={i.installationId}
+                        className="flex items-center justify-between rounded-lg border border-neutral-800 bg-black/40 p-3 text-xs"
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-white">{i.githubAccountLogin}</span>
+                          <span className="text-neutral-500 font-mono">({i.installationId})</span>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 text-xs text-neutral-400 hover:text-red-400"
+                          onClick={() => setDisconnectTarget(i.installationId)}
                         >
-                          <div className="flex items-center gap-2">
-                            <span className="font-mono font-medium">{i.githubAccountLogin}</span>
-                            <span className="text-xs capitalize text-muted-foreground font-mono">{i.githubAccountType}</span>
-                            <span className="font-mono text-xs text-muted-foreground">({i.installationId})</span>
-                          </div>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 text-xs text-neutral-400 hover:text-rose-400"
-                            onClick={() => setDisconnectTarget(i.installationId)}
-                          >
-                            Remove
-                          </Button>
-                        </li>
-                      ))}
-                    </ul>
+                          Remove
+                        </Button>
+                      </div>
+                    ))}
                   </div>
-                </>
-              ) : null}
-            </>
-          ) : (
-            <div className="space-y-6">
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <p className="text-sm text-muted-foreground">
-                  Connect your GitHub account or organization so VersionGate can read repositories you grant access to.
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  <a href={INSTALL_HREF} className={cn(buttonVariants(), "font-mono text-xs")}>
-                    Connect GitHub
-                  </a>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    disabled={checking}
-                    onClick={() => void fetchStatus()}
-                    className="inline-flex gap-1.5 font-mono text-xs"
-                  >
-                    Re-check
-                  </Button>
                 </div>
+              )}
+            </div>
+          ) : (
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-xs text-neutral-400 max-w-md">
+                Connect your GitHub personal account or organization to grant VersionGate access to browse repositories and receive webhook events.
+              </p>
+              <div className="flex items-center gap-2">
+                <a
+                  href={INSTALL_HREF}
+                  className="inline-flex items-center justify-center rounded-md bg-white px-4 py-2 text-xs font-semibold text-black hover:bg-neutral-200 transition-colors"
+                >
+                  Connect GitHub
+                </a>
               </div>
             </div>
           )}
 
-          <Separator />
-          <div className="space-y-3 pt-1">
+          {/* Manual ID Sync */}
+          <div className="pt-6 border-t border-neutral-800 space-y-3">
             <div>
-              <p className="font-mono text-xs font-semibold uppercase tracking-wider text-foreground">
-                Already authorized on GitHub? / Manual Sync
-              </p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                If GitHub stays on the settings page (<code className="font-mono text-[11px] text-foreground">github.com/settings/installations/123456</code>) after granting permissions, copy the numeric Installation ID from your address bar and sync it below:
+              <h4 className="text-xs font-semibold text-white">Manual Installation ID Sync</h4>
+              <p className="mt-0.5 text-xs text-neutral-400">
+                If redirected to GitHub settings after installation, copy the numeric ID from the browser URL to sync manually.
               </p>
             </div>
             <form onSubmit={handleManualLink} className="flex flex-wrap items-center gap-2">
@@ -392,200 +393,127 @@ export function Integrations() {
                 placeholder="e.g. 67554316"
                 value={manualId}
                 onChange={(e) => setManualId(e.target.value)}
-                className="max-w-xs font-mono text-xs"
+                className="max-w-xs font-mono text-xs bg-black border-neutral-800 text-white"
               />
-              <Button type="submit" size="sm" variant="secondary" disabled={linking || !manualId.trim()}>
-                {linking ? "Syncing..." : "Sync Installation ID"}
+              <Button
+                type="submit"
+                size="sm"
+                variant="outline"
+                disabled={linking || !manualId.trim()}
+                className="border-neutral-800 bg-neutral-900/80 text-neutral-300 hover:text-white text-xs h-9"
+              >
+                {linking ? "Syncing..." : "Sync ID"}
               </Button>
             </form>
           </div>
-        </CardContent>
-      </Card>
+        </div>
 
-      {/* GitHub Connection Diagnostics & Checkpoints */}
-      <Card className="border-border bg-card">
-        <CardHeader>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <CardTitle className="text-base font-semibold">
-                  Integration Diagnostics // Connection Checkpoints
-                </CardTitle>
-                <Badge variant="outline" className="font-mono text-[10px] uppercase tracking-wider">
-                  {runningDiagnostics
-                    ? "[ PROBING... ]"
-                    : diagnostics
-                    ? diagnostics.healthy
-                      ? "[ HEALTHY ]"
-                      : "[ ATTENTION ]"
-                    : "[ READY ]"}
-                </Badge>
-              </div>
-              <CardDescription className="text-xs">
-                Real-time end-to-end status probe checking local database records, relay reachability, and GitHub API repository access.
-              </CardDescription>
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <Button
-                type="button"
-                size="sm"
-                variant={diagnostics?.healthy === false ? "default" : "outline"}
-                disabled={runningDiagnostics}
-                onClick={() => void runDiagnostics()}
-                className="font-mono text-xs"
-              >
-                {runningDiagnostics ? "Running Probe..." : "Run Diagnostics"}
-              </Button>
-            </div>
+        <div className="border-t border-neutral-800 bg-black px-6 py-3 text-xs text-neutral-500">
+          OAuth and Webhook keys are stored encrypted in the local SQLite database.
+        </div>
+      </div>
+
+      {/* Integration Diagnostics Card */}
+      <div className="overflow-hidden rounded-xl border border-neutral-800 bg-[#0a0a0a]">
+        <div className="p-6 border-b border-neutral-800 flex items-center justify-between">
+          <div>
+            <h3 className="text-base font-semibold text-white">Integration Diagnostics</h3>
+            <p className="mt-1 text-xs text-neutral-400">
+              End-to-end check of database mapping, relay reachability, and GitHub API repository tokens.
+            </p>
           </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
+
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            disabled={runningDiagnostics}
+            onClick={() => void runDiagnostics()}
+            className="border-neutral-800 bg-neutral-900/80 text-neutral-300 hover:text-white text-xs h-8"
+          >
+            {runningDiagnostics ? "Running Probe..." : "Run Diagnostics"}
+          </Button>
+        </div>
+
+        <div className="p-6 space-y-4">
           {diagnosticsError ? (
-            <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs font-mono text-destructive">
-              [ FAIL ] {diagnosticsError}
+            <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-4 text-xs text-red-400 font-mono">
+              Diagnostic Error: {diagnosticsError}
             </div>
           ) : null}
 
           {diagnostics ? (
             <div className="space-y-4">
-              <div className="grid gap-2 font-mono text-xs">
-                {diagnostics.checkpoints.map((cp, idx) => {
-                  const stepNum = `0${idx + 1} //`;
+              <div className="space-y-2">
+                {diagnostics.checkpoints.map((cp) => {
                   const isOk = cp.status === "ok";
                   const isFail = cp.status === "fail";
                   const isWarn = cp.status === "warn";
 
-                  const badgeClass = isOk
-                    ? "border-emerald-500/30 text-emerald-500 bg-emerald-500/10"
-                    : isFail
-                    ? "border-rose-500/30 text-rose-500 bg-rose-500/10"
-                    : isWarn
-                    ? "border-amber-500/30 text-amber-500 bg-amber-500/10"
-                    : "border-border text-muted-foreground bg-muted/30";
-
-                  const badgeText = isOk
-                    ? "[ OK ]"
-                    : isFail
-                    ? "[ FAIL ]"
-                    : isWarn
-                    ? "[ WARN ]"
-                    : "[ SKIP ]";
-
                   return (
                     <div
                       key={cp.id}
-                      className="flex flex-col gap-2 rounded-md border border-border/80 bg-muted/20 p-3 sm:flex-row sm:items-start sm:justify-between"
+                      className="flex items-center justify-between rounded-lg border border-neutral-800 bg-black/40 p-3.5 text-xs"
                     >
-                      <div className="flex items-start gap-2.5 min-w-0 flex-1">
-                        <span className="text-muted-foreground font-semibold shrink-0">{stepNum}</span>
-                        <div className="space-y-1 min-w-0 flex-1">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="font-semibold text-foreground">{cp.title}</span>
-                            {cp.latencyMs !== undefined ? (
-                              <span className="text-[10px] text-muted-foreground">({cp.latencyMs}ms)</span>
-                            ) : null}
-                          </div>
-                          <p className="text-xs text-muted-foreground break-words font-sans">{cp.message}</p>
+                      <div className="space-y-0.5">
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-white">{cp.title}</span>
+                          {cp.latencyMs !== undefined && (
+                            <span className="font-mono text-[11px] text-neutral-500">
+                              ({cp.latencyMs}ms)
+                            </span>
+                          )}
                         </div>
+                        <p className="text-neutral-400">{cp.message}</p>
                       </div>
-                      <div className="shrink-0 self-start sm:self-center">
+
+                      <span
+                        className={cn(
+                          "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-medium border shrink-0",
+                          isOk
+                            ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
+                            : isFail
+                              ? "border-red-500/30 bg-red-500/10 text-red-400"
+                              : isWarn
+                                ? "border-amber-500/30 bg-amber-500/10 text-amber-400"
+                                : "border-neutral-800 bg-neutral-900 text-neutral-400"
+                        )}
+                      >
                         <span
                           className={cn(
-                            "inline-flex items-center rounded border px-2 py-0.5 text-[11px] font-bold tracking-wider font-mono",
-                            badgeClass
+                            "size-1.5 rounded-full shrink-0",
+                            isOk ? "bg-emerald-500" : isFail ? "bg-red-500" : "bg-amber-500"
                           )}
-                        >
-                          {badgeText}
-                        </span>
-                      </div>
+                        />
+                        {isOk ? "Passed" : isFail ? "Failed" : isWarn ? "Warning" : "Skipped"}
+                      </span>
                     </div>
                   );
                 })}
               </div>
 
-              {diagnostics.recommendations.length > 0 ? (
-                <div className="rounded-md border border-amber-500/30 bg-amber-500/5 p-3.5 space-y-2">
-                  <p className="font-mono text-[11px] font-semibold uppercase tracking-wider text-amber-500">
-                    Remediation & Troubleshooting Advice
-                  </p>
-                  <ul className="space-y-1.5 text-xs text-muted-foreground list-disc pl-4 font-sans">
+              {diagnostics.recommendations.length > 0 && (
+                <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 space-y-2 text-xs">
+                  <span className="font-semibold text-amber-400">Troubleshooting Advice</span>
+                  <ul className="list-disc pl-4 space-y-1 text-neutral-400">
                     {diagnostics.recommendations.map((rec, i) => (
-                      <li key={i} className="leading-relaxed">
-                        {rec}
-                      </li>
+                      <li key={i}>{rec}</li>
                     ))}
                   </ul>
                 </div>
-              ) : null}
-
-              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border/60 pt-3 text-[11px] font-mono text-muted-foreground">
-                <span>
-                  Mode: <strong className="text-foreground">{diagnostics.mode === "direct" ? "Direct GitHub App" : "Central Cloud Relay"}</strong>
-                </span>
-                <span>
-                  Last Probe: <strong className="text-foreground">{new Date(diagnostics.timestamp).toLocaleTimeString()}</strong>
-                </span>
-              </div>
+              )}
             </div>
           ) : (
-            <div className="rounded-md border border-dashed border-border bg-muted/20 p-6 text-center">
-              <p className="text-xs text-muted-foreground font-sans">
-                Run diagnostics to verify local database mapping, relay reachability, and GitHub API repository access.
-              </p>
-            </div>
+            <p className="text-xs text-neutral-500 text-center py-6">
+              Run diagnostics above to verify relay connectivity and repository permissions.
+            </p>
           )}
-        </CardContent>
-      </Card>
+        </div>
 
-      {/* Developer Settings Card — Custom Self-Hosted GitHub App Manifest (Advanced Mode) */}
-      <Card className="border-border/60 bg-card/50">
-        <CardHeader>
-          <div className="flex items-start justify-between gap-4">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <CardTitle className="flex items-center gap-2 text-base font-semibold">
-                  <span className="font-mono text-xs opacity-70">DEV</span>
-                  Developer Settings // Custom GitHub App Manifest
-                </CardTitle>
-                <Badge variant="secondary" className="font-mono text-[10px] uppercase tracking-wider">
-                  Advanced Mode
-                </Badge>
-              </div>
-              <CardDescription className="text-xs">
-                For isolated or enterprise environments: Create your own self-hosted GitHub App using 1-Click Manifest registration instead of the central cloud relay.
-              </CardDescription>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4 font-mono text-xs">
-          <div className="rounded-md border border-border bg-muted/40 p-4 space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-muted-foreground uppercase tracking-wider text-[11px]">Integration Mode</span>
-              <Badge variant="outline" className="font-mono text-xs">
-                {connected ? "Central Relay Active" : "Relay Standard Mode"}
-              </Badge>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-muted-foreground uppercase tracking-wider text-[11px]">GITHUB_APP_ID</span>
-              <span className="text-foreground font-mono">
-                {import.meta.env.VITE_GITHUB_APP_ID ? String(import.meta.env.VITE_GITHUB_APP_ID) : "Using Relay"}
-              </span>
-            </div>
-          </div>
-
-          <p className="text-xs text-muted-foreground font-sans">
-            To switch from Central Relay Mode to your own dedicated GitHub App, set <code className="font-mono text-[11px]">GITHUB_APP_ID</code> and <code className="font-mono text-[11px]">GITHUB_APP_PRIVATE_KEY</code> in your server <code className="font-mono text-[11px]">.env</code> file.
-          </p>
-        </CardContent>
-      </Card>
-
-      <p className="text-center text-xs text-muted-foreground">
-        After connecting, use{" "}
-        <Link className="text-primary underline-offset-2 hover:underline" to="/projects">
-          New project
-        </Link>{" "}
-        to pick a repository and branch.
-      </p>
+        <div className="border-t border-neutral-800 bg-black px-6 py-3 text-xs text-neutral-500">
+          Last probe result cached for 60 seconds.
+        </div>
+      </div>
 
       <ConfirmDialog
         open={Boolean(disconnectTarget)}

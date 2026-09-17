@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/badges/StatusBadge";
 import { EnvironmentEnvModal } from "@/components/modals/EnvironmentEnvModal";
@@ -13,10 +12,10 @@ import { publicEnvironmentUrl, publicServiceUrl } from "@/lib/deployment-display
 
 function ChainArrow() {
   return (
-    <div className="flex shrink-0 items-center justify-center text-muted-foreground/60" aria-hidden>
-      <svg width="28" height="24" viewBox="0 0 28 24" className="hidden sm:block">
+    <div className="flex shrink-0 items-center justify-center text-neutral-600" aria-hidden>
+      <svg width="24" height="24" viewBox="0 0 24 24" className="hidden sm:block">
         <path
-          d="M4 12h16m-4-4 4 4-4 4"
+          d="M5 12h14m-4-4 4 4-4 4"
           fill="none"
           stroke="currentColor"
           strokeWidth="1.5"
@@ -24,7 +23,7 @@ function ChainArrow() {
           strokeLinejoin="round"
         />
       </svg>
-      <span className="sm:hidden text-lg leading-none">↓</span>
+      <span className="sm:hidden text-base leading-none py-1">↓</span>
     </div>
   );
 }
@@ -70,7 +69,7 @@ export function EnvironmentChain({
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       <EnvironmentEnvModal
         projectId={projectId}
         environment={selectedEnvForVars}
@@ -81,9 +80,6 @@ export function EnvironmentChain({
         onRefresh={onRefresh}
       />
 
-      <p className="text-xs text-muted-foreground">
-        Deploy builds once on the first stage. Promote copies that image forward (no rebuild).
-      </p>
       <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-stretch">
         {sorted.map((env, index) => {
           const upstream = index > 0 ? sorted[index - 1] : null;
@@ -103,110 +99,105 @@ export function EnvironmentChain({
           const hasCustomEnv = env.env && Object.keys(env.env).length > 0;
 
           return (
-            <div key={env.id} className="flex flex-1 min-w-[200px] flex-col gap-3 sm:flex-row sm:items-stretch">
+            <div key={env.id} className="flex flex-1 min-w-[220px] flex-col gap-3 sm:flex-row sm:items-stretch">
               {index > 0 ? <ChainArrow /> : null}
-              <Card className="flex-1 border-border bg-card">
-                <CardHeader className="border-b border-border pb-2">
+              <div className="flex-1 rounded-xl border border-neutral-800 bg-[#0a0a0a] flex flex-col justify-between overflow-hidden">
+                <div className="border-b border-neutral-800 bg-black/40 px-4 py-3">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <CardTitle className="font-mono text-xs uppercase tracking-wider">{env.name}</CardTitle>
+                    <span className="text-xs font-semibold uppercase tracking-wider text-white">
+                      {env.name}
+                    </span>
                     {active ? <StatusBadge status={active.status} /> : <StatusBadge status="PENDING" />}
                   </div>
-                </CardHeader>
-                <CardContent className="space-y-3 pt-3">
+                </div>
+
+                <div className="p-4 space-y-3 flex-1 flex flex-col justify-between">
                   {active ? (
-                    <div className="space-y-2 text-xs text-muted-foreground">
+                    <div className="space-y-2 text-xs text-neutral-400">
                       <div className="flex items-center justify-between">
-                        <span className="font-mono text-[11px] text-foreground font-semibold">v{active.version}</span>
-                        <span className="font-mono text-[10px] text-muted-foreground">Port {active.port}</span>
+                        <span className="font-mono text-xs font-semibold text-white">v{active.version}</span>
+                        <span className="font-mono text-[11px] text-neutral-500">Port {active.port}</span>
                       </div>
                       {openUrl ? (
-                        <div className="flex flex-col gap-1.5 pt-1">
-                          <div className="flex items-center gap-1.5">
+                        <div className="flex flex-col gap-1 pt-1">
+                          <div className="flex items-center justify-between gap-1.5">
                             <a
                               href={openUrl}
                               target="_blank"
                               rel="noreferrer"
-                              className="inline-flex items-center gap-1 font-mono text-xs font-medium text-emerald-400 hover:text-emerald-300 hover:underline"
-                              title={`Stage Path URL: ${openUrl}`}
+                              className="inline-flex items-center gap-1 font-mono text-xs text-emerald-400 hover:text-emerald-300 hover:underline"
                             >
                               <span>Preview {env.name}</span>
                               <span className="text-[10px]" aria-hidden>↗</span>
                             </a>
-                            <Button
+                            <button
                               type="button"
-                              variant="ghost"
-                              size="sm"
-                              className="h-5 px-1.5 text-[10px] font-mono text-muted-foreground hover:text-foreground"
+                              className="text-[10px] text-neutral-500 hover:text-neutral-300"
                               onClick={() => {
                                 void navigator.clipboard.writeText(openUrl);
                                 toast.success(`Copied ${env.name} preview URL`);
                               }}
-                              title="Copy preview URL"
                             >
-                              Copy URL
-                            </Button>
+                              Copy
+                            </button>
                           </div>
                           {directPortUrl && directPortUrl !== openUrl ? (
                             <a
                               href={directPortUrl}
                               target="_blank"
                               rel="noreferrer"
-                              className="block truncate font-mono text-[10px] text-muted-foreground/70 hover:text-foreground"
-                              title={`Direct Port URL: ${directPortUrl}`}
+                              className="block truncate font-mono text-[10px] text-neutral-600 hover:text-neutral-400"
                             >
-                              Direct Port (:{active.port}) ↗
+                              Direct :{active.port} ↗
                             </a>
                           ) : null}
                         </div>
                       ) : null}
                     </div>
                   ) : (
-                    <p className="text-xs text-muted-foreground">No deployment yet.</p>
+                    <p className="text-xs text-neutral-500">No active deployment yet.</p>
                   )}
 
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-neutral-800/60">
                     {index === 0 ? (
                       <Button
                         size="sm"
-                        variant="secondary"
+                        className="h-7 text-xs bg-white text-black font-semibold hover:bg-neutral-200"
                         onClick={() => void onDeployToEnvironment(env.id)}
                       >
-                        Deploy
+                        Deploy to {env.name}
                       </Button>
                     ) : null}
-                    {showPromote ? (
+
+                    {showPromote && upstream ? (
                       <Button
                         size="sm"
+                        variant="secondary"
                         disabled={promoteDisabled}
-                        onClick={() => upstream && void onPromote(env.id, upstream.id)}
+                        className="h-7 text-xs bg-neutral-900 border border-neutral-800 text-neutral-200 hover:text-white"
+                        onClick={() => void onPromote(env.id, upstream.id)}
                         title={
                           !upstreamActive
-                            ? `Need an ACTIVE deploy on ${upstream?.name ?? "upstream"} first`
-                            : `Promote ${upstream?.name} → ${env.name}`
+                            ? `Requires healthy active build on ${upstream.name}`
+                            : `Promote artifact from ${upstream.name} to ${env.name}`
                         }
                       >
-                        {promotingId === env.id ? (
-                          <>
-                            <span className="mr-2 inline-block h-4 w-4 animate-spin rounded-full border-2 border-muted-foreground border-t-primary" />
-                            Promoting…
-                          </>
-                        ) : (
-                          `→ ${env.name}`
-                        )}
+                        {promotingId === env.id ? "Promoting..." : `Promote ← ${upstream.name}`}
                       </Button>
                     ) : null}
+
                     <Button
+                      type="button"
+                      variant="ghost"
                       size="sm"
-                      variant="outline"
-                      className="text-xs border-border/80"
+                      className="h-7 text-xs text-neutral-400 hover:text-white"
                       onClick={() => setSelectedEnvForVars(env)}
-                      title={`Configure environment variables for ${env.name}`}
                     >
-                      Env {hasCustomEnv ? `(${Object.keys(env.env!).length})` : ""}
+                      {hasCustomEnv ? "Env Vars (Custom)" : "Env Vars"}
                     </Button>
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             </div>
           );
         })}
