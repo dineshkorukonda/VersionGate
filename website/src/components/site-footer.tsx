@@ -4,57 +4,39 @@ const GITHUB_REPO = "https://github.com/dineshkorukonda/VersionGate";
 
 export function SiteFooter() {
   return (
-    <footer className="border-t border-border/60 bg-black py-14">
+    <footer className="border-t border-neutral-800 bg-black py-12">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4 text-sm">
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <span className="text-base font-semibold text-foreground">VersionGate</span>
-              <span className="rounded-md border border-border px-1.5 py-0.5 text-[10px] text-primary">v2.9.5</span>
+        <div className="flex flex-col gap-8 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <p className="text-sm font-semibold text-white">VersionGate</p>
+            <p className="mt-2 max-w-sm text-sm text-neutral-500">
+              Self-hosted zero-downtime deployment engine for Docker and PM2 on your own VPS.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-12 text-sm">
+            <div className="space-y-2">
+              <p className="font-medium text-white">Product</p>
+              <ul className="space-y-1.5 text-neutral-500">
+                <li><Link href="/#features" className="hover:text-white transition">Features</Link></li>
+                <li><Link href="/#install" className="hover:text-white transition">Install</Link></li>
+                <li><Link href="/changelog" className="hover:text-white transition">Changelog</Link></li>
+              </ul>
             </div>
-            <p className="text-xs text-zinc-400 leading-relaxed">
-              Self-hosted zero-downtime Docker and multi-runtime deployment engine with blue/green slot routing and built-in database studio.
-            </p>
-            <p className="text-[11px] text-zinc-500">
-              MIT License · Built by Dinesh Korukonda
-            </p>
-          </div>
-
-          <div className="space-y-2">
-            <p className="font-medium text-foreground">Product</p>
-            <ul className="space-y-1.5 text-zinc-400">
-              <li><Link href="/#features" className="hover:text-primary transition">Features</Link></li>
-              <li><Link href="/#architecture" className="hover:text-primary transition">Architecture</Link></li>
-              <li><Link href="/#install" className="hover:text-primary transition">Installation</Link></li>
-              <li><Link href="/changelog" className="hover:text-primary transition">Changelog</Link></li>
-            </ul>
-          </div>
-
-          <div className="space-y-2">
-            <p className="font-medium text-foreground">Documentation</p>
-            <ul className="space-y-1.5 text-zinc-400">
-              <li><Link href="/docs/quick-start" className="hover:text-primary transition">Quick Start</Link></li>
-              <li><Link href="/docs/architecture" className="hover:text-primary transition">Engine Architecture</Link></li>
-              <li><Link href="/docs/api-reference" className="hover:text-primary transition">API Reference</Link></li>
-              <li><Link href="/docs/troubleshooting" className="hover:text-primary transition">Troubleshooting</Link></li>
-            </ul>
-          </div>
-
-          <div className="space-y-2">
-            <p className="font-medium text-foreground">Open Source</p>
-            <ul className="space-y-1.5 text-zinc-400">
-              <li><Link href={GITHUB_REPO} target="_blank" rel="noreferrer" className="hover:text-primary transition">GitHub</Link></li>
-              <li><Link href={`${GITHUB_REPO}/issues`} target="_blank" rel="noreferrer" className="hover:text-primary transition">Issues</Link></li>
-              <li><Link href={`${GITHUB_REPO}/discussions`} target="_blank" rel="noreferrer" className="hover:text-primary transition">Discussions</Link></li>
-              <li><Link href={`${GITHUB_REPO}/blob/main/LICENSE`} target="_blank" rel="noreferrer" className="hover:text-primary transition">License</Link></li>
-            </ul>
+            <div className="space-y-2">
+              <p className="font-medium text-white">Docs</p>
+              <ul className="space-y-1.5 text-neutral-500">
+                <li><Link href="/docs/quick-start" className="hover:text-white transition">Quick start</Link></li>
+                <li><Link href="/docs/api-reference" className="hover:text-white transition">API reference</Link></li>
+                <li><Link href={GITHUB_REPO} target="_blank" rel="noreferrer" className="hover:text-white transition">GitHub</Link></li>
+              </ul>
+            </div>
           </div>
         </div>
 
-        <div className="mt-12 flex flex-col sm:flex-row items-center justify-between border-t border-border/40 pt-6 text-[11px] text-zinc-500">
-          <p>&copy; {new Date().getFullYear()} VersionGate. Self-hosted and sovereign.</p>
-          <p className="mt-2 sm:mt-0">Zero telemetry · Total data privacy</p>
-        </div>
+        <p className="mt-10 text-xs text-neutral-600">
+          &copy; {new Date().getFullYear()} VersionGate · MIT License
+        </p>
       </div>
     </footer>
   );
