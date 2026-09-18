@@ -718,7 +718,7 @@ export function ProjectDetail() {
                   : "border-neutral-800 bg-black text-neutral-400 hover:text-neutral-300"
               )}
             >
-              <span>Author {authorFilter ?? "dinexh"}</span>
+              <span>Author {authorFilter ?? "All"}</span>
             </button>
 
             <button
