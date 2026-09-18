@@ -9,7 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { NavIconChevronsUpDown, NavIconSparkle } from "@/components/nav-icons";
+import { NavIconChevronsUpDown } from "@/components/nav-icons";
 
 interface SidebarBreadcrumbsProps {
   projects?: Project[];
@@ -101,7 +101,7 @@ export function SidebarBreadcrumbs({ projects = [] }: SidebarBreadcrumbsProps) {
     if (pathname.startsWith("/deployments")) return "Deployments";
     if (pathname.startsWith("/activity")) return "Activity Logs";
     if (pathname.startsWith("/databases")) return "Databases";
-    if (pathname.startsWith("/cron")) return "Cron Jobs";
+    if (pathname.startsWith("/status")) return "System Status";
     if (pathname.startsWith("/system")) return "System Metrics";
     if (pathname.startsWith("/dashboard/integrations")) return "Integrations";
 
@@ -164,17 +164,18 @@ export function SidebarBreadcrumbs({ projects = [] }: SidebarBreadcrumbsProps) {
         </span>
       </div>
 
-      {/* RIGHT: Vercel Agent Action Button */}
+      {/* RIGHT: Live Status Action Button */}
       <div className="flex items-center gap-2">
         <button
           type="button"
-          onClick={() => navigate("/activity")}
-          className="inline-flex items-center gap-1.5 rounded-full border border-neutral-800 bg-neutral-900/90 px-3 py-1 text-xs font-medium text-neutral-300 hover:border-neutral-700 hover:text-white transition-colors"
+          onClick={() => navigate("/status")}
+          className="inline-flex items-center gap-2 rounded-full border border-neutral-800 bg-neutral-900/90 px-3 py-1 font-mono text-xs font-medium text-neutral-300 hover:border-neutral-700 hover:text-white transition-colors"
         >
-          <NavIconSparkle className="size-3 text-amber-400" />
-          <span>Agent</span>
+          <span className="size-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_6px_rgba(52,211,153,0.8)]" />
+          <span>Status</span>
         </button>
       </div>
     </div>
   );
 }
+

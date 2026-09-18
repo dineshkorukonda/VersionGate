@@ -1134,5 +1134,104 @@ export function getServerCapacitySpecs(): Promise<ServerCapacitySpecs> {
   return request("GET", "/system/capacity-specs");
 }
 
+export interface SubsystemStatus {
+  id: string;
+  name: string;
+  category: "core" | "runtime" | "network" | "integration";
+  status: "operational" | "degraded" | "down" | "unconfigured";
+  latencyMs?: number;
+  details?: Record<string, unknown>;
+  description: string;
+}
+
+export interface ApplicationStatus {
+  projectId: string;
+  projectName: string;
+  serviceType: "pm2" | "docker";
+  branch: string;
+  repoUrl: string;
+  localPath?: string | null;
+  activePort?: number | null;
+  healthPath: string;
+  status: "healthy" | "degraded" | "error" | "stopped" | "uninitialized";
+  healthLatencyMs?: number;
+  activeDeployment?: {
+    id: string;
+    version: number;
+    color: string;
+    status: string;
+    containerName: string;
+    commitSha?: string | null;
+    commitMessage?: string | null;
+    commitAuthor?: string | null;
+    updatedAt: string;
+  } | null;
+  latestCommit?: {
+    sha: string;
+    message: string;
+    author: string;
+    date: string;
+  } | null;
+  isCommitSynced: boolean;
+  autoDeployEnabled: boolean;
+  webhookConfigured: boolean;
+  metrics?: {
+    cpuPercent?: number;
+    memoryBytes?: number;
+    uptime?: number;
+  };
+  diagnosticMessage: string;
+}
+
+export interface ComprehensiveStatusReport {
+  timestamp: string;
+  overallStatus: "operational" | "degraded" | "down";
+  uptime: number;
+  subsystems: SubsystemStatus[];
+  applications: ApplicationStatus[];
+  summary: {
+    totalSubsystems: number;
+    operationalSubsystems: number;
+    totalApplications: number;
+    healthyApplications: number;
+    outOfSyncApplications: number;
+    autoDeployActiveCount: number;
+  };
+  systemTelemetry: {
+    cpuPercent: number;
+    memoryPercent: number;
+    memoryUsed: number;
+    memoryTotal: number;
+    diskPercent: number;
+    diskUsed: number;
+    diskTotal: number;
+    loadAvg: number[];
+    uptime: number;
+  };
+}
+
+export function getSystemStatusOverview(): Promise<ComprehensiveStatusReport> {
+  return request("GET", "/system/status-overview");
+}
+
+export function checkAutoDeploy(options: { projectId?: string; forceDeploy?: boolean } = {}): Promise<{
+  checkedCount: number;
+  triggeredCount: number;
+  results: Array<{
+    projectId: string;
+    projectName: string;
+    branch: string;
+    latestCommitSha?: string;
+    deployedCommitSha?: string;
+    synced: boolean;
+    deployTriggered: boolean;
+    jobId?: string;
+    reason: string;
+  }>;
+}> {
+  return request("POST", "/system/check-autodeploy", options);
+}
+
+
 
 

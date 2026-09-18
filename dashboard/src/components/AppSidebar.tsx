@@ -36,11 +36,13 @@ import {
   NavIconRocket,
   NavIconSearch,
   NavIconSettings,
+  NavIconStatus,
 } from "@/components/nav-icons";
 
 const workspaceNav = [
   { to: "/", label: "Overview", end: true, icon: NavIconGrid },
   { to: "/projects", label: "Projects", end: true, icon: NavIconFolder },
+  { to: "/status", label: "Status", end: false, icon: NavIconStatus },
   { to: "/deployments", label: "Deployments", end: false, icon: NavIconRocket },
   { to: "/activity", label: "Logs", end: false, icon: NavIconLogs },
   { to: "/databases", label: "Databases", end: false, icon: NavIconDatabase },
