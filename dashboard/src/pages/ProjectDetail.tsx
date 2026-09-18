@@ -24,7 +24,7 @@ import {
 import { RuntimeLogsViewer } from "@/components/RuntimeLogsViewer";
 import { CronJobsManager } from "@/components/CronJobsManager";
 import { EnvironmentChain } from "@/components/badges/EnvironmentChain";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -439,44 +439,7 @@ export function ProjectDetail() {
         }}
         className="w-full space-y-6"
       >
-        <TabsList className="flex h-auto w-full justify-start gap-6 rounded-none border-b border-neutral-800 bg-transparent p-0">
-          <TabsTrigger
-            value="overview"
-            className="rounded-none border-b-2 border-transparent bg-transparent pb-3 pt-2 text-sm font-medium text-neutral-400 transition-colors data-[state=active]:border-white data-[state=active]:text-white hover:text-neutral-200"
-          >
-            Overview
-          </TabsTrigger>
-          <TabsTrigger
-            value="deployments"
-            className="rounded-none border-b-2 border-transparent bg-transparent pb-3 pt-2 text-sm font-medium text-neutral-400 transition-colors data-[state=active]:border-white data-[state=active]:text-white hover:text-neutral-200"
-          >
-            Deployments ({productionDeployments.length})
-          </TabsTrigger>
-          <TabsTrigger
-            value="domains"
-            className="rounded-none border-b-2 border-transparent bg-transparent pb-3 pt-2 text-sm font-medium text-neutral-400 transition-colors data-[state=active]:border-white data-[state=active]:text-white hover:text-neutral-200"
-          >
-            Domains ({customDomains.length})
-          </TabsTrigger>
-          <TabsTrigger
-            value="cron"
-            className="rounded-none border-b-2 border-transparent bg-transparent pb-3 pt-2 text-sm font-medium text-neutral-400 transition-colors data-[state=active]:border-white data-[state=active]:text-white hover:text-neutral-200"
-          >
-            Cron Jobs
-          </TabsTrigger>
-          <TabsTrigger
-            value="logs"
-            className="rounded-none border-b-2 border-transparent bg-transparent pb-3 pt-2 text-sm font-medium text-neutral-400 transition-colors data-[state=active]:border-white data-[state=active]:text-white hover:text-neutral-200"
-          >
-            Runtime Logs
-          </TabsTrigger>
-          <TabsTrigger
-            value="settings"
-            className="rounded-none border-b-2 border-transparent bg-transparent pb-3 pt-2 text-sm font-medium text-neutral-400 transition-colors data-[state=active]:border-white data-[state=active]:text-white hover:text-neutral-200"
-          >
-            Settings
-          </TabsTrigger>
-        </TabsList>
+        
 
         {/* 01 // OVERVIEW TAB */}
         <TabsContent value="overview" className="space-y-6">
