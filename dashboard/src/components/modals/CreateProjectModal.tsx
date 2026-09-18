@@ -478,14 +478,14 @@ export function CreateProjectModal({
 
           {stackDetecting ? (
             <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground font-mono">
-              <span className="text-sky-400 font-semibold">[ 01 // DETECTING STACK ]</span>
+              <span className="inline-flex items-center gap-1.5 text-sky-400 font-sans font-medium"><span className="size-1.5 rounded-full bg-sky-400 animate-pulse" />Detecting Framework Stack...</span>
               <span>Scanning repository structure and dependencies…</span>
             </div>
           ) : detectedStack ? (
             <div className="flex items-center justify-between rounded-lg border border-border bg-muted/40 px-3 py-2 text-xs">
               <div className="flex items-center gap-2">
                 <span className="font-mono text-[10px] font-semibold text-emerald-400 border border-emerald-800/60 bg-emerald-950/40 px-1.5 py-0.5 rounded">
-                  [ STACK: {detectedStack.label.toUpperCase()} ]
+                  {detectedStack.label}
                 </span>
                 <span className="text-muted-foreground">
                   Configured port {detectedStack.recommendedPort} // health {detectedStack.recommendedHealthPath}
@@ -566,7 +566,7 @@ export function CreateProjectModal({
                 className="text-xs h-7 font-mono"
                 onClick={() => setShowAdvancedRuntime((prev) => !prev)}
               >
-                {showAdvancedRuntime ? "[ HIDE COMMANDS ]" : "[ CUSTOM COMMANDS ]"}
+                {showAdvancedRuntime ? "Hide Custom Commands" : "Custom Commands"}
               </Button>
             </div>
 

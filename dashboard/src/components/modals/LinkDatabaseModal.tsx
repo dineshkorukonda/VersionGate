@@ -46,7 +46,7 @@ export function LinkDatabaseModal({ open, onOpenChange, database, projects, onLi
     setLinking(true);
     try {
       const res = await linkManagedDatabase(database.id, selectedProjectId, envKey.trim() || undefined);
-      toast.success(`[ OK ] Auto-linked ${res.envKey} to ${targetProject?.name || "project"}`);
+      toast.success(`Auto-linked ${res.envKey} to ${targetProject?.name || "project"}`);
       onLinked();
       onOpenChange(false);
     } catch (err: any) {
@@ -140,7 +140,7 @@ export function LinkDatabaseModal({ open, onOpenChange, database, projects, onLi
               disabled={!selectedProjectId || linking}
               className="bg-emerald-500 font-mono text-xs font-semibold text-black hover:bg-emerald-400"
             >
-              {linking ? "Linking..." : "[ Link Database ]"}
+              {linking ? "Linking..." : "Link Database"}
             </Button>
           </DialogFooter>
         </form>

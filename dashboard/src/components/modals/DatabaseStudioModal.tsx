@@ -103,7 +103,7 @@ export function DatabaseStudioModal({
     try {
       const res = await executeDatabaseQuery(database.id, targetQuery);
       setResult(res);
-      toast.success(`[ OK ] Query completed in ${res.executionTimeMs}ms (${res.rowCount} rows)`);
+      toast.success(`Query completed in ${res.executionTimeMs}ms (${res.rowCount} rows)`);
     } catch (err: any) {
       const msg = err instanceof Error ? err.message : "Query failed";
       setQueryError(msg);
@@ -131,7 +131,7 @@ export function DatabaseStudioModal({
         return obj;
       });
       void navigator.clipboard.writeText(JSON.stringify(formatted, null, 2));
-      toast.success("[ COPIED ] Result data formatted as JSON");
+      toast.success("Copied Result data formatted as JSON");
     } else {
       const csv = [
         result.columns.join(","),
@@ -332,7 +332,7 @@ export function DatabaseStudioModal({
             <div className="flex-1 overflow-auto p-4">
               {queryError ? (
                 <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-4 font-mono text-xs text-red-300">
-                  <p className="font-semibold text-red-200">[ ERROR ] Query Execution Failed</p>
+                  <p className="font-semibold text-red-200">Query Execution Failed</p>
                   <p className="mt-1 whitespace-pre-wrap">{queryError}</p>
                 </div>
               ) : executing ? (

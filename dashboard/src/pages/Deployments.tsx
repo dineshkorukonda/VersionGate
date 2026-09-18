@@ -62,75 +62,94 @@ export function Deployments() {
   ].filter(Boolean).length;
 
   return (
-    <div className="w-full space-y-6">
+    <div className="w-full space-y-6 font-sans">
       <div className="flex flex-col gap-4 border-b border-neutral-800 pb-6 sm:flex-row sm:items-end sm:justify-between">
         <div className="space-y-1">
-          <h1 className="text-2xl font-semibold tracking-tight text-white">Deployments</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-white md:text-3xl">Deployments</h1>
           <p className="text-sm text-neutral-400">
             All deployment records across your workspace
           </p>
         </div>
         <Button
           size="sm"
-          className="bg-white text-xs font-semibold text-black hover:bg-neutral-200"
+          className="bg-white text-xs font-semibold text-black hover:bg-neutral-200 h-8"
           onClick={() => navigate("/projects/new")}
         >
-          Add New
+          + New Project
         </Button>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="text-xs text-neutral-500">Filters</span>
-        <select
-          value={projectFilter}
-          onChange={(e) => setProjectFilter(e.target.value)}
-          className="h-8 rounded-md border border-neutral-800 bg-black px-2 text-xs text-neutral-300"
-        >
-          <option value="all">All projects</option>
-          {projects.map((p) => (
-            <option key={p.id} value={p.id}>{p.name}</option>
-          ))}
-        </select>
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
-          className="h-8 rounded-md border border-neutral-800 bg-black px-2 text-xs text-neutral-300"
-        >
-          <option value="all">All statuses</option>
-          <option value="ACTIVE">Ready</option>
-          <option value="DEPLOYING">Building</option>
-          <option value="FAILED">Error</option>
-        </select>
-        <select
-          value={envFilter}
-          onChange={(e) => setEnvFilter(e.target.value as EnvFilter)}
-          className="h-8 rounded-md border border-neutral-800 bg-black px-2 text-xs text-neutral-300"
-        >
-          <option value="all">All environments</option>
-          <option value="production">Production</option>
-          <option value="preview">Preview</option>
-        </select>
-        {activeFilters > 0 ? (
-          <button
-            type="button"
-            onClick={() => {
-              setProjectFilter("all");
-              setStatusFilter("all");
-              setEnvFilter("all");
-            }}
-            className={cn("text-xs text-neutral-500 hover:text-neutral-300")}
+      {/* Vercel-style Filters Toolbar */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-wrap items-center gap-2.5">
+          {/* Environment Segmented Control */}
+          <div className="flex items-center rounded-lg border border-neutral-800 bg-[#0a0a0a] p-0.5">
+            {(["all", "production", "preview"] as const).map((env) => (
+              <button
+                key={env}
+                type="button"
+                onClick={() => setEnvFilter(env)}
+                className={cn(
+                  "rounded-md px-3 py-1 text-xs font-medium capitalize transition-colors",
+                  envFilter === env
+                    ? "bg-neutral-800 text-white font-semibold"
+                    : "text-neutral-400 hover:text-neutral-200"
+                )}
+              >
+                {env === "all" ? "All Environments" : env}
+              </button>
+            ))}
+          </div>
+
+          {/* Project Filter */}
+          <select
+            value={projectFilter}
+            onChange={(e) => setProjectFilter(e.target.value)}
+            className="h-8 rounded-lg border border-neutral-800 bg-[#0a0a0a] px-2.5 text-xs text-neutral-300 focus:border-neutral-600 focus:outline-none"
           >
-            Clear filters
-          </button>
-        ) : null}
-        <span className="ml-auto text-xs text-neutral-500">{filtered.length} deployments</span>
+            <option value="all">All Projects</option>
+            {projects.map((p) => (
+              <option key={p.id} value={p.id}>{p.name}</option>
+            ))}
+          </select>
+
+          {/* Status Filter */}
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
+            className="h-8 rounded-lg border border-neutral-800 bg-[#0a0a0a] px-2.5 text-xs text-neutral-300 focus:border-neutral-600 focus:outline-none"
+          >
+            <option value="all">All Statuses</option>
+            <option value="ACTIVE">Ready</option>
+            <option value="DEPLOYING">Building</option>
+            <option value="FAILED">Error</option>
+          </select>
+
+          {activeFilters > 0 ? (
+            <button
+              type="button"
+              onClick={() => {
+                setProjectFilter("all");
+                setStatusFilter("all");
+                setEnvFilter("all");
+              }}
+              className="text-xs text-neutral-500 hover:text-neutral-300 transition-colors ml-1"
+            >
+              Clear filters
+            </button>
+          ) : null}
+        </div>
+
+        <span className="text-xs text-neutral-500 font-mono">
+          {filtered.length} {filtered.length === 1 ? "deployment" : "deployments"}
+        </span>
       </div>
 
       {loading ? (
         <div className="space-y-2">
-          <Skeleton className="h-14 w-full" />
-          <Skeleton className="h-14 w-full" />
-          <Skeleton className="h-14 w-full" />
+          <Skeleton className="h-14 w-full rounded-xl bg-neutral-900" />
+          <Skeleton className="h-14 w-full rounded-xl bg-neutral-900" />
+          <Skeleton className="h-14 w-full rounded-xl bg-neutral-900" />
         </div>
       ) : (
         <DeploymentList

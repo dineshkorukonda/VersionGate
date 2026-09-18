@@ -148,9 +148,14 @@ export function Projects() {
             onClick={() => setAdoptOpen(true)}
             className="border-neutral-800 text-neutral-300 hover:text-white text-xs font-mono"
           >
-            {discovering
-              ? "[ Scanning Server... ]"
-              : `[ Adopt Existing Service ${unadoptedCount > 0 ? `(${unadoptedCount})` : ""} ]`}
+            {discovering ? (
+              <span className="inline-flex items-center gap-1.5">
+                <span className="size-1.5 rounded-full bg-sky-400 animate-pulse" />
+                Scanning Server...
+              </span>
+            ) : (
+              `Adopt Service ${unadoptedCount > 0 ? `(${unadoptedCount})` : ""}`
+            )}
           </Button>
           <Button type="button" onClick={() => launchCreate()} className="bg-white text-black font-semibold hover:bg-neutral-200 text-xs">
             + Deploy Project
@@ -162,13 +167,15 @@ export function Projects() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-1 items-center gap-3">
           <div className="relative max-w-xs flex-1">
-            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs text-neutral-500 font-sans">Search</span>
+            <svg viewBox="0 0 16 16" fill="currentColor" className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-neutral-500">
+              <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z" />
+            </svg>
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search projects or repo..."
-              className="h-9 w-full rounded-lg border border-neutral-800 bg-black pl-16 pr-3 font-sans text-xs text-white placeholder:text-neutral-500 focus:border-neutral-500 focus:outline-none"
+              className="h-8.5 w-full rounded-lg border border-neutral-800 bg-[#0a0a0a] pl-9 pr-3 font-sans text-xs text-white placeholder:text-neutral-500 focus:border-neutral-600 focus:outline-none"
             />
           </div>
 
@@ -277,7 +284,7 @@ export function Projects() {
                                 rel="noreferrer"
                                 className="font-mono text-[10px] text-emerald-400 hover:underline"
                               >
-                                [ VISIT APP ]
+                                Visit ↗
                               </a>
                             ) : (
                               <span className="font-mono text-[10px] text-neutral-600">Pending deploy</span>
@@ -310,13 +317,14 @@ export function Projects() {
           ) : (
             <div className="overflow-hidden rounded-xl border border-neutral-800 bg-[#0a0a0a]">
               <table className="w-full text-left font-sans text-xs">
-                <thead className="border-b border-neutral-800 bg-neutral-950 font-mono text-[11px] uppercase text-neutral-400">
+                <thead className="border-b border-neutral-800 text-[11px] font-medium uppercase tracking-wider text-neutral-500">
                   <tr>
-                    <th className="px-4 py-3">Project</th>
-                    <th className="px-4 py-3">Environment</th>
-                    <th className="px-4 py-3">Status</th>
-                    <th className="px-4 py-3">Live URL</th>
-                    <th className="px-4 py-3 text-right">Action</th>
+                    <th className="px-6 py-3.5 font-medium">Project</th>
+                    <th className="px-4 py-3.5 font-medium">Status</th>
+                    <th className="px-4 py-3.5 font-medium">Branch</th>
+                    <th className="px-4 py-3.5 font-medium">Environment</th>
+                    <th className="px-4 py-3.5 font-medium">Production Domain</th>
+                    <th className="px-6 py-3.5 text-right font-medium">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-neutral-800/60 text-neutral-300">
@@ -328,27 +336,61 @@ export function Projects() {
                     const domains = domainsByProject[proj.id] ?? [];
                     const url = publicProjectLiveUrl(proj, domains, port);
                     return (
-                      <tr key={proj.id} className="transition-colors hover:bg-neutral-900/60">
-                        <td className="px-4 py-3 font-semibold text-white">
-                          <Link to={`/projects/${proj.id}`} className="hover:underline">{proj.name}</Link>
+                      <tr key={proj.id} className="transition-colors hover:bg-neutral-900/40">
+                        <td className="px-6 py-3.5">
+                          <Link to={`/projects/${proj.id}`} className="font-semibold text-white hover:underline text-sm">
+                            {proj.name}
+                          </Link>
+                          <div className="text-[11px] text-neutral-500 font-mono truncate max-w-xs mt-0.5">
+                            {proj.repoUrl.replace(/^https?:\/\/(www\.)?/, "")}
+                          </div>
                         </td>
-                        <td className="px-4 py-3 font-mono text-[11px] capitalize text-neutral-400">{envLabel}</td>
-                        <td className="px-4 py-3">
+                        <td className="px-4 py-3.5">
                           <StatusBadge status={state} />
                         </td>
-                        <td className="px-4 py-3 font-mono text-[11px]">
+                        <td className="px-4 py-3.5">
+                          <span className="inline-flex items-center gap-1 font-mono text-neutral-400 text-xs">
+                            <svg viewBox="0 0 16 16" fill="currentColor" className="size-3 text-neutral-500 shrink-0">
+                              <path d="M9.5 3.25a2.25 2.25 0 1 1 3 2.122V6A2.5 2.5 0 0 1 10 8.5H6a1 1 0 0 0-1 1v1.128a2.251 2.251 0 1 1-1.5 0V5.372a2.25 2.25 0 1 1 1.5 0v1.836A2.493 2.493 0 0 1 6 7h4a1 1 0 0 0 1-1v-.628A2.25 2.25 0 0 1 9.5 3.25Zm-6 0a.75.75 0 1 0 1.5 0 .75.75 0 0 0-1.5 0Zm8.25.75a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5ZM4.25 12a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5Z" />
+                            </svg>
+                            <span>{proj.branch}</span>
+                          </span>
+                        </td>
+                        <td className="px-4 py-3.5">
+                          <span className="rounded-full border border-neutral-800 bg-neutral-900 px-2.5 py-0.5 text-[10px] font-medium capitalize text-neutral-400">
+                            {envLabel}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3.5 font-mono text-xs">
                           {url ? (
-                            <a href={url} target="_blank" rel="noreferrer" className="text-sky-400 hover:underline">
-                              {url.replace(/^https?:\/\//, "")}
+                            <a href={url} target="_blank" rel="noreferrer" className="text-emerald-400 hover:underline inline-flex items-center gap-1">
+                              <span>{url.replace(/^https?:\/\//, "")}</span>
+                              <span className="text-[10px]" aria-hidden>↗</span>
                             </a>
                           ) : (
-                            <span className="text-neutral-500">—</span>
+                            <span className="text-neutral-500 font-mono text-xs">—</span>
                           )}
                         </td>
-                        <td className="px-4 py-3 text-right">
-                          <Link to={`/projects/${proj.id}`} className={cn(buttonVariants({ variant: "outline", size: "xs" }), "border-neutral-800 font-sans text-xs")}>
-                            Manage
-                          </Link>
+                        <td className="px-6 py-3.5 text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            {url ? (
+                              <a
+                                href={url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className={cn(buttonVariants({ variant: "ghost", size: "xs" }), "h-7 text-neutral-400 hover:text-white text-xs gap-1")}
+                              >
+                                <span>Visit</span>
+                                <span className="text-[10px]" aria-hidden>↗</span>
+                              </a>
+                            ) : null}
+                            <Link
+                              to={`/projects/${proj.id}`}
+                              className={cn(buttonVariants({ variant: "outline", size: "xs" }), "h-7 border-neutral-800 bg-neutral-900 text-neutral-300 hover:text-white text-xs")}
+                            >
+                              Manage
+                            </Link>
+                          </div>
                         </td>
                       </tr>
                     );

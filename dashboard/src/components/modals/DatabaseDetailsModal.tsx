@@ -147,7 +147,7 @@ export function DatabaseDetailsModal({ open, onOpenChange, database, projects, o
                   onClick={() => setShowPassword(!showPassword)}
                   className="h-7 border-neutral-800 font-mono text-[11px] text-neutral-400 hover:text-white"
                 >
-                  {showPassword ? "[ Hide ]" : "[ Reveal ]"}
+                  {showPassword ? "Hide" : "Reveal"}
                 </Button>
                 <Button
                   type="button"
@@ -156,7 +156,7 @@ export function DatabaseDetailsModal({ open, onOpenChange, database, projects, o
                   onClick={() => copyToClipboard(database.passwordDecrypted, "Password")}
                   className="h-7 border-neutral-800 font-mono text-[11px] text-emerald-400 hover:text-emerald-300"
                 >
-                  [ Copy ]
+                  Copy
                 </Button>
               </div>
             </div>
@@ -174,7 +174,7 @@ export function DatabaseDetailsModal({ open, onOpenChange, database, projects, o
                   onClick={() => copyToClipboard(database.connectionUriLocal, "Local Connection URI")}
                   className="font-mono text-[11px] text-emerald-400 hover:underline"
                 >
-                  [ Copy URI ]
+                  Copy URI
                 </button>
               </div>
               <div className="overflow-x-auto border border-neutral-800 bg-neutral-900 p-2.5 font-mono text-xs text-neutral-300">
@@ -192,7 +192,7 @@ export function DatabaseDetailsModal({ open, onOpenChange, database, projects, o
                   onClick={() => copyToClipboard(database.connectionUriDocker, "Docker Connection URI")}
                   className="font-mono text-[11px] text-emerald-400 hover:underline"
                 >
-                  [ Copy URI ]
+                  Copy URI
                 </button>
               </div>
               <div className="overflow-x-auto border border-neutral-800 bg-neutral-900 p-2.5 font-mono text-xs text-neutral-300">
@@ -218,7 +218,7 @@ export function DatabaseDetailsModal({ open, onOpenChange, database, projects, o
                     try {
                       const { unlinkManagedDatabase } = await import("@/lib/api");
                       await unlinkManagedDatabase(database.id);
-                      toast.success("[ OK ] Unlinked database from project");
+                      toast.success("Unlinked database from project");
                       onUpdated();
                     } catch (err: any) {
                       toast.error(err instanceof Error ? err.message : "Failed to unlink");
@@ -228,7 +228,7 @@ export function DatabaseDetailsModal({ open, onOpenChange, database, projects, o
                   }}
                   className="h-6 border-neutral-800 font-mono text-[10px] text-neutral-400 hover:text-red-400"
                 >
-                  [ Unlink ]
+                  Unlink
                 </Button>
               )}
             </div>
@@ -284,7 +284,7 @@ export function DatabaseDetailsModal({ open, onOpenChange, database, projects, o
             onClick={() => onOpenChange(false)}
             className="border-neutral-800 text-neutral-400 hover:text-white"
           >
-            [ Close ]
+            Close
           </Button>
         </DialogFooter>
       </DialogContent>

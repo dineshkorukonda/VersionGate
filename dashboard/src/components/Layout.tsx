@@ -134,8 +134,9 @@ export function Layout() {
                 className="flex items-center justify-center gap-3 border-b border-amber-500/30 bg-amber-500/5 px-4 py-2 text-sm"
                 role="status"
               >
-                <span className="border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-amber-400">
-                  [ RESTART PENDING ]
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 font-sans text-[11px] font-medium text-amber-400">
+                  <span className="size-1.5 rounded-full bg-amber-400 animate-pulse" />
+                  Restart Pending
                 </span>
                 <span className="text-amber-400 font-sans text-xs">
                   Configuration change detected — engine will apply automatically on next job cycle.
