@@ -125,7 +125,7 @@ export function Layout() {
           <SidebarInset className="flex min-h-svh flex-col bg-black">
             <header className="sticky top-0 z-30 flex h-12 shrink-0 items-center gap-3 border-b border-neutral-800 bg-black/95 px-4 backdrop-blur-md">
               <SidebarTrigger />
-              <SidebarBreadcrumbs />
+              <SidebarBreadcrumbs projects={projects} />
             </header>
 
             <UpdateAvailableBanner />
