@@ -44,9 +44,56 @@ interface ProcessedRelease {
 
 const FALLBACK_RELEASES: ProcessedRelease[] = [
   {
-    version: "v2.9.8",
+    version: "v2.9.9",
     date: "September 18, 2026",
     isLatest: true,
+    summary:
+      "Comprehensive Subsystems & Applications Status page, commit-driven auto-deployment synchronization checker, non-empty Git clone destination cleanup, and production NODE_ENV environment handling for PM2 builds.",
+    categories: [
+      {
+        title: "System Functions & Applications Status",
+        badge: "NEW",
+        items: [
+          {
+            title: "Comprehensive Subsystem & Functions Status Page",
+            description:
+              "Introduced dedicated Status control plane at /status monitoring Fastify API engine, PostgreSQL 16, Redis broker, background job worker, Docker daemon, PM2 supervisor, Nginx reverse proxy, and GitHub webhook relays in real time.",
+            command: "GET /api/v1/system/status-overview",
+            prNumber: 247,
+          },
+          {
+            title: "Commit-Driven Auto-Deployment Synchronization Checker",
+            description:
+              "Automated validator scanning all managed projects after every Git push to verify deployed commit SHA matches remote HEAD, with one-click multi-project auto-sync and diagnostic telemetry.",
+            command: "POST /api/v1/system/check-autodeploy",
+            prNumber: 247,
+          },
+        ],
+      },
+      {
+        title: "Deployment Pipeline & Monorepo Engine",
+        badge: "FIX",
+        items: [
+          {
+            title: "Non-Empty Destination Directory Cleanup on Git Clone",
+            description:
+              "GitService automatically purges stale or dirty pre-existing destination directories before invoking git clone, eliminating fatal destination path collisions in monorepos and re-deployed projects.",
+            prNumber: 247,
+          },
+          {
+            title: "Production NODE_ENV Isolation for Next.js & PM2 Builds",
+            description:
+              "Separated dependency installation environment (development) from application build environment (production), resolving Next.js non-standard NODE_ENV warnings and React server component prerendering failures.",
+            prNumber: 247,
+          },
+        ],
+      },
+    ],
+  },
+  {
+    version: "v2.9.8",
+    date: "September 18, 2026",
+    isLatest: false,
     summary:
       "Automated deployment and commit tracking for adopted PM2 services, GitHub webhook secret generation on service import, automatic SSH Git URL normalization, ecosystem configuration detection, and multi-home PM2 daemon support.",
     categories: [

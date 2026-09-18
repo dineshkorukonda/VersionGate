@@ -14,6 +14,17 @@ export interface Capability {
 
 const CAPABILITIES: Capability[] = [
   {
+    id: "cap-system-status-autodeploy",
+    category: "Monitoring",
+    title: "System Status & Commit Auto-Deploy Validator",
+    command: "GET /api/v1/system/status-overview  |  POST /api/v1/system/check-autodeploy",
+    description:
+      "Comprehensive functions & subsystems status monitoring, real-time application health probes, and commit-driven auto-deployment synchronization checker.",
+    details:
+      "Dedicated Status control plane monitoring Fastify API engine, PostgreSQL 16, Redis broker, background workers, Docker daemon, PM2 supervisor, Nginx reverse proxy, and GitHub relays. Continuously verifies deployed commit SHAs against repository HEAD across all projects with one-click multi-project auto-sync.",
+    badge: "NEW",
+  },
+  {
     id: "cap-pm2-autodeploy-commits",
     category: "Deployment",
     title: "Adopted PM2 Auto-Deployments & Commit Restarts",

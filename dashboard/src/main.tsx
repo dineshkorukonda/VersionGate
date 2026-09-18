@@ -18,6 +18,7 @@ const Databases = lazy(() => import("@/pages/Databases").then((m) => ({ default:
 const CronJobs = lazy(() => import("@/pages/CronJobs").then((m) => ({ default: m.CronJobs })));
 const Deployments = lazy(() => import("@/pages/Deployments").then((m) => ({ default: m.Deployments })));
 const CreateProject = lazy(() => import("@/pages/CreateProject").then((m) => ({ default: m.CreateProject })));
+const Status = lazy(() => import("@/pages/Status").then((m) => ({ default: m.Status })));
 
 const PageLoader = () => (
   <div className="flex h-64 w-full items-center justify-center">
@@ -36,6 +37,7 @@ createRoot(document.getElementById("root")!).render(
             <Route path="/" element={<Overview />} />
             <Route path="/projects" element={<Projects />} />
             <Route path="/projects/new" element={<CreateProject />} />
+            <Route path="/status" element={<Status />} />
             <Route path="/deployments" element={<Deployments />} />
             <Route path="/databases" element={<Databases />} />
             <Route path="/cron" element={<CronJobs />} />
@@ -61,3 +63,4 @@ createRoot(document.getElementById("root")!).render(
     </BrowserRouter>
   </StrictMode>
 );
+

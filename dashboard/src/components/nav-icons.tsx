@@ -193,3 +193,12 @@ export function NavIconExternal({ className }: IconProps) {
     </svg>
   );
 }
+
+export function NavIconStatus({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className={cn("size-4 shrink-0", className)} aria-hidden>
+      <path d="M2 9.5h3l2-5 3 8 2-4h4" />
+    </svg>
+  );
+}
+

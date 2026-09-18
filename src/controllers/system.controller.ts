@@ -69,3 +69,23 @@ export async function getEngineHealthHandler(
   const { engineHealthMonitor } = await import("../services/engine-monitor.service");
   reply.code(200).send(engineHealthMonitor.getLatestReport());
 }
+
+export async function getSystemStatusOverviewHandler(
+  _req: FastifyRequest,
+  reply: FastifyReply
+): Promise<void> {
+  const { statusOverviewService } = await import("../services/status-overview.service");
+  const status = await statusOverviewService.getComprehensiveStatus();
+  reply.code(200).send(status);
+}
+
+export async function checkAutoDeployHandler(
+  req: FastifyRequest<{ Body: { projectId?: string; forceDeploy?: boolean } }>,
+  reply: FastifyReply
+): Promise<void> {
+  const { statusOverviewService } = await import("../services/status-overview.service");
+  const body = (req.body as { projectId?: string; forceDeploy?: boolean }) || {};
+  const result = await statusOverviewService.checkAndSyncAutoDeploy(body);
+  reply.code(200).send(result);
+}
+
