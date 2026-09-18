@@ -277,17 +277,25 @@ export async function buildAndStartPm2Deployment(options: Pm2DeployOptions): Pro
     );
   }
 
-  // 1. Determine package manager
+  // 1. Check for stack manifests
+  const fs = await import("fs/promises");
+  const pathModule = await import("path");
+
+  const hasPkgJson = await fs.access(pathModule.join(buildContextPath, "package.json")).then(() => true).catch(() => false);
+  const hasReqTxt = await fs.access(pathModule.join(buildContextPath, "requirements.txt")).then(() => true).catch(() => false);
+  const hasPyproject = await fs.access(pathModule.join(buildContextPath, "pyproject.toml")).then(() => true).catch(() => false);
+  const hasCargo = await fs.access(pathModule.join(buildContextPath, "Cargo.toml")).then(() => true).catch(() => false);
+  const hasGoMod = await fs.access(pathModule.join(buildContextPath, "go.mod")).then(() => true).catch(() => false);
+
+  // Determine package manager
   let pm = (project.packageManager || "auto").toLowerCase();
-  if (pm === "auto") {
-    const fs = await import("fs/promises");
-    const path = await import("path");
-    const hasPnpm = await fs.access(path.join(buildContextPath, "pnpm-lock.yaml")).then(() => true).catch(() => false);
-    const hasYarn = await fs.access(path.join(buildContextPath, "yarn.lock")).then(() => true).catch(() => false);
-    const hasPkgLock = await fs.access(path.join(buildContextPath, "package-lock.json")).then(() => true).catch(() => false);
+  if (pm === "auto" && hasPkgJson) {
+    const hasPnpm = await fs.access(pathModule.join(buildContextPath, "pnpm-lock.yaml")).then(() => true).catch(() => false);
+    const hasYarn = await fs.access(pathModule.join(buildContextPath, "yarn.lock")).then(() => true).catch(() => false);
+    const hasPkgLock = await fs.access(pathModule.join(buildContextPath, "package-lock.json")).then(() => true).catch(() => false);
     const hasBun =
-      (await fs.access(path.join(buildContextPath, "bun.lockb")).then(() => true).catch(() => false)) ||
-      (await fs.access(path.join(buildContextPath, "bun.lock")).then(() => true).catch(() => false));
+      (await fs.access(pathModule.join(buildContextPath, "bun.lockb")).then(() => true).catch(() => false)) ||
+      (await fs.access(pathModule.join(buildContextPath, "bun.lock")).then(() => true).catch(() => false));
     if (hasPnpm) pm = "pnpm";
     else if (hasYarn) pm = "yarn";
     else if (hasPkgLock) pm = "npm";
@@ -298,13 +306,22 @@ export async function buildAndStartPm2Deployment(options: Pm2DeployOptions): Pro
   // 2. Install dependencies
   let installCmd = project.installCommand?.trim();
   if (!installCmd) {
-    if (pm === "bun") installCmd = "bun install";
-    else if (pm === "pnpm") installCmd = "pnpm install";
-    else if (pm === "yarn") installCmd = "yarn install";
-    else installCmd = "npm install --include=dev";
+    if (hasPkgJson) {
+      if (pm === "bun") installCmd = "bun install";
+      else if (pm === "pnpm") installCmd = "pnpm install";
+      else if (pm === "yarn") installCmd = "yarn install";
+      else installCmd = "npm install --include=dev";
+    } else if (hasReqTxt) {
+      installCmd = "pip install -r requirements.txt";
+    } else if (hasPyproject) {
+      installCmd = "pip install .";
+    } else if (hasCargo) {
+      installCmd = "cargo build --release";
+    } else if (hasGoMod) {
+      installCmd = "go mod download";
+    }
   }
 
-  const pathModule = await import("path");
   const nodeBinPath = pathModule.join(buildContextPath, "node_modules", ".bin");
   const currentPath = process.env.PATH || "";
   const enhancedPath = currentPath.includes(nodeBinPath)
@@ -326,28 +343,32 @@ export async function buildAndStartPm2Deployment(options: Pm2DeployOptions): Pro
     PATH: enhancedPath,
   };
 
-  if (log) await log(`[PM2] Installing dependencies via: ${installCmd}`);
-  logger.info({ buildContextPath, installCmd }, "PM2: Installing dependencies");
-  const { execAsync } = await import("./exec");
-  try {
-    await execAsync(installCmd, { cwd: buildContextPath, env: installEnv });
-  } catch (err: any) {
-    if (installCmd.startsWith("bun install")) {
-      const fallbackCmd = "npm install --include=dev";
-      if (log) await log(`[PM2] "bun install" encountered an issue with native build addons (${err?.message || "lifecycle error"}). Falling back to "${fallbackCmd}"...`);
-      logger.warn({ err }, "PM2: bun install failed — falling back to npm install --include=dev");
-      await execAsync(fallbackCmd, { cwd: buildContextPath, env: installEnv });
-      if (log) await log(`[PM2] "${fallbackCmd}" completed successfully.`);
-    } else {
-      throw err;
+  if (installCmd) {
+    if (log) await log(`[PM2] Installing dependencies via: ${installCmd}`);
+    logger.info({ buildContextPath, installCmd }, "PM2: Installing dependencies");
+    const { execAsync } = await import("./exec");
+    try {
+      await execAsync(installCmd, { cwd: buildContextPath, env: installEnv });
+    } catch (err: any) {
+      if (installCmd.startsWith("bun install")) {
+        const fallbackCmd = "npm install --include=dev";
+        if (log) await log(`[PM2] "bun install" encountered an issue with native build addons (${err?.message || "lifecycle error"}). Falling back to "${fallbackCmd}"...`);
+        logger.warn({ err }, "PM2: bun install failed — falling back to npm install --include=dev");
+        await execAsync(fallbackCmd, { cwd: buildContextPath, env: installEnv });
+        if (log) await log(`[PM2] "${fallbackCmd}" completed successfully.`);
+      } else {
+        throw err;
+      }
     }
+  } else {
+    if (log) await log(`[PM2] No package manifest found in ${buildContextPath} — skipping install step`);
+    logger.info({ buildContextPath }, "PM2: No package manifest — skipping install step");
   }
 
   // 3. Build step (if specified or if scripts.build exists)
   let buildCmd = project.buildCommand?.trim();
-  if (!buildCmd) {
+  if (!buildCmd && hasPkgJson) {
     try {
-      const fs = await import("fs/promises");
       const pkgPath = pathModule.join(buildContextPath, "package.json");
       const rawPkg = await fs.readFile(pkgPath, "utf-8");
       const pkg = JSON.parse(rawPkg);
@@ -362,6 +383,7 @@ export async function buildAndStartPm2Deployment(options: Pm2DeployOptions): Pro
   if (buildCmd) {
     if (log) await log(`[PM2] Running build command: ${buildCmd}`);
     logger.info({ buildContextPath, buildCmd }, "PM2: Running build");
+    const { execAsync } = await import("./exec");
     try {
       await execAsync(buildCmd, { cwd: buildContextPath, env: buildEnv });
     } catch (err: any) {
