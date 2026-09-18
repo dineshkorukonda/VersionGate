@@ -84,7 +84,10 @@ export async function runDeployJob(
     await checkCancelled(undefined, log);
 
     const repoRoot = git.projectPath(project);
-    let buildContextPath = git.buildContextPath(project);
+    let buildContextPath = await git.resolveEffectiveBuildContext(project);
+    if (buildContextPath !== repoRoot) {
+      await log(`Monorepo context resolved: ${buildContextPath.replace(repoRoot, "").replace(/^[/\\]/, "")}`);
+    }
     if (project.deploymentType !== "pm2") {
       buildContextPath = await ensureDockerfile(
         buildContextPath,

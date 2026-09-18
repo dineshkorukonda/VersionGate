@@ -28,6 +28,118 @@ export class GitService {
     return resolved;
   }
 
+  async resolveEffectiveBuildContext(
+    project: Pick<ProjectSelect, "id" | "name" | "buildContext">
+  ): Promise<string> {
+    const rawContext = this.buildContextPath(project);
+    const repoRoot = path.resolve(this.projectPath(project));
+
+    const rawSetting = (project.buildContext ?? ".").trim();
+    if (rawSetting && rawSetting !== ".") {
+      return rawContext;
+    }
+
+    const manifests = [
+      "package.json",
+      "Dockerfile",
+      "dockerfile",
+      "ecosystem.config.js",
+      "ecosystem.config.cjs",
+      "pm2.config.js",
+      "pm2.config.cjs",
+      "requirements.txt",
+      "pyproject.toml",
+      "Cargo.toml",
+      "go.mod",
+    ];
+
+    for (const m of manifests) {
+      if (await fs.access(path.join(rawContext, m)).then(() => true).catch(() => false)) {
+        return rawContext;
+      }
+    }
+
+    const nameLower = project.name.toLowerCase().replace(/[^a-z0-9_-]/g, "-");
+    const nameTokens = nameLower.split(/[-_]+/).filter(Boolean);
+
+    const candidates = [
+      nameLower,
+      `apps/${nameLower}`,
+      `packages/${nameLower}`,
+      `services/${nameLower}`,
+    ];
+
+    if (nameTokens.length > 1) {
+      const subTokens = nameTokens.slice(1).join("-");
+      candidates.push(
+        subTokens,
+        `apps/${subTokens}`,
+        `packages/${subTokens}`,
+        `services/${subTokens}`
+      );
+      const lastToken = nameTokens[nameTokens.length - 1];
+      candidates.push(
+        lastToken,
+        `apps/${lastToken}`,
+        `packages/${lastToken}`,
+        `services/${lastToken}`
+      );
+    }
+
+    for (const candidate of candidates) {
+      const candidatePath = path.resolve(repoRoot, candidate);
+      if (candidatePath.startsWith(repoRoot)) {
+        for (const m of manifests) {
+          if (await fs.access(path.join(candidatePath, m)).then(() => true).catch(() => false)) {
+            logger.info(
+              { projectId: project.id, projectName: project.name, detectedPath: candidate },
+              "Resolved monorepo subfolder from project name"
+            );
+            return candidatePath;
+          }
+        }
+      }
+    }
+
+    try {
+      const entries = await fs.readdir(repoRoot, { withFileTypes: true });
+      for (const entry of entries) {
+        if (!entry.isDirectory() || entry.name.startsWith(".") || entry.name === "node_modules" || entry.name === "dist") {
+          continue;
+        }
+        const dirPath = path.join(repoRoot, entry.name);
+        for (const m of manifests) {
+          if (await fs.access(path.join(dirPath, m)).then(() => true).catch(() => false)) {
+            if (nameTokens.some((t) => entry.name.toLowerCase().includes(t))) {
+              logger.info({ projectId: project.id, dir: entry.name }, "Resolved matching subfolder from directory scan");
+              return dirPath;
+            }
+          }
+        }
+
+        if (["apps", "packages", "services"].includes(entry.name)) {
+          const nestedEntries = await fs.readdir(dirPath, { withFileTypes: true }).catch(() => []);
+          for (const nested of nestedEntries) {
+            if (!nested.isDirectory() || nested.name.startsWith(".")) continue;
+            const nestedPath = path.join(dirPath, nested.name);
+            for (const m of manifests) {
+              if (await fs.access(path.join(nestedPath, m)).then(() => true).catch(() => false)) {
+                if (nameTokens.some((t) => nested.name.toLowerCase().includes(t))) {
+                  logger.info({ projectId: project.id, dir: `${entry.name}/${nested.name}` }, "Resolved matching nested subfolder");
+                  return nestedPath;
+                }
+              }
+            }
+          }
+        }
+      }
+    } catch {
+      // ignore
+    }
+
+    return rawContext;
+  }
+
   async prepareSource(project: ProjectSelect, branchOverride?: string): Promise<void> {
     const branch = (branchOverride ?? project.branch).trim() || project.branch;
     logger.debug({ projectId: project.id, branch }, "Preparing source");
