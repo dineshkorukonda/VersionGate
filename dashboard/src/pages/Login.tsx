@@ -183,13 +183,13 @@ export function Login() {
         </div>
 
         <footer className="mt-10 flex flex-wrap justify-center gap-x-6 gap-y-2 border-t border-border/60 pt-6 text-xs text-muted-foreground">
-          <a className="hover:text-foreground" href="https://github.com/dinexh/VersionGate/blob/main/docs/SETUP.md" target="_blank" rel="noreferrer">
+          <a className="hover:text-foreground" href="https://github.com/dineshkorukonda/VersionGate/blob/main/docs/SETUP.md" target="_blank" rel="noreferrer">
             Documentation
           </a>
-          <a className="hover:text-foreground" href="https://github.com/dinexh/VersionGate/issues" target="_blank" rel="noreferrer">
+          <a className="hover:text-foreground" href="https://github.com/dineshkorukonda/VersionGate/issues" target="_blank" rel="noreferrer">
             Security
           </a>
-          <a className="hover:text-foreground" href="https://github.com/dinexh/VersionGate" target="_blank" rel="noreferrer">
+          <a className="hover:text-foreground" href="https://github.com/dineshkorukonda/VersionGate" target="_blank" rel="noreferrer">
             API & source
           </a>
         </footer>

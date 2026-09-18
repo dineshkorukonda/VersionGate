@@ -282,14 +282,16 @@ export async function buildAndStartPm2Deployment(options: Pm2DeployOptions): Pro
   if (pm === "auto") {
     const fs = await import("fs/promises");
     const path = await import("path");
+    const hasPnpm = await fs.access(path.join(buildContextPath, "pnpm-lock.yaml")).then(() => true).catch(() => false);
+    const hasYarn = await fs.access(path.join(buildContextPath, "yarn.lock")).then(() => true).catch(() => false);
+    const hasPkgLock = await fs.access(path.join(buildContextPath, "package-lock.json")).then(() => true).catch(() => false);
     const hasBun =
       (await fs.access(path.join(buildContextPath, "bun.lockb")).then(() => true).catch(() => false)) ||
       (await fs.access(path.join(buildContextPath, "bun.lock")).then(() => true).catch(() => false));
-    const hasPnpm = await fs.access(path.join(buildContextPath, "pnpm-lock.yaml")).then(() => true).catch(() => false);
-    const hasYarn = await fs.access(path.join(buildContextPath, "yarn.lock")).then(() => true).catch(() => false);
-    if (hasBun) pm = "bun";
-    else if (hasPnpm) pm = "pnpm";
+    if (hasPnpm) pm = "pnpm";
     else if (hasYarn) pm = "yarn";
+    else if (hasPkgLock) pm = "npm";
+    else if (hasBun) pm = "bun";
     else pm = "npm";
   }
 
@@ -319,7 +321,19 @@ export async function buildAndStartPm2Deployment(options: Pm2DeployOptions): Pro
   if (log) await log(`[PM2] Installing dependencies via: ${installCmd}`);
   logger.info({ buildContextPath, installCmd }, "PM2: Installing dependencies");
   const { execAsync } = await import("./exec");
-  await execAsync(installCmd, { cwd: buildContextPath, env: buildEnv });
+  try {
+    await execAsync(installCmd, { cwd: buildContextPath, env: buildEnv });
+  } catch (err: any) {
+    if (installCmd.startsWith("bun install")) {
+      const fallbackCmd = "npm install --include=dev";
+      if (log) await log(`[PM2] "bun install" encountered an issue with native build addons (${err?.message || "lifecycle error"}). Falling back to "${fallbackCmd}"...`);
+      logger.warn({ err }, "PM2: bun install failed — falling back to npm install --include=dev");
+      await execAsync(fallbackCmd, { cwd: buildContextPath, env: buildEnv });
+      if (log) await log(`[PM2] "${fallbackCmd}" completed successfully.`);
+    } else {
+      throw err;
+    }
+  }
 
   // 3. Build step (if specified or if scripts.build exists)
   let buildCmd = project.buildCommand?.trim();
@@ -340,7 +354,19 @@ export async function buildAndStartPm2Deployment(options: Pm2DeployOptions): Pro
   if (buildCmd) {
     if (log) await log(`[PM2] Running build command: ${buildCmd}`);
     logger.info({ buildContextPath, buildCmd }, "PM2: Running build");
-    await execAsync(buildCmd, { cwd: buildContextPath, env: buildEnv });
+    try {
+      await execAsync(buildCmd, { cwd: buildContextPath, env: buildEnv });
+    } catch (err: any) {
+      if (buildCmd.startsWith("bun run build")) {
+        const fallbackBuild = "npm run build";
+        if (log) await log(`[PM2] "${buildCmd}" failed. Retrying with "${fallbackBuild}"...`);
+        logger.warn({ err }, "PM2: bun run build failed — retrying with npm run build");
+        await execAsync(fallbackBuild, { cwd: buildContextPath, env: buildEnv });
+        if (log) await log(`[PM2] "${fallbackBuild}" completed successfully.`);
+      } else {
+        throw err;
+      }
+    }
   }
 
   // 4. Start via PM2
