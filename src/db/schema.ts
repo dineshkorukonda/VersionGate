@@ -129,6 +129,7 @@ export const projects = pgTable(
     installCommand: text("installCommand"),
     buildCommand: text("buildCommand"),
     startCommand: text("startCommand"),
+    isAdopted: boolean("isAdopted").default(false).notNull(),
     env: jsonb("env").default(sql`'{}'::jsonb`).notNull(),
     createdAt: timestamp("createdAt", { mode: "date" }).defaultNow().notNull(),
     updatedAt: timestamp("updatedAt", { mode: "date" }).defaultNow().notNull(),

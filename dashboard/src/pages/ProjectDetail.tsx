@@ -170,7 +170,9 @@ export function ProjectDetail() {
   }, [id]);
 
   const productionDeployments = useMemo(() => {
-    return deployments.filter((d) => !d.environmentId);
+    return deployments.filter(
+      (d) => !d.environmentName || d.environmentName.toLowerCase() === "production"
+    );
   }, [deployments]);
 
   const filteredDeployments = useMemo(() => {
@@ -179,7 +181,7 @@ export function ProjectDetail() {
         return false;
       }
       if (envFilter) {
-        const isProd = !d.environmentId;
+        const isProd = !d.environmentName || d.environmentName.toLowerCase() === "production";
         if (envFilter === "Production" && !isProd) return false;
         if (envFilter === "Preview" && isProd) return false;
       }

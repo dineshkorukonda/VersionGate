@@ -77,6 +77,7 @@ export interface Project {
   installCommand?: string | null;
   buildCommand?: string | null;
   startCommand?: string | null;
+  isAdopted?: boolean;
   env: Record<string, string>;
   createdAt: string;
   updatedAt: string;

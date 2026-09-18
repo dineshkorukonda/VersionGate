@@ -46,7 +46,7 @@ export function AdoptServiceModal({
       return;
     }
 
-    const portNum = parseInt(hostPort, 10);
+    const portNum = parseInt(hostPort || String(selectedCandidate.port || 0), 10);
     if (!portNum || portNum < 1 || portNum > 65535) {
       toast.error("Valid host port is required (1-65535)");
       return;
@@ -138,14 +138,21 @@ export function AdoptServiceModal({
                 <label className="block font-mono text-xs text-neutral-300">
                   Listening Host Port
                 </label>
-                <Input
-                  type="number"
-                  value={hostPort}
-                  onChange={(e) => setHostPort(e.target.value)}
-                  placeholder="e.g. 3000"
-                  className="border-neutral-800 bg-neutral-900 font-mono text-xs text-white focus-visible:ring-emerald-500"
-                  required
-                />
+                {selectedCandidate.port ? (
+                  <div className="flex h-9 items-center justify-between rounded-md border border-neutral-800 bg-neutral-900/90 px-3 font-mono text-xs text-emerald-400">
+                    <span>{selectedCandidate.port}</span>
+                    <span className="text-[10px] text-neutral-500 uppercase tracking-wider">[ Auto-Detected ]</span>
+                  </div>
+                ) : (
+                  <Input
+                    type="number"
+                    value={hostPort}
+                    onChange={(e) => setHostPort(e.target.value)}
+                    placeholder="e.g. 3000"
+                    className="border-neutral-800 bg-neutral-900 font-mono text-xs text-white focus-visible:ring-emerald-500"
+                    required
+                  />
+                )}
               </div>
             </div>
 
