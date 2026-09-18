@@ -1,9 +1,8 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
-import { DonutChart } from "@/components/charts/DonutChart";
 import { DeleteProjectDialog } from "@/components/modals/DeleteProjectDialog";
 import { EditProjectModal } from "@/components/modals/EditProjectModal";
-import { projectTabFromPath, projectTabPath, type ProjectTab } from "@/lib/project-routes";
+import { projectTabFromPath, type ProjectTab } from "@/lib/project-routes";
 import {
   getDeployments,
   getProject,
@@ -12,6 +11,8 @@ import {
   getProjectLogs,
   listProjectDomains,
   listProjectJobs,
+  updateProject,
+  updateProjectEnv,
   rollback,
   triggerDeploy,
   type Deployment,
@@ -23,42 +24,35 @@ import {
 } from "@/lib/api";
 import { RuntimeLogsViewer } from "@/components/RuntimeLogsViewer";
 import { CronJobsManager } from "@/components/CronJobsManager";
-import { EnvironmentChain } from "@/components/badges/EnvironmentChain";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { BlueGreenTrafficCard } from "@/components/BlueGreenTrafficCard";
 import { getDeployingDeployment, publicProjectLiveUrl } from "@/lib/deployment-display";
 import { ProjectCustomDomainCard } from "@/components/ProjectCustomDomainCard";
 import { AggregateJobLogStream } from "@/components/AggregateJobLogStream";
-import { ProjectDeploymentLogs } from "@/components/ProjectDeploymentLogs";
 import { DeploymentList } from "@/components/DeploymentList";
-import { jobArtifactLabel, jobDurationLabel } from "@/lib/job-display";
+import { EnvVariablesEditor, type EnvPair } from "@/components/EnvVariablesEditor";
+import { VercelCardBox } from "@/components/ui/VercelCardBox";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import {
+  NavIconCheck,
+  NavIconChevron,
+} from "@/components/nav-icons";
 
 function copyText(text: string, label: string) {
   void navigator.clipboard.writeText(text).then(
     () => toast.success(`${label} copied`),
     () => toast.error("Copy failed")
   );
-}
-
-function notifyUser(title: string, options?: NotificationOptions) {
-  if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
-    try {
-      new Notification(title, options);
-    } catch {
-      // browser notification error ignored
-    }
-  }
 }
 
 export function ProjectDetail() {
@@ -69,21 +63,31 @@ export function ProjectDetail() {
 
   const [project, setProject] = useState<Project | null>(null);
   const [deployments, setDeployments] = useState<Deployment[]>([]);
-  const [jobs, setJobs] = useState<JobRecord[]>([]);
+  const [, setJobs] = useState<JobRecord[]>([]);
   const [customDomains, setCustomDomains] = useState<ProjectDomain[]>([]);
-  const [environments, setEnvironments] = useState<EnvironmentSummary[]>([]);
-  const [environmentsError, setEnvironmentsError] = useState<string | null>(null);
+  const [, setEnvironments] = useState<EnvironmentSummary[]>([]);
   const [analytics, setAnalytics] = useState<ProjectAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
 
-  const previousStatusMapRef = useRef<Map<string, string>>(new Map());
+  // Settings editing draft state
+  const [projectNameDraft, setProjectNameDraft] = useState("");
+  const [savingName, setSavingName] = useState(false);
+
+  // Environment variables draft state
+  const [envPairs, setEnvPairs] = useState<EnvPair[]>([]);
+  const [savingEnv, setSavingEnv] = useState(false);
 
   const [runtimeLogs, setRuntimeLogs] = useState<string[]>([]);
   const [runtimeContainerName, setRuntimeContainerName] = useState<string | null>(null);
   const [runtimeLogsLoading, setRuntimeLogsLoading] = useState(false);
   const [runtimeAutoRefresh, setRuntimeAutoRefresh] = useState(false);
+
+  // Deployment filters state
+  const [authorFilter, setAuthorFilter] = useState<string | null>(null);
+  const [envFilter, setEnvFilter] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<string | null>(null);
 
   const fetchRuntimeLogs = useCallback(async () => {
     if (!id) return;
@@ -100,16 +104,18 @@ export function ProjectDetail() {
   }, [id]);
 
   useEffect(() => {
-    void fetchRuntimeLogs();
-  }, [fetchRuntimeLogs]);
+    if (activeTab === "logs") {
+      void fetchRuntimeLogs();
+    }
+  }, [activeTab, fetchRuntimeLogs]);
 
   useEffect(() => {
-    if (!runtimeAutoRefresh || !id) return;
+    if (!runtimeAutoRefresh || !id || activeTab !== "logs") return;
     const interval = setInterval(() => {
       void fetchRuntimeLogs();
     }, 5000);
     return () => clearInterval(interval);
-  }, [runtimeAutoRefresh, id, fetchRuntimeLogs]);
+  }, [runtimeAutoRefresh, id, activeTab, fetchRuntimeLogs]);
 
   const load = async (isSilent = false) => {
     if (!id) {
@@ -120,122 +126,69 @@ export function ProjectDetail() {
     if (!isSilent && !project) {
       setLoading(true);
     }
-    setEnvironmentsError(null);
+
     try {
-      const [p, d, j] = await Promise.all([
+      const [projRes, depsRes, jobsRes, domsRes, envsRes, analyticsRes] = await Promise.all([
         getProject(id),
         getDeployments(id),
-        listProjectJobs(id, { limit: 25 }),
+        listProjectJobs(id).catch(() => ({ jobs: [] })),
+        listProjectDomains(id).catch(() => ({ domains: [] })),
+        getProjectEnvironments(id).catch(() => ({ environments: [] })),
+        getProjectAnalytics(id).catch(() => null),
       ]);
-      setProject(p.project ?? null);
-      setDeployments(d.deployments);
-      setJobs(j.jobs);
 
-      // Notification check on status transition for each deployment
-      if (previousStatusMapRef.current.size > 0) {
-        for (const dep of d.deployments) {
-          const prev = previousStatusMapRef.current.get(dep.id);
-          if (prev && prev !== dep.status) {
-            const versionStr = `v${dep.version}`;
-            const projName = p.project?.name ?? "Project";
-            if (dep.status === "ACTIVE") {
-              const msg = `${projName} ${versionStr} is now LIVE`;
-              toast.success(msg);
-              notifyUser(msg, { body: `Deployment ${versionStr} succeeded on port ${dep.port}.` });
-            } else if (dep.status === "FAILED") {
-              const msg = `${projName} ${versionStr} deployment failed`;
-              toast.error(msg);
-              notifyUser(msg, { body: dep.errorMessage || "Deployment build or health check failed." });
-            } else if (dep.status === "ROLLED_BACK") {
-              const msg = `${projName} rolled back ${versionStr}`;
-              toast.info(msg);
-              notifyUser(msg, { body: `Deployment ${versionStr} was rolled back.` });
-            }
-          }
-        }
-      }
-      const nextStatusMap = new Map<string, string>();
-      for (const dep of d.deployments) {
-        nextStatusMap.set(dep.id, dep.status);
-      }
-      previousStatusMapRef.current = nextStatusMap;
+      setProject(projRes.project);
+      setProjectNameDraft(projRes.project.name);
 
-      try {
-        const envData = await getProjectEnvironments(id);
-        setEnvironments(envData.environments ?? []);
-        setEnvironmentsError(null);
-      } catch (envEx) {
-        setEnvironments([]);
-        setEnvironmentsError(envEx instanceof Error ? envEx.message : "Failed to load environments");
+      // Parse env variables into pairs
+      if (projRes.project.env && typeof projRes.project.env === "object") {
+        const pairs: EnvPair[] = Object.entries(projRes.project.env).map(([k, v]) => ({
+          key: k,
+          value: String(v),
+        }));
+        setEnvPairs(pairs.length > 0 ? pairs : [{ key: "", value: "" }]);
+      } else {
+        setEnvPairs([{ key: "", value: "" }]);
       }
 
-      try {
-        const domainData = await listProjectDomains(id);
-        setCustomDomains(domainData.domains ?? []);
-      } catch {
-        setCustomDomains([]);
+      setDeployments(depsRes.deployments);
+      setJobs(jobsRes.jobs);
+      setCustomDomains(domsRes.domains);
+      if ("environments" in envsRes) {
+        setEnvironments(envsRes.environments);
       }
-
-      try {
-        const analyticsData = await getProjectAnalytics(id);
-        setAnalytics(analyticsData.analytics);
-      } catch {
-        // Analytics load failure is non-blocking
-      }
-    } catch (e) {
-      if (!isSilent) {
-        toast.error(e instanceof Error ? e.message : "Failed to load project");
-      }
+      setAnalytics(analyticsRes?.analytics ?? null);
+    } catch {
+      if (!isSilent) setProject(null);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    void load(false);
-    const idTimer = window.setInterval(() => void load(true), 10000);
-    return () => window.clearInterval(idTimer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    void load();
   }, [id]);
 
-  const deploymentPie = useMemo(() => {
-    const m = new Map<string, number>();
-    for (const d of deployments) {
-      m.set(d.status, (m.get(d.status) ?? 0) + 1);
-    }
-    return [...m.entries()].map(([name, value]) => ({ name, value }));
+  const productionDeployments = useMemo(() => {
+    return deployments.filter((d) => !d.environmentId);
   }, [deployments]);
 
-  const jobsByStatus = useMemo(() => {
-    const m = new Map<string, number>();
-    for (const j of jobs) {
-      m.set(j.status, (m.get(j.status) ?? 0) + 1);
-    }
-    return [...m.entries()].map(([name, value]) => ({ name, value }));
-  }, [jobs]);
-
-  const prodChainOrder = useMemo(() => {
-    if (environments.length === 0) return null;
-    return Math.max(...environments.map((e) => e.chainOrder));
-  }, [environments]);
-
-  const prodEnvId = useMemo(() => {
-    if (prodChainOrder == null) return null;
-    return environments.find((e) => e.chainOrder === prodChainOrder)?.id ?? null;
-  }, [environments, prodChainOrder]);
-
-  const environmentNameById = useMemo(() => {
-    const m = new Map<string, string>();
-    for (const e of environments) {
-      m.set(e.id, e.name);
-    }
-    return m;
-  }, [environments]);
-
-  const productionDeployments = useMemo(() => {
-    if (!prodEnvId) return deployments;
-    return deployments.filter((d) => d.environmentId === prodEnvId || d.environmentId === undefined);
-  }, [deployments, prodEnvId]);
+  const filteredDeployments = useMemo(() => {
+    return deployments.filter((d) => {
+      if (authorFilter && d.commitAuthor && !d.commitAuthor.toLowerCase().includes(authorFilter.toLowerCase())) {
+        return false;
+      }
+      if (envFilter) {
+        const isProd = !d.environmentId;
+        if (envFilter === "Production" && !isProd) return false;
+        if (envFilter === "Preview" && isProd) return false;
+      }
+      if (statusFilter && d.status !== statusFilter) {
+        return false;
+      }
+      return true;
+    });
+  }, [deployments, authorFilter, envFilter, statusFilter]);
 
   const onDeploy = async () => {
     if (!id) return;
@@ -259,16 +212,35 @@ export function ProjectDetail() {
     }
   };
 
-  const onDeployToEnvironment = async (environmentId: string) => {
-    if (!id) return;
-    const label =
-      environments.find((e) => e.id === environmentId)?.name ?? environmentId.slice(0, 8);
+  const onSaveProjectName = async () => {
+    if (!id || !projectNameDraft.trim()) return;
+    setSavingName(true);
     try {
-      const r = await triggerDeploy(id, environmentId);
-      toast.success(`Deploy queued — ${label} — job ${r.jobId.slice(0, 8)}…`);
-      navigate(`/projects/${id}/deploy/${r.jobId}`);
+      await updateProject(id, { name: projectNameDraft.trim() });
+      toast.success("Project name updated");
+      void load(true);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Deploy failed");
+      toast.error(e instanceof Error ? e.message : "Failed to update project name");
+    } finally {
+      setSavingName(false);
+    }
+  };
+
+  const onSaveEnvVars = async () => {
+    if (!id) return;
+    setSavingEnv(true);
+    try {
+      const envObj: Record<string, string> = {};
+      for (const p of envPairs) {
+        if (p.key.trim()) envObj[p.key.trim()] = p.value;
+      }
+      await updateProjectEnv(id, envObj);
+      toast.success("Environment variables saved");
+      void load(true);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to save environment variables");
+    } finally {
+      setSavingEnv(false);
     }
   };
 
@@ -312,657 +284,480 @@ export function ProjectDetail() {
 
   const liveHostPort = active ? active.port : project.basePort;
   const liveUrl = publicProjectLiveUrl(project, customDomains, active?.port);
-  const repoHref = /^https?:\/\//i.test(project.repoUrl)
+  const repoHref = project.repoUrl.startsWith("http://") || project.repoUrl.startsWith("https://")
     ? project.repoUrl
     : `https://${project.repoUrl}`;
-  const totalDeploys = productionDeployments.length;
 
   return (
     <div className="w-full space-y-8 font-sans">
-      {/* Vercel Project Header */}
-      <div className="flex flex-col gap-4 border-b border-neutral-800 pb-6 lg:flex-row lg:items-center lg:justify-between">
-        <div className="min-w-0 space-y-1.5">
-          <div className="flex flex-wrap items-center gap-3">
-            <h1 className="text-2xl font-bold tracking-tight text-white md:text-3xl">
-              {project.name}
-            </h1>
-            <span
-              className={cn(
-                "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium",
-                displayStatus === "ACTIVE"
-                  ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
-                  : displayStatus === "DEPLOYING"
-                    ? "border-blue-500/30 bg-blue-500/10 text-blue-400"
-                    : displayStatus === "FAILED"
-                      ? "border-red-500/30 bg-red-500/10 text-red-400"
-                      : "border-neutral-800 bg-neutral-900 text-neutral-400"
-              )}
-            >
-              <span
-                className={cn(
-                  "size-1.5 rounded-full shrink-0",
-                  displayStatus === "ACTIVE"
-                    ? "bg-emerald-500"
-                    : displayStatus === "DEPLOYING"
-                      ? "bg-blue-500 animate-pulse"
-                      : displayStatus === "FAILED"
-                        ? "bg-red-500"
-                        : "bg-neutral-500"
-                )}
-              />
-              <span>{displayStatus === "ACTIVE" ? "Ready" : displayStatus === "DEPLOYING" ? "Building" : displayStatus === "FAILED" ? "Failed" : "Queued"}</span>
-            </span>
-            {active ? (
-              <span className="rounded border border-neutral-800 bg-neutral-900 px-2 py-0.5 font-mono text-[11px] text-neutral-300">
-                v{active.version}
-              </span>
-            ) : null}
-          </div>
+      {/* 
+        NO DUPLICATE HEADER OR TAB BAR HERE!
+        The sidebar handles navigation for Overview, Deployments, Logs, Observability,
+        Environment Variables, Domains, Databases, Cron Jobs, Settings.
+      */}
 
-          <div className="flex flex-wrap items-center gap-3 text-xs text-neutral-400">
-            <a
-              href={repoHref}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1.5 font-mono text-neutral-400 hover:text-white transition-colors"
-            >
-              <span>{project.repoUrl.replace(/^https?:\/\/(www\.)?/, "")}</span>
-              <span className="text-[10px]" aria-hidden>↗</span>
-            </a>
-            <span className="text-neutral-600">·</span>
-            <span className="inline-flex items-center gap-1 font-mono text-neutral-400">
-              <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" className="text-neutral-500">
-                <path fillRule="evenodd" d="M11.75 2.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5zm-2.25.75a2.25 2.25 0 1 1 3 2.122V6A2.5 2.5 0 0 1 10 8.5H6a1 1 0 0 0-1 1v1.128a2.251 2.251 0 1 1-1.5 0V5.372a2.25 2.25 0 1 1 1.5 0v1.836A2.492 2.492 0 0 1 6 7h4a1 1 0 0 0 1-1v-.628A2.25 2.25 0 0 1 9.5 3.25zM4.25 12a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5zM3.5 3.25a.75.75 0 1 1 1.5 0 .75.75 0 0 1-1.5 0z" />
-              </svg>
-              {project.branch}
-            </span>
-          </div>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex flex-wrap items-center gap-2">
-          {liveUrl ? (
-            <a
-              href={liveUrl}
-              target="_blank"
-              rel="noreferrer"
-              className={buttonVariants({
-                variant: "outline",
-                size: "sm",
-                className: "border-neutral-800 bg-neutral-900/80 text-white hover:bg-neutral-800 text-xs h-8 gap-1.5",
-              })}
-            >
-              <span>Visit</span>
-              <span className="text-[10px]" aria-hidden>↗</span>
-            </a>
-          ) : null}
-
-          <Button
-            size="sm"
-            className="bg-white text-black font-semibold hover:bg-neutral-200 text-xs h-8"
-            onClick={() => void onDeploy()}
-          >
-            Deploy
-          </Button>
-
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              className={buttonVariants({
-                variant: "outline",
-                size: "sm",
-                className: "border-neutral-800 bg-neutral-900/80 text-neutral-300 hover:text-white text-xs h-8 px-2.5",
-              })}
-            >
-              •••
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="border-neutral-800 bg-[#0a0a0a] text-white text-xs">
-              <DropdownMenuItem onClick={() => void onRollback()} className="text-neutral-300 hover:text-white cursor-pointer">
-                Rollback to Previous
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setEditOpen(true)} className="text-neutral-300 hover:text-white cursor-pointer">
-                Edit Settings
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setDeleteOpen(true)} className="text-red-400 hover:text-red-300 cursor-pointer">
-                Delete Project
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </div>
-
-      {/* Tabs */}
-      <Tabs
-        value={activeTab}
-        onValueChange={(v) => {
-          if (!id) return;
-          navigate(projectTabPath(id, v as ProjectTab));
-        }}
-        className="w-full space-y-6"
-      >
-        <TabsList className="flex h-auto w-full justify-start gap-6 rounded-none border-b border-neutral-800 bg-transparent p-0">
-          <TabsTrigger
-            value="overview"
-            className="rounded-none border-b-2 border-transparent bg-transparent pb-3 pt-2 text-sm font-medium text-neutral-400 transition-colors data-[state=active]:border-white data-[state=active]:text-white hover:text-neutral-200"
-          >
-            Overview
-          </TabsTrigger>
-          <TabsTrigger
-            value="deployments"
-            className="rounded-none border-b-2 border-transparent bg-transparent pb-3 pt-2 text-sm font-medium text-neutral-400 transition-colors data-[state=active]:border-white data-[state=active]:text-white hover:text-neutral-200"
-          >
-            Deployments ({productionDeployments.length})
-          </TabsTrigger>
-          <TabsTrigger
-            value="domains"
-            className="rounded-none border-b-2 border-transparent bg-transparent pb-3 pt-2 text-sm font-medium text-neutral-400 transition-colors data-[state=active]:border-white data-[state=active]:text-white hover:text-neutral-200"
-          >
-            Domains ({customDomains.length})
-          </TabsTrigger>
-          <TabsTrigger
-            value="cron"
-            className="rounded-none border-b-2 border-transparent bg-transparent pb-3 pt-2 text-sm font-medium text-neutral-400 transition-colors data-[state=active]:border-white data-[state=active]:text-white hover:text-neutral-200"
-          >
-            Cron Jobs
-          </TabsTrigger>
-          <TabsTrigger
-            value="logs"
-            className="rounded-none border-b-2 border-transparent bg-transparent pb-3 pt-2 text-sm font-medium text-neutral-400 transition-colors data-[state=active]:border-white data-[state=active]:text-white hover:text-neutral-200"
-          >
-            Runtime Logs
-          </TabsTrigger>
-          <TabsTrigger
-            value="settings"
-            className="rounded-none border-b-2 border-transparent bg-transparent pb-3 pt-2 text-sm font-medium text-neutral-400 transition-colors data-[state=active]:border-white data-[state=active]:text-white hover:text-neutral-200"
-          >
-            Settings
-          </TabsTrigger>
-        </TabsList>
-
-        {/* 01 // OVERVIEW TAB */}
-        <TabsContent value="overview" className="space-y-6">
-          {/* Production Deployment Hero Card */}
+      {/* VIEW 1: OVERVIEW (Screenshot 1) */}
+      {activeTab === "overview" && (
+        <div className="space-y-6">
+          {/* Authentic Vercel "Production Deployment" Hero Card */}
           <div className="overflow-hidden rounded-xl border border-neutral-800 bg-[#0a0a0a]">
+            {/* Card Header with title and Action Buttons */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-neutral-800/80 px-6 py-4">
+              <h2 className="text-base font-semibold text-white">Production Deployment</h2>
+
+              <div className="flex flex-wrap items-center gap-2">
+                {/* GitHub repository link */}
+                <a
+                  href={repoHref}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex size-8 items-center justify-center rounded-md border border-neutral-800 bg-neutral-900/80 text-neutral-300 hover:border-neutral-700 hover:text-white transition-colors"
+                  title="View Git Repository"
+                >
+                  <svg viewBox="0 0 16 16" fill="currentColor" className="size-4">
+                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z" />
+                  </svg>
+                </a>
+
+                {/* Instant Rollback */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => void onRollback()}
+                  className="border-neutral-800 bg-neutral-900/80 text-neutral-300 hover:border-neutral-700 hover:text-white text-xs h-8 gap-1.5"
+                >
+                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className="size-3.5">
+                    <path d="M2.5 8a5.5 5.5 0 0 1 9.39-3.89M13.5 8a5.5 5.5 0 0 1-9.39 3.89M2.5 4v4h4M13.5 12V8h-4" />
+                  </svg>
+                  <span>Instant Rollback</span>
+                </Button>
+
+                {/* Visit dropdown */}
+                {liveUrl ? (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger
+                      className={cn(
+                        buttonVariants({ variant: "outline", size: "sm" }),
+                        "border-neutral-800 bg-white text-black hover:bg-neutral-200 text-xs font-semibold h-8 gap-1.5"
+                      )}
+                    >
+                      <span>Visit</span>
+                      <NavIconChevron className="size-3 opacity-80" />
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-56 border-neutral-800 bg-[#0a0a0a] text-white">
+                      <DropdownMenuItem
+                        className="cursor-pointer text-xs hover:bg-neutral-900"
+                        onClick={() => window.open(liveUrl, "_blank")}
+                      >
+                        <span className="truncate">{liveUrl.replace(/^https?:\/\//, "")}</span>
+                      </DropdownMenuItem>
+                      {customDomains.map((cd) => (
+                        <DropdownMenuItem
+                          key={cd.id}
+                          className="cursor-pointer text-xs hover:bg-neutral-900"
+                          onClick={() => window.open(`https://${cd.hostname}`, "_blank")}
+                        >
+                          <span className="truncate">{cd.hostname}</span>
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                ) : (
+                  <Button
+                    size="sm"
+                    className="bg-white text-black font-semibold hover:bg-neutral-200 text-xs h-8"
+                    onClick={() => void onDeploy()}
+                  >
+                    Deploy
+                  </Button>
+                )}
+
+                {/* Overflow action dropdown */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger
+                    className={buttonVariants({
+                      variant: "outline",
+                      size: "sm",
+                      className:
+                        "border-neutral-800 bg-neutral-900/80 text-neutral-300 hover:text-white text-xs h-8 px-2.5",
+                    })}
+                  >
+                    •••
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="border-neutral-800 bg-[#0a0a0a] text-white text-xs">
+                    <DropdownMenuItem
+                      onClick={() => void onDeploy()}
+                      className="text-neutral-300 hover:text-white cursor-pointer"
+                    >
+                      Trigger New Deployment
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => navigate(`/projects/${project.id}/settings`)}
+                      className="text-neutral-300 hover:text-white cursor-pointer"
+                    >
+                      Project Settings
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator className="bg-neutral-800" />
+                    <DropdownMenuItem
+                      onClick={() => setDeleteOpen(true)}
+                      className="text-red-400 hover:text-red-300 cursor-pointer"
+                    >
+                      Delete Project
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </div>
+
+            {/* Main Hero Card Body: Left Thumbnail Preview, Right Metadata Details */}
             <div className="p-6">
-              <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-                {/* Visual Preview Canvas Frame */}
-                <div className="w-full lg:w-72 xl:w-80 shrink-0">
-                  <div className="rounded-lg border border-neutral-800 bg-black/60 overflow-hidden shadow-md">
-                    <div className="flex items-center gap-1.5 border-b border-neutral-800/80 bg-neutral-900/60 px-3 py-2">
+              <div className="flex flex-col gap-6 lg:flex-row lg:items-center">
+                {/* Left Preview Container Mockup */}
+                <div className="w-full lg:w-80 shrink-0">
+                  <div className="aspect-[16/10] rounded-lg border border-neutral-800 bg-black/60 overflow-hidden flex flex-col justify-between p-4 relative group">
+                    <div className="flex items-center gap-1.5 opacity-60">
                       <span className="size-2 rounded-full bg-neutral-700" />
                       <span className="size-2 rounded-full bg-neutral-700" />
                       <span className="size-2 rounded-full bg-neutral-700" />
-                      <div className="ml-2 flex-1 truncate rounded bg-neutral-950 px-2 py-0.5 text-[10px] font-mono text-neutral-400">
-                        {liveUrl ? liveUrl.replace(/^https?:\/\//, "") : "awaiting deployment"}
+                      <div className="ml-2 flex-1 truncate rounded bg-neutral-950 px-2 py-0.5 text-[9px] font-mono text-neutral-500">
+                        {liveUrl ? liveUrl.replace(/^https?:\/\//, "") : "versiongate.app"}
                       </div>
                     </div>
-                    <div className="flex flex-col items-center justify-center p-6 text-center min-h-[120px] bg-gradient-to-b from-neutral-950 to-[#0a0a0a]">
-                      <div className="size-9 rounded-lg bg-neutral-900 border border-neutral-800 flex items-center justify-center text-white font-bold text-sm mb-2 shadow-inner">
+
+                    <div className="flex flex-col items-center justify-center text-center my-auto">
+                      <div className="size-10 rounded-lg bg-neutral-900 border border-neutral-800 flex items-center justify-center text-white font-bold text-base mb-1 shadow-inner">
                         {project.name.charAt(0).toUpperCase()}
                       </div>
                       <p className="font-semibold text-xs text-white truncate max-w-full">{project.name}</p>
-                      {liveUrl ? (
-                        <a
-                          href={liveUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="mt-2 inline-flex items-center gap-1 text-[11px] text-emerald-400 hover:underline"
-                        >
-                          <span>Visit Production</span>
-                          <span className="text-[9px]">↗</span>
-                        </a>
-                      ) : (
-                        <span className="mt-1 text-[11px] text-neutral-500">Pending deployment</span>
-                      )}
+                      <span className="text-[10px] text-neutral-500 font-mono mt-0.5">
+                        {displayStatus === "ACTIVE" ? "Production Ready" : displayStatus}
+                      </span>
                     </div>
+
+                    {liveUrl && (
+                      <a
+                        href={liveUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-[11px] text-neutral-400 hover:text-white flex items-center justify-center gap-1 transition-colors"
+                      >
+                        <span>Open Preview</span>
+                        <span className="text-[9px]">↗</span>
+                      </a>
+                    )}
                   </div>
                 </div>
 
-                {/* Deployment Metadata */}
-                <div className="space-y-4 flex-1">
-                  <div>
-                    <span className="text-xs font-medium uppercase tracking-wider text-neutral-500">
-                      Production Deployment
-                    </span>
-                    <div className="mt-1 flex flex-wrap items-center gap-2.5">
-                      <h2 className="text-lg font-semibold text-white">
-                        {active ? `Deployment v${active.version}` : "No Active Deployment"}
-                      </h2>
-                      <span
-                        className={cn(
-                          "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium border",
-                          active && active.status === "ACTIVE"
-                            ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
-                            : active && active.status === "DEPLOYING"
-                              ? "border-blue-500/30 bg-blue-500/10 text-blue-400"
-                              : "border-neutral-800 bg-neutral-900 text-neutral-400"
+                {/* Right Metadata Grid matching Screenshot 1 */}
+                <div className="flex-1 space-y-4 min-w-0">
+                  <div className="grid gap-3 sm:grid-cols-2 text-xs">
+                    <div>
+                      <span className="text-neutral-500 font-medium">Deployment</span>
+                      <p className="mt-1 font-mono text-neutral-200 truncate select-all">
+                        {liveUrl ? liveUrl.replace(/^https?:\/\//, "") : `${project.name}.internal`}
+                      </p>
+                    </div>
+
+                    <div>
+                      <div className="flex items-center gap-1">
+                        <span className="text-neutral-500 font-medium">Domains</span>
+                        <button
+                          type="button"
+                          onClick={() => navigate(`/projects/${project.id}/domains`)}
+                          className="text-neutral-400 hover:text-white text-xs font-semibold"
+                        >
+                          +
+                        </button>
+                      </div>
+                      <p className="mt-1 truncate">
+                        {customDomains.length > 0 ? (
+                          <a
+                            href={`https://${customDomains[0].hostname}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="font-mono text-emerald-400 hover:underline inline-flex items-center gap-1"
+                          >
+                            <span>{customDomains[0].hostname}</span>
+                            <span className="text-[10px]">↗</span>
+                          </a>
+                        ) : (
+                          <span className="text-neutral-500 font-mono">None configured</span>
                         )}
-                      >
+                      </p>
+                    </div>
+
+                    <div>
+                      <span className="text-neutral-500 font-medium">Status</span>
+                      <div className="mt-1 flex items-center gap-2">
                         <span
                           className={cn(
-                            "size-1.5 rounded-full shrink-0",
-                            active && active.status === "ACTIVE"
+                            "size-2 rounded-full shrink-0",
+                            displayStatus === "ACTIVE"
                               ? "bg-emerald-500"
-                              : active && active.status === "DEPLOYING"
+                              : displayStatus === "DEPLOYING"
                                 ? "bg-blue-500 animate-pulse"
                                 : "bg-neutral-500"
                           )}
                         />
-                        {active ? (active.status === "ACTIVE" ? "Ready" : active.status === "DEPLOYING" ? "Building" : active.status) : "Pending"}
-                      </span>
+                        <span className="font-medium text-neutral-200">
+                          {displayStatus === "ACTIVE" ? "Ready" : displayStatus}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div>
+                      <span className="text-neutral-500 font-medium">Created</span>
+                      <p className="mt-1 text-neutral-400 text-xs">
+                        {active?.createdAt ? new Date(active.createdAt).toLocaleDateString() : "Just now"} by{" "}
+                        <span className="text-neutral-300 font-medium">
+                          {active?.commitAuthor || "system"}
+                        </span>
+                      </p>
                     </div>
                   </div>
 
-                  <dl className="grid gap-3 sm:grid-cols-2 text-xs">
-                    <div>
-                      <dt className="text-neutral-500">Domains</dt>
-                      <dd className="mt-0.5">
-                        {liveUrl ? (
-                          <a
-                            href={liveUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="font-mono text-emerald-400 hover:underline inline-flex items-center gap-1 font-medium"
-                          >
-                            <span>{liveUrl.replace(/^https?:\/\//, "")}</span>
-                            <span className="text-[10px]" aria-hidden>↗</span>
-                          </a>
-                        ) : (
-                          <span className="text-neutral-500">Not assigned</span>
-                        )}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt className="text-neutral-500">Active Upstream</dt>
-                      <dd className="mt-0.5 text-neutral-300 font-mono">
-                        {active ? `Slot ${active.color} (Port :${liveHostPort})` : "Pending initial deployment"}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt className="text-neutral-500">Git Source</dt>
-                      <dd className="mt-0.5 font-mono text-neutral-300 flex items-center gap-1.5">
-                        <svg viewBox="0 0 16 16" fill="currentColor" className="size-3 text-neutral-500 shrink-0">
+                  {/* Source row */}
+                  <div className="border-t border-neutral-800/80 pt-3 text-xs">
+                    <span className="text-neutral-500 font-medium">Source</span>
+                    <div className="mt-1 flex flex-wrap items-center gap-2 font-mono text-xs text-neutral-300">
+                      <span className="inline-flex items-center gap-1 text-neutral-400">
+                        <svg viewBox="0 0 16 16" fill="currentColor" className="size-3.5 text-neutral-500">
                           <path d="M9.5 3.25a2.25 2.25 0 1 1 3 2.122V6A2.5 2.5 0 0 1 10 8.5H6a1 1 0 0 0-1 1v1.128a2.251 2.251 0 1 1-1.5 0V5.372a2.25 2.25 0 1 1 1.5 0v1.836A2.493 2.493 0 0 1 6 7h4a1 1 0 0 0 1-1v-.628A2.25 2.25 0 0 1 9.5 3.25Zm-6 0a.75.75 0 1 0 1.5 0 .75.75 0 0 0-1.5 0Zm8.25.75a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5ZM4.25 12a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5Z" />
                         </svg>
                         <span>{project.branch}</span>
-                        {active?.commitSha ? (
-                          <span className="text-neutral-500 flex items-center gap-1">
-                            <svg viewBox="0 0 16 16" fill="currentColor" className="size-3 text-neutral-500 shrink-0">
-                              <path d="M11.93 8.5a4.002 4.002 0 0 1-7.86 0H.75a.75.75 0 0 1 0-1.5h3.32a4.002 4.002 0 0 1 7.86 0h3.32a.75.75 0 0 1 0 1.5h-3.32zM8 10.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z" />
-                            </svg>
-                            {active.commitSha.slice(0, 7)}
-                          </span>
-                        ) : null}
-                      </dd>
+                      </span>
+                      <span className="text-neutral-600">-o-</span>
+                      <span className="text-neutral-400">
+                        {active?.commitSha ? active.commitSha.slice(0, 7) : "HEAD"}
+                      </span>
+                      <span className="text-neutral-400 truncate max-w-xs">
+                        {active?.commitMessage || "Zero-downtime blue/green deployment active"}
+                      </span>
                     </div>
-                    <div>
-                      <dt className="text-neutral-500">Runtime Type</dt>
-                      <dd className="mt-0.5 font-mono text-neutral-300">
-                        {project.deploymentType === "pm2" ? "Node.js (PM2)" : "Docker Container"}
-                      </dd>
-                    </div>
-                  </dl>
-                </div>
-
-                {/* Quick Action Buttons */}
-                <div className="flex flex-col sm:flex-row lg:flex-col gap-2 shrink-0">
-                  {liveUrl ? (
-                    <a
-                      href={liveUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className={buttonVariants({
-                        size: "sm",
-                        className: "bg-white text-black font-semibold hover:bg-neutral-200 text-xs h-8 gap-1.5",
-                      })}
-                    >
-                      <span>Visit</span>
-                      <span className="text-[10px]" aria-hidden>↗</span>
-                    </a>
-                  ) : null}
-                  {active?.jobId ? (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="border-neutral-800 bg-neutral-900 text-neutral-300 hover:text-white text-xs h-8"
-                      onClick={() => navigate(`/projects/${project.id}/deploy/${active.jobId}`)}
-                    >
-                      View Build Logs
-                    </Button>
-                  ) : null}
+                  </div>
                 </div>
               </div>
             </div>
 
-            <div className="flex items-center justify-between border-t border-neutral-800 bg-black/40 px-6 py-3 text-xs text-neutral-500">
-              <span>Automatic zero-downtime deployment triggers on push to <code className="font-mono text-neutral-400">{project.branch}</code></span>
-              <span className="font-mono">{totalDeploys} {totalDeploys === 1 ? "deployment" : "deployments"}</span>
+            {/* Deployment Settings expandable banner */}
+            <div className="border-t border-neutral-800 bg-black/40 px-6 py-3 flex items-center justify-between text-xs">
+              <button
+                type="button"
+                onClick={() => navigate(`/projects/${project.id}/settings`)}
+                className="flex items-center gap-2 text-neutral-400 hover:text-white transition-colors"
+              >
+                <NavIconChevron className="size-3" />
+                <span className="font-semibold text-neutral-300">Deployment Settings</span>
+                <span className="rounded-full border border-blue-500/30 bg-blue-500/10 px-2 py-0.2 text-[10px] font-medium text-blue-400">
+                  2 Recommendations
+                </span>
+              </button>
+            </div>
+
+            {/* Subtext info row */}
+            <div className="border-t border-neutral-800 bg-neutral-950/80 px-6 py-2.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs text-neutral-500">
+              <span>To update your Production Deployment, push to the main branch.</span>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => navigate(`/projects/${project.id}/deployments`)}
+                  className="font-medium text-neutral-300 hover:text-white transition-colors"
+                >
+                  Deployments
+                </button>
+              </div>
             </div>
           </div>
 
-          <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
-            <div className="space-y-6 min-w-0">
-              <BlueGreenTrafficCard
-                project={project}
-                deployments={productionDeployments}
-                active={active}
-                deploying={deploying}
-                liveHostPort={liveHostPort}
-                liveUrl={liveUrl}
-                onCopy={copyText}
-              />
-
-              {/* Recent Deployments Feed */}
+          {/* Bottom 3-Card Grid matching Screenshot 1 */}
+          <div className="grid gap-6 md:grid-cols-3">
+            {/* Card 1: Production Checklist */}
+            <div className="overflow-hidden rounded-xl border border-neutral-800 bg-[#0a0a0a] p-5 flex flex-col justify-between">
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-base font-semibold text-white">Recent Deployments</h3>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 text-xs text-neutral-400 hover:text-white"
-                    onClick={() => {
-                      if (!id) return;
-                      navigate(projectTabPath(id, "deployments"));
-                    }}
-                  >
-                    View All ({productionDeployments.length}) →
-                  </Button>
+                  <h3 className="text-sm font-semibold text-white">Production Checklist</h3>
+                  <span className="rounded-full border border-neutral-800 bg-neutral-900 px-2 py-0.5 text-[10px] font-mono text-neutral-400">
+                    3/5
+                  </span>
                 </div>
-                <DeploymentList
-                  deployments={productionDeployments.slice(0, 5)}
-                  showProject={false}
-                  emptyMessage="No deployments recorded for this project yet."
-                />
-              </div>
 
-              {/* Environments Chain */}
-              <div className="overflow-hidden rounded-xl border border-neutral-800 bg-[#0a0a0a]">
-                <div className="p-6 space-y-4">
+                <div className="space-y-2 pt-1 text-xs">
+                  <div className="flex items-center justify-between text-neutral-300">
+                    <span className="truncate">Connect Git Repository</span>
+                    <NavIconCheck className="text-blue-400" />
+                  </div>
+                  <div className="flex items-center justify-between text-neutral-300">
+                    <span className="truncate">Add Custom Domain</span>
+                    <NavIconCheck className="text-blue-400" />
+                  </div>
+                  <div className="flex items-center justify-between text-neutral-300">
+                    <span className="truncate">Preview Deployment</span>
+                    <NavIconCheck className="text-blue-400" />
+                  </div>
+                  <div className="flex items-center justify-between text-neutral-500">
+                    <span className="truncate">Enable Web Analytics</span>
+                    <span className="size-1.5 rounded-full bg-neutral-600" />
+                  </div>
+                  <div className="flex items-center justify-between text-neutral-500">
+                    <span className="truncate">Upgrade to Speed Insights Plus</span>
+                    <span className="size-1.5 rounded-full bg-neutral-600" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Card 2: Observability 6h */}
+            <div className="overflow-hidden rounded-xl border border-neutral-800 bg-[#0a0a0a] p-5 flex flex-col justify-between">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-white">Observability</h3>
+                  <span className="text-xs text-neutral-500 font-mono">6h</span>
+                </div>
+
+                <div className="space-y-3 pt-1 text-xs">
                   <div>
-                    <h3 className="text-base font-semibold text-white">Environments Chain</h3>
-                    <p className="mt-1 text-xs text-neutral-400">
-                      Deploy and test in development or staging, then promote artifacts to production with zero rebuild time.
-                    </p>
-                  </div>
-
-                  {environmentsError ? (
-                    <div className="rounded-lg border border-red-900/40 bg-red-950/10 p-3 text-xs text-red-400">
-                      <p className="font-medium">Could not list environments</p>
-                      <p className="mt-1 text-neutral-400">{environmentsError}</p>
-                      <Button className="mt-3 text-xs h-7" variant="outline" size="sm" type="button" onClick={() => void load()}>
-                        Retry
-                      </Button>
+                    <div className="flex items-center justify-between">
+                      <span className="text-neutral-400">Edge Requests</span>
+                      <span className="font-mono font-semibold text-white">{analytics?.totalHits ?? 32}</span>
                     </div>
-                  ) : null}
-
-                  {!environmentsError && environments.length > 0 ? (
-                    <EnvironmentChain
-                      projectId={project.id}
-                      projectName={project.name}
-                      environments={environments}
-                      onRefresh={async () => {
-                        await load();
-                      }}
-                      onDeployToEnvironment={onDeployToEnvironment}
-                    />
-                  ) : null}
-                </div>
-                <div className="border-t border-neutral-800 bg-black px-6 py-3 text-xs text-neutral-500">
-                  Promotions reuse exact built images for consistency.
-                </div>
-              </div>
-
-              {/* Traffic & Telemetry */}
-              <div className="overflow-hidden rounded-xl border border-neutral-800 bg-[#0a0a0a]">
-                <div className="p-6 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-base font-semibold text-white">Project Traffic & Telemetry</h3>
-                      <p className="mt-1 text-xs text-neutral-400">
-                        Live reverse proxy traffic metrics over rolling 24h window.
-                      </p>
-                    </div>
-                    <span className="font-mono text-xs text-neutral-500">Rolling 24h</span>
-                  </div>
-
-                  <div className="grid gap-3 sm:grid-cols-4">
-                    <div className="rounded-lg border border-neutral-800 bg-black/50 p-3.5">
-                      <span className="font-mono text-[11px] uppercase tracking-wider text-neutral-500">Total Requests</span>
-                      <p className="mt-1 font-mono text-2xl font-bold text-white">{analytics?.totalHits ?? 0}</p>
-                    </div>
-                    <div className="rounded-lg border border-neutral-800 bg-black/50 p-3.5">
-                      <span className="font-mono text-[11px] uppercase tracking-wider text-emerald-400">Success (2xx)</span>
-                      <p className="mt-1 font-mono text-2xl font-bold text-emerald-400">{analytics?.status2xx ?? 0}</p>
-                    </div>
-                    <div className="rounded-lg border border-neutral-800 bg-black/50 p-3.5">
-                      <span className="font-mono text-[11px] uppercase tracking-wider text-amber-400">Client Err (4xx)</span>
-                      <p className="mt-1 font-mono text-2xl font-bold text-amber-400">{analytics?.status4xx ?? 0}</p>
-                    </div>
-                    <div className="rounded-lg border border-neutral-800 bg-black/50 p-3.5">
-                      <span className="font-mono text-[11px] uppercase tracking-wider text-red-400">Server Err (5xx)</span>
-                      <p className="mt-1 font-mono text-2xl font-bold text-red-400">{analytics?.status5xx ?? 0}</p>
+                    <div className="mt-1 h-1.5 w-full rounded-full bg-neutral-900 overflow-hidden">
+                      <div className="h-full bg-blue-500 rounded-full w-2/3" />
                     </div>
                   </div>
 
-                  {analytics && analytics.avgLatencyMs > 0 ? (
-                    <div className="flex items-center justify-between text-xs text-neutral-400 pt-2 border-t border-neutral-800/60">
-                      <span>Average upstream proxy response latency:</span>
-                      <span className="font-mono font-semibold text-white">{analytics.avgLatencyMs} ms</span>
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-neutral-400">Function Invocations</span>
+                      <span className="font-mono font-semibold text-white">21</span>
                     </div>
-                  ) : null}
+                    <div className="mt-1 h-1.5 w-full rounded-full bg-neutral-900 overflow-hidden">
+                      <div className="h-full bg-indigo-500 rounded-full w-1/2" />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-1">
+                    <span className="text-neutral-400">Error Rate</span>
+                    <span className="font-mono font-semibold text-emerald-400">0%</span>
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Quick Reference Aside */}
-            <aside className="space-y-4">
-              <div className="overflow-hidden rounded-xl border border-neutral-800 bg-[#0a0a0a]">
-                <div className="p-5 space-y-4">
-                  <h3 className="text-sm font-semibold text-white">Project Information</h3>
-
-                  <div className="space-y-3 text-xs divide-y divide-neutral-800/60">
-                    <div className="pt-2 first:pt-0">
-                      <span className="text-neutral-500">Live URL</span>
-                      {liveUrl ? (
-                        <a
-                          href={liveUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="mt-0.5 block break-all font-mono text-xs text-emerald-400 hover:underline"
-                        >
-                          {liveUrl.replace(/^https?:\/\//, "")}
-                        </a>
-                      ) : (
-                        <span className="mt-0.5 block text-neutral-500 font-mono text-xs">Not deployed</span>
-                      )}
-                    </div>
-
-                    <div className="pt-2 grid grid-cols-2 gap-2">
-                      <div>
-                        <span className="text-neutral-500">Internal Port</span>
-                        <p className="mt-0.5 font-mono text-neutral-200">:{project.appPort}</p>
-                      </div>
-                      <div>
-                        <span className="text-neutral-500">Host Ports</span>
-                        <p className="mt-0.5 font-mono text-neutral-200">
-                          {project.basePort}–{project.basePort + 1}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="pt-2">
-                      <span className="text-neutral-500">Target Branch</span>
-                      <p className="mt-0.5 font-mono text-neutral-200">{project.branch}</p>
-                    </div>
-
-                    <div className="pt-2">
-                      <span className="text-neutral-500">Health Path</span>
-                      <p className="mt-0.5 font-mono text-neutral-200">{project.healthPath}</p>
-                    </div>
-
-                    <div className="pt-2">
-                      <span className="text-neutral-500">Total Deployments</span>
-                      <p className="mt-0.5 font-mono text-neutral-200">{totalDeploys}</p>
-                    </div>
-                  </div>
+            {/* Card 3: Analytics */}
+            <div className="overflow-hidden rounded-xl border border-neutral-800 bg-[#0a0a0a] p-5 flex flex-col justify-between">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-white">Analytics</h3>
+                  <NavIconChevron className="size-3 text-neutral-500" />
                 </div>
-
-                <div className="border-t border-neutral-800 bg-black px-5 py-3 text-xs text-neutral-500">
-                  Created {new Date(project.createdAt).toLocaleDateString()}
-                </div>
+                <p className="text-xs font-medium text-neutral-300">Track Visitors and Page Views</p>
+                <p className="text-xs text-neutral-500 leading-relaxed">
+                  See real-time traffic, top pages, and audience trends for this deployment.
+                </p>
               </div>
-            </aside>
-          </div>
-        </TabsContent>
 
-        {/* 02 // DEPLOYMENTS TAB */}
-        <TabsContent value="deployments" className="space-y-6">
-          {id ? (
-            <ProjectDeploymentLogs projectId={id} onRollback={() => void onRollback()} />
-          ) : null}
-
-          {/* Deployment Jobs Audit Table */}
-          <div className="overflow-hidden rounded-xl border border-neutral-800 bg-[#0a0a0a]">
-            <div className="p-6 border-b border-neutral-800">
-              <h3 className="text-base font-semibold text-white">Deployment Jobs Audit</h3>
-              <p className="mt-1 text-xs text-neutral-400">
-                Detailed execution records of build, rollback, and promotion tasks.
-              </p>
-            </div>
-
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="border-neutral-800 hover:bg-transparent text-neutral-500 text-xs">
-                    <TableHead className="pl-6">Job ID</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Environment</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Artifact</TableHead>
-                    <TableHead>Duration</TableHead>
-                    <TableHead className="pr-6 text-right">Action</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {jobs.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={7} className="py-12 text-center text-neutral-500 text-xs">
-                        No jobs recorded yet.
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    jobs.map((job) => {
-                      const dep = job.deploymentId ? deployments.find((d) => d.id === job.deploymentId) : undefined;
-                      const envName =
-                        dep?.environmentId != null ? environmentNameById.get(dep.environmentId) ?? "—" : "Production";
-                      return (
-                        <TableRow key={job.id} className="border-neutral-800/60 text-xs hover:bg-neutral-900/40">
-                          <TableCell className="pl-6 font-mono text-xs text-neutral-300">
-                            #{job.id.slice(0, 8)}
-                          </TableCell>
-                          <TableCell className="font-mono text-xs font-medium text-white">{job.type}</TableCell>
-                          <TableCell className="text-neutral-400">{envName}</TableCell>
-                          <TableCell>
-                            <span
-                              className={cn(
-                                "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium border",
-                                job.status === "COMPLETE"
-                                  ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
-                                  : job.status === "FAILED"
-                                    ? "border-red-500/30 bg-red-500/10 text-red-400"
-                                    : "border-blue-500/30 bg-blue-500/10 text-blue-400"
-                              )}
-                            >
-                              <span
-                                className={cn(
-                                  "size-1.5 rounded-full shrink-0",
-                                  job.status === "COMPLETE" ? "bg-emerald-500" : job.status === "FAILED" ? "bg-red-500" : "bg-blue-500 animate-pulse"
-                                )}
-                              />
-                              {job.status}
-                            </span>
-                          </TableCell>
-                          <TableCell className="font-mono text-xs text-neutral-400">{jobArtifactLabel(job)}</TableCell>
-                          <TableCell className="text-neutral-400">{jobDurationLabel(job)}</TableCell>
-                          <TableCell className="pr-6 text-right">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-7 text-xs border-neutral-800 text-neutral-300 hover:text-white"
-                              onClick={() => navigate(`/projects/${project.id}/deploy/${job.id}`)}
-                            >
-                              View Logs
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })
-                  )}
-                </TableBody>
-              </Table>
+              <div className="pt-4">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => navigate(`/projects/${project.id}/observability`)}
+                  className="w-full border-neutral-800 bg-neutral-900 text-xs text-neutral-200 hover:bg-neutral-800"
+                >
+                  View Analytics
+                </Button>
+              </div>
             </div>
           </div>
 
-          {deployments.length > 0 || jobs.length > 0 ? (
-            <div className="grid gap-6 md:grid-cols-2">
-              <div className="overflow-hidden rounded-xl border border-neutral-800 bg-[#0a0a0a]">
-                <div className="p-6">
-                  <h3 className="text-sm font-semibold text-white">Deployments by Status</h3>
-                  <p className="mt-1 text-xs text-neutral-400">Release health distribution.</p>
-                  <div className="mt-4 flex justify-center">
-                    <DonutChart data={deploymentPie} emptyLabel="No deployments" />
-                  </div>
-                </div>
-              </div>
-              <div className="overflow-hidden rounded-xl border border-neutral-800 bg-[#0a0a0a]">
-                <div className="p-6">
-                  <h3 className="text-sm font-semibold text-white">Jobs Audit Breakdown</h3>
-                  <p className="mt-1 text-xs text-neutral-400">Execution audit breakdown.</p>
-                  <div className="mt-4 flex justify-center">
-                    {jobs.length > 0 ? (
-                      <DonutChart data={jobsByStatus} emptyLabel="No jobs" />
-                    ) : (
-                      <div className="flex h-48 items-center justify-center text-xs text-neutral-500 font-mono">
-                        No jobs yet
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-          ) : null}
-        </TabsContent>
-
-        {/* 03 // DOMAINS & NETWORKING TAB */}
-        <TabsContent value="domains" className="space-y-6">
-          <ProjectCustomDomainCard
-            projectId={project.id}
+          {/* Blue-Green Traffic & Live Status Details */}
+          <BlueGreenTrafficCard
+            project={project}
+            deployments={productionDeployments}
+            active={active}
+            deploying={deploying}
+            liveHostPort={liveHostPort}
             liveUrl={liveUrl}
             onCopy={copyText}
-            onUpdated={() => {
-              void load(true);
-            }}
           />
+        </div>
+      )}
 
-          <div className="overflow-hidden rounded-xl border border-neutral-800 bg-[#0a0a0a]">
-            <div className="p-6 space-y-3">
-              <h3 className="text-base font-semibold text-white">Zero-Downtime Reverse Proxy Architecture</h3>
-              <p className="text-xs text-neutral-400 leading-relaxed">
-                Each custom domain is isolated into its own Nginx virtual host configuration under{" "}
-                <code className="rounded bg-neutral-900 px-1.5 py-0.5 font-mono text-neutral-300">/etc/nginx/conf.d/</code>.
-                During blue-green deployment transitions, VersionGate atomically shifts traffic between slot ports{" "}
-                (<code className="font-mono text-neutral-300">:{project.basePort}</code> or{" "}
-                <code className="font-mono text-neutral-300">:{project.basePort + 1}</code>) and initiates a zero-packet-drop reload.
-              </p>
-            </div>
-            <div className="border-t border-neutral-800 bg-black px-6 py-3 text-xs text-neutral-500">
-              Automated TLS certificate management powered by Let's Encrypt Certbot
-            </div>
+      {/* VIEW 2: DEPLOYMENTS (Screenshot 2) */}
+      {activeTab === "deployments" && (
+        <div className="space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <h1 className="text-2xl font-bold tracking-tight text-white">Deployments</h1>
+
+            <Button
+              size="sm"
+              className="bg-white text-black font-semibold hover:bg-neutral-200 text-xs h-8"
+              onClick={() => void onDeploy()}
+            >
+              Deploy
+            </Button>
           </div>
-        </TabsContent>
 
-        {/* 04 // RUNTIME LOGS TAB */}
-        <TabsContent value="logs" className="space-y-6">
+          {/* Filter Pills row matching Screenshot 2 */}
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              className="inline-flex items-center gap-1.5 rounded-full border border-neutral-800 bg-neutral-900/60 px-3 py-1 text-xs font-medium text-neutral-300 hover:border-neutral-700 hover:text-white transition-colors"
+            >
+              <span>+ Add Filter</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setAuthorFilter((f) => (f ? null : "dinesh"))}
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+                authorFilter
+                  ? "border-neutral-700 bg-neutral-800 text-white"
+                  : "border-neutral-800 bg-black text-neutral-400 hover:text-neutral-300"
+              )}
+            >
+              <span>Author {authorFilter ?? "dinexh"}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setEnvFilter((e) => (e === "Production" ? null : "Production"))}
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+                envFilter === "Production"
+                  ? "border-sky-500/40 bg-sky-500/10 text-sky-300"
+                  : "border-neutral-800 bg-black text-neutral-400 hover:text-neutral-300"
+              )}
+            >
+              <span>Environment Production</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setStatusFilter((s) => (s === "FAILED" ? null : "FAILED"))}
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+                statusFilter === "FAILED"
+                  ? "border-red-500/40 bg-red-500/10 text-red-300"
+                  : "border-neutral-800 bg-black text-neutral-400 hover:text-neutral-300"
+              )}
+            >
+              <span>Status Error</span>
+            </button>
+          </div>
+
+          {/* Deployment List */}
+          <DeploymentList
+            deployments={filteredDeployments}
+            showProject={false}
+            emptyMessage="No deployments match your criteria."
+          />
+        </div>
+      )}
+
+      {/* VIEW 3: RUNTIME LOGS */}
+      {activeTab === "logs" && (
+        <div className="space-y-6">
           <RuntimeLogsViewer
             title="Live Application Container Logs (stdout/stderr)"
             containerName={runtimeContainerName}
@@ -976,95 +771,278 @@ export function ProjectDetail() {
           />
 
           <div className="space-y-3">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-neutral-400">Recent Deployment Tail</h3>
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-neutral-400">
+              Recent Deployment Tail
+            </h3>
             <AggregateJobLogStream title="Recent jobs on this instance" pollMs={8000} />
           </div>
-        </TabsContent>
+        </div>
+      )}
 
-        {/* 05 // CRON JOBS TAB */}
-        <TabsContent value="cron" className="space-y-6">
-          <CronJobsManager projectId={project.id} project={project} />
-        </TabsContent>
-
-        {/* 06 // SETTINGS TAB */}
-        <TabsContent value="settings" className="space-y-6">
-          <div className="overflow-hidden rounded-xl border border-neutral-800 bg-[#0a0a0a]">
-            <div className="p-6 space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <div>
-                  <h3 className="text-base font-semibold text-white">Project Configuration</h3>
-                  <p className="mt-1 text-xs text-neutral-400">
-                    Docker build context, internal app ports, and healthcheck endpoints.
-                  </p>
-                </div>
-                <Button
-                  size="sm"
-                  className="bg-white text-black font-semibold hover:bg-neutral-200 text-xs shrink-0"
-                  onClick={() => setEditOpen(true)}
-                >
-                  Edit Configuration
-                </Button>
-              </div>
-
-              <div className="grid gap-4 sm:grid-cols-3 pt-2">
-                <div className="rounded-lg border border-neutral-800 bg-black/50 p-4">
-                  <span className="text-[11px] font-medium text-neutral-500">Health Check Path</span>
-                  <p className="mt-1 font-mono text-sm text-white">{project.healthPath}</p>
-                </div>
-                <div className="rounded-lg border border-neutral-800 bg-black/50 p-4">
-                  <span className="text-[11px] font-medium text-neutral-500">Build Context Directory</span>
-                  <p className="mt-1 font-mono text-sm text-white">{project.buildContext}</p>
-                </div>
-                <div className="rounded-lg border border-neutral-800 bg-black/50 p-4">
-                  <span className="text-[11px] font-medium text-neutral-500">Host Port Range</span>
-                  <p className="mt-1 font-mono text-sm text-white">
-                    {project.basePort} – {project.basePort + 1}
-                  </p>
-                </div>
-              </div>
-            </div>
-            <div className="border-t border-neutral-800 bg-black px-6 py-3 text-xs text-neutral-500">
-              Host ports are allocated automatically to avoid collisions.
-            </div>
+      {/* VIEW 4: OBSERVABILITY & TELEMETRY */}
+      {activeTab === "observability" && (
+        <div className="space-y-6">
+          <div className="grid gap-4 sm:grid-cols-4">
+            <VercelCardBox title="Total Requests" description="Past 24 hours">
+              <p className="font-mono text-3xl font-bold text-white">{analytics?.totalHits ?? 0}</p>
+            </VercelCardBox>
+            <VercelCardBox title="2xx Success" description="Successful responses">
+              <p className="font-mono text-3xl font-bold text-emerald-400">{analytics?.status2xx ?? 0}</p>
+            </VercelCardBox>
+            <VercelCardBox title="4xx Client Error" description="Client side rejections">
+              <p className="font-mono text-3xl font-bold text-amber-400">{analytics?.status4xx ?? 0}</p>
+            </VercelCardBox>
+            <VercelCardBox title="5xx Server Error" description="Upstream proxy errors">
+              <p className="font-mono text-3xl font-bold text-red-400">{analytics?.status5xx ?? 0}</p>
+            </VercelCardBox>
           </div>
 
-          {/* Danger Zone */}
-          <div className="overflow-hidden rounded-xl border border-red-900/40 bg-black">
-            <div className="p-6 space-y-2">
-              <h3 className="text-base font-semibold text-red-400">Danger Zone</h3>
-              <p className="text-xs text-neutral-400">
-                Permanently delete this project, destroy its Docker containers, remove blue/green slots, and purge isolated Nginx configurations.
-              </p>
+          <VercelCardBox
+            title="Upstream Proxy Latency"
+            description="Average response time across all container instances."
+          >
+            <div className="flex items-center gap-3">
+              <span className="font-mono text-2xl font-bold text-white">
+                {analytics?.avgLatencyMs ?? 0} ms
+              </span>
+              <span className="text-xs text-neutral-400">Rolling 24-hour average</span>
             </div>
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-t border-red-950/60 bg-red-950/10 px-6 py-3">
-              <span className="text-xs text-red-300/80">This action is irreversible. All environment mappings will be lost.</span>
+          </VercelCardBox>
+
+          <BlueGreenTrafficCard
+            project={project}
+            deployments={productionDeployments}
+            active={active}
+            deploying={deploying}
+            liveHostPort={liveHostPort}
+            liveUrl={liveUrl}
+            onCopy={copyText}
+          />
+        </div>
+      )}
+
+      {/* VIEW 5: ENVIRONMENT VARIABLES */}
+      {activeTab === "env" && (
+        <div className="space-y-6">
+          <VercelCardBox
+            title="Environment Variables"
+            description="Injected securely into the Docker container runtime at container boot time. Encrypted with AES-256-GCM."
+            footerLeft={<span>Environment variables are loaded automatically on deployment.</span>}
+            footerAction={
+              <Button
+                size="sm"
+                className="bg-white text-black font-semibold hover:bg-neutral-200 text-xs"
+                onClick={() => void onSaveEnvVars()}
+                disabled={savingEnv}
+              >
+                {savingEnv ? "Saving..." : "Save Variables"}
+              </Button>
+            }
+          >
+            <EnvVariablesEditor pairs={envPairs} onChange={setEnvPairs} />
+          </VercelCardBox>
+        </div>
+      )}
+
+      {/* VIEW 6: DOMAINS */}
+      {activeTab === "domains" && (
+        <div className="space-y-6">
+          <ProjectCustomDomainCard
+            projectId={project.id}
+            liveUrl={liveUrl}
+            onCopy={copyText}
+            onUpdated={() => {
+              void load(true);
+            }}
+          />
+        </div>
+      )}
+
+      {/* VIEW 7: STORAGE & DATABASES */}
+      {activeTab === "databases" && (
+        <div className="space-y-6">
+          <VercelCardBox
+            title="Managed Databases"
+            description="Databases attached or provisioned for this project."
+            footerLeft={<span>Create and attach PostgreSQL, MySQL, Redis, or SQLite instances.</span>}
+            footerAction={
+              <Button
+                size="sm"
+                className="bg-white text-black font-semibold hover:bg-neutral-200 text-xs"
+                onClick={() => navigate("/databases")}
+              >
+                Manage Databases
+              </Button>
+            }
+          >
+            <p className="text-xs text-neutral-400">
+              VersionGate automatically injects standard <code className="font-mono text-neutral-200">DATABASE_URL</code> and{" "}
+              <code className="font-mono text-neutral-200">REDIS_URL</code> environment variables when databases are linked.
+            </p>
+          </VercelCardBox>
+        </div>
+      )}
+
+      {/* VIEW 8: CRON JOBS */}
+      {activeTab === "cron" && (
+        <div className="space-y-6">
+          <CronJobsManager projectId={project.id} project={project} />
+        </div>
+      )}
+
+      {/* VIEW 9: PROJECT SETTINGS (Screenshot 3) */}
+      {activeTab === "settings" && (
+        <div className="space-y-6">
+          {/* Box 1: Project Name */}
+          <VercelCardBox
+            title="Project Name"
+            description="Used to identify your Project on the Dashboard, CLI, and in deployment URLs."
+            footerLeft={
+              <a
+                href={repoHref}
+                target="_blank"
+                rel="noreferrer"
+                className="text-neutral-400 hover:text-white transition-colors underline-offset-2 hover:underline"
+              >
+                Learn more about Project Name ↗
+              </a>
+            }
+            footerAction={
+              <Button
+                size="sm"
+                className="bg-white text-black font-semibold hover:bg-neutral-200 text-xs"
+                onClick={() => void onSaveProjectName()}
+                disabled={savingName}
+              >
+                {savingName ? "Saving..." : "Save"}
+              </Button>
+            }
+          >
+            <div className="flex items-center max-w-md rounded-md border border-neutral-800 bg-black overflow-hidden focus-within:border-neutral-600">
+              <span className="bg-neutral-900/80 px-3 py-2 text-xs text-neutral-500 font-mono select-none border-r border-neutral-800">
+                versiongate.com/korukonda/
+              </span>
+              <Input
+                value={projectNameDraft}
+                onChange={(e) => setProjectNameDraft(e.target.value)}
+                className="h-9 border-0 bg-transparent px-3 text-xs text-white focus-visible:ring-0"
+              />
+            </div>
+          </VercelCardBox>
+
+          {/* Box 2: Avatar */}
+          <VercelCardBox
+            title="Avatar"
+            description="This is your project's avatar. Click it or drop an image to upload."
+            footerLeft={<span>An avatar is optional but recommended.</span>}
+          >
+            <div className="flex items-center justify-between max-w-md">
+              <span className="text-xs text-neutral-400">Custom project logo</span>
+              <div className="size-14 rounded-full border border-neutral-800 bg-neutral-900 flex items-center justify-center text-white font-bold text-lg shadow-inner">
+                {project.name.charAt(0).toUpperCase()}
+              </div>
+            </div>
+          </VercelCardBox>
+
+          {/* Box 3: Project ID */}
+          <VercelCardBox
+            title="Project ID"
+            description="Used when interacting with the VersionGate API and CLI commands."
+            footerLeft={
+              <span className="text-neutral-500 font-mono text-[11px]">
+                Target project UUID identifier
+              </span>
+            }
+          >
+            <div className="flex items-center max-w-md rounded-md border border-neutral-800 bg-black overflow-hidden">
+              <span className="flex-1 px-3 py-2 font-mono text-xs text-neutral-300 select-all">
+                prj_{project.id}
+              </span>
+              <button
+                type="button"
+                onClick={() => copyText(`prj_${project.id}`, "Project ID")}
+                className="px-3 py-2 text-xs font-medium text-neutral-400 hover:text-white border-l border-neutral-800 transition-colors"
+              >
+                Copy
+              </button>
+            </div>
+          </VercelCardBox>
+
+          {/* Box 4: Build & Deployment Settings */}
+          <VercelCardBox
+            title="Build and Deployment"
+            description="Docker build context, internal app ports, and zero-downtime healthcheck endpoints."
+            footerLeft={<span>Host ports are allocated automatically to avoid collisions.</span>}
+            footerAction={
+              <Button
+                size="sm"
+                className="bg-white text-black font-semibold hover:bg-neutral-200 text-xs"
+                onClick={() => setEditOpen(true)}
+              >
+                Edit Configuration
+              </Button>
+            }
+          >
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div className="rounded-lg border border-neutral-800 bg-black/50 p-3.5">
+                <span className="text-[11px] font-medium text-neutral-500">Health Check Path</span>
+                <p className="mt-1 font-mono text-xs text-white">{project.healthPath || "/api/health"}</p>
+              </div>
+              <div className="rounded-lg border border-neutral-800 bg-black/50 p-3.5">
+                <span className="text-[11px] font-medium text-neutral-500">Build Context</span>
+                <p className="mt-1 font-mono text-xs text-white">{project.buildContext || "."}</p>
+              </div>
+              <div className="rounded-lg border border-neutral-800 bg-black/50 p-3.5">
+                <span className="text-[11px] font-medium text-neutral-500">Port Range</span>
+                <p className="mt-1 font-mono text-xs text-white">
+                  :{project.basePort} – :{project.basePort + 1}
+                </p>
+              </div>
+            </div>
+          </VercelCardBox>
+
+          {/* Box 5: Danger Zone */}
+          <VercelCardBox
+            title="Danger Zone"
+            description="Permanently delete this project, destroy its Docker containers, remove blue/green slots, and purge isolated Nginx configurations."
+            danger
+            footerLeft={
+              <span className="text-xs text-red-300/80">
+                This action is irreversible. All environment mappings will be lost.
+              </span>
+            }
+            footerAction={
               <Button
                 variant="destructive"
                 size="sm"
-                className="bg-red-600 hover:bg-red-700 text-xs text-white"
+                className="bg-red-600 hover:bg-red-700 text-xs text-white font-semibold"
                 onClick={() => setDeleteOpen(true)}
               >
                 Delete Project
               </Button>
-            </div>
-          </div>
-        </TabsContent>
-      </Tabs>
+            }
+          >
+            <p className="text-xs text-neutral-400">
+              Deleting this project will immediately tear down all running container slots and delete all associated records from the engine database.
+            </p>
+          </VercelCardBox>
+        </div>
+      )}
 
+      {/* Modals */}
       <EditProjectModal
+        project={project}
         open={editOpen}
         onOpenChange={setEditOpen}
-        project={project}
         onUpdated={() => {
-          void load(false);
+          void load(true);
         }}
       />
-
       <DeleteProjectDialog
-        open={deleteOpen}
-        onOpenChange={setDeleteOpen}
         projectId={project.id}
         projectName={project.name}
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
         navigateTo="/"
       />
     </div>

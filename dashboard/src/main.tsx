@@ -43,6 +43,9 @@ createRoot(document.getElementById("root")!).render(
             <Route path="/projects/:id" element={<ProjectDetail />} />
             <Route path="/projects/:id/deployments" element={<ProjectDetail />} />
             <Route path="/projects/:id/domains" element={<ProjectDetail />} />
+            <Route path="/projects/:id/env" element={<ProjectDetail />} />
+            <Route path="/projects/:id/observability" element={<ProjectDetail />} />
+            <Route path="/projects/:id/databases" element={<ProjectDetail />} />
             <Route path="/projects/:id/cron" element={<ProjectDetail />} />
             <Route path="/projects/:id/logs" element={<ProjectDetail />} />
             <Route path="/projects/:id/settings" element={<ProjectDetail />} />
@@ -58,4 +61,3 @@ createRoot(document.getElementById("root")!).render(
     </BrowserRouter>
   </StrictMode>
 );
-

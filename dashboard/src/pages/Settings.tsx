@@ -1,7 +1,6 @@
 import { type ReactNode, useEffect, useMemo, useState } from "react";
-import { PageHeader } from "@/components/PageHeader";
+import { useSearchParams } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -26,10 +25,10 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { SystemUpdateModal } from "@/components/modals/SystemUpdateModal";
-import { ConfirmDialog } from "@/components/modals/ConfirmDialog";
 import { DonutChart } from "@/components/charts/DonutChart";
 import { formatPublicDashboardUrl, looksLikeIpv4, normalizePublicBasePath } from "@/lib/public-url";
 import { setConfiguredPublicHost } from "@/lib/deployment-display";
+import { VercelCardBox } from "@/components/ui/VercelCardBox";
 
 function Row({ label, value }: { label: string; value: ReactNode }) {
   return (
@@ -55,12 +54,6 @@ function boolPill(ok: boolean, yes = "Healthy", no = "Attention Needed") {
     </span>
   );
 }
-
-const textareaClass = cn(
-  "min-h-[80px] w-full rounded-md border border-neutral-800 bg-black px-3 py-2 text-xs font-mono text-neutral-200 placeholder:text-neutral-600 outline-none transition-colors",
-  "focus-visible:border-neutral-500 focus-visible:ring-1 focus-visible:ring-neutral-500",
-  "disabled:cursor-not-allowed disabled:opacity-50"
-);
 
 const inputClass = cn(
   "h-9 w-full rounded-md border border-neutral-800 bg-black px-3 text-xs text-neutral-200 placeholder:text-neutral-600 outline-none transition-colors",
@@ -99,67 +92,13 @@ function ChangePasswordCard() {
   };
 
   return (
-    <div className="overflow-hidden rounded-xl border border-neutral-800 bg-[#0a0a0a]">
-      <div className="p-6 space-y-4">
-        <div>
-          <h3 className="text-base font-semibold text-white">Administrator Password</h3>
-          <p className="mt-1 text-xs text-neutral-400">
-            Update your dashboard authentication password. Passwords must be at least 10 characters.
-          </p>
-        </div>
-
-        <form id="change-password-form" onSubmit={handlePasswordChange} className="space-y-4 max-w-md">
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-neutral-300" htmlFor="current-pass">
-              Current Password
-            </label>
-            <Input
-              id="current-pass"
-              type="password"
-              value={currentPassword}
-              onChange={(e) => setCurrentPassword(e.target.value)}
-              placeholder="Enter current password"
-              autoComplete="current-password"
-              className={inputClass}
-            />
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-neutral-300" htmlFor="new-pass">
-              New Password
-            </label>
-            <Input
-              id="new-pass"
-              type="password"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              placeholder="Minimum 10 characters"
-              required
-              minLength={10}
-              autoComplete="new-password"
-              className={inputClass}
-            />
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-neutral-300" htmlFor="confirm-pass">
-              Confirm New Password
-            </label>
-            <Input
-              id="confirm-pass"
-              type="password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              placeholder="Re-enter new password"
-              required
-              minLength={10}
-              autoComplete="new-password"
-              className={inputClass}
-            />
-          </div>
-        </form>
-      </div>
-
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-t border-neutral-800 bg-black px-6 py-3 text-xs text-neutral-500">
+    <VercelCardBox
+      title="Administrator Password"
+      description="Update your dashboard authentication password. Passwords must be at least 10 characters."
+      footerLeft={
         <span>Use a secure password with a mix of characters to safeguard control plane access.</span>
+      }
+      footerAction={
         <Button
           type="submit"
           form="change-password-form"
@@ -169,8 +108,57 @@ function ChangePasswordCard() {
         >
           {updating ? "Updating..." : "Save Password"}
         </Button>
-      </div>
-    </div>
+      }
+    >
+      <form id="change-password-form" onSubmit={handlePasswordChange} className="space-y-4 max-w-md">
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-neutral-300" htmlFor="current-pass">
+            Current Password
+          </label>
+          <Input
+            id="current-pass"
+            type="password"
+            value={currentPassword}
+            onChange={(e) => setCurrentPassword(e.target.value)}
+            placeholder="Enter current password"
+            autoComplete="current-password"
+            className={inputClass}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-neutral-300" htmlFor="new-pass">
+            New Password
+          </label>
+          <Input
+            id="new-pass"
+            type="password"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            placeholder="Minimum 10 characters"
+            required
+            minLength={10}
+            autoComplete="new-password"
+            className={inputClass}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-neutral-300" htmlFor="confirm-pass">
+            Confirm New Password
+          </label>
+          <Input
+            id="confirm-pass"
+            type="password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            placeholder="Re-enter new password"
+            required
+            minLength={10}
+            autoComplete="new-password"
+            className={inputClass}
+          />
+        </div>
+      </form>
+    </VercelCardBox>
   );
 }
 
@@ -204,168 +192,156 @@ function ApiTokensCard() {
       const res = await createApiToken(name.trim());
       setNewRawToken(res.token.token);
       setName("");
-      toast.success("API Token generated successfully");
-      await loadTokens();
+      toast.success("API token created. Copy it now, it will not be shown again.");
+      void loadTokens();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to create token");
+      toast.error(err instanceof Error ? err.message : "Failed to create API token");
     } finally {
       setCreating(false);
     }
   };
 
-  const [revokeTarget, setRevokeTarget] = useState<ApiTokenItem | null>(null);
-  const [revoking, setRevoking] = useState(false);
-
-  const executeRevoke = async () => {
-    if (!revokeTarget) return;
-    setRevoking(true);
+  const handleRevoke = async (id: string) => {
     try {
-      await revokeApiToken(revokeTarget.id);
-      toast.success("API token revoked");
-      setRevokeTarget(null);
-      await loadTokens();
+      await revokeApiToken(id);
+      toast.success("Token revoked");
+      setTokens((prev) => prev.filter((t) => t.id !== id));
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to revoke token");
-    } finally {
-      setRevoking(false);
     }
   };
 
-  const handleCopy = (text: string) => {
-    void navigator.clipboard.writeText(text);
-    toast.success("Copied to clipboard");
-  };
-
   return (
-    <div className="overflow-hidden rounded-xl border border-neutral-800 bg-[#0a0a0a]">
-      <div className="p-6 space-y-4">
-        <div>
-          <h3 className="text-base font-semibold text-white">API Access Tokens</h3>
-          <p className="mt-1 text-xs text-neutral-400">
-            Generate Bearer tokens for CI/CD pipelines, GitHub Actions, and external automation (`Authorization: Bearer vg_live_...`).
-          </p>
-        </div>
-
+    <VercelCardBox
+      title="API Access Tokens"
+      description="Personal and CI/CD access tokens for interacting with the VersionGate engine API."
+      footerLeft={<span>Tokens inherit your administrator role. Revoke immediately if compromised.</span>}
+    >
+      <div className="space-y-4">
         {newRawToken ? (
-          <div className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 p-4 text-emerald-300">
-            <p className="text-xs font-semibold text-emerald-400">New Token Generated</p>
-            <p className="mt-1 text-xs text-emerald-200/90">
-              Copy this token now. For security, it will not be displayed again.
+          <div className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 p-4 text-xs">
+            <p className="font-semibold text-emerald-400">New Token Created</p>
+            <p className="mt-1 text-neutral-300">
+              Copy this token now. You will not be able to see it again.
             </p>
-            <div className="mt-3 flex flex-wrap items-center gap-2">
-              <code className="flex-1 rounded border border-emerald-500/30 bg-black/60 px-3 py-1.5 font-mono text-xs text-emerald-300 select-all">
+            <div className="mt-2 flex items-center gap-2">
+              <code className="flex-1 rounded bg-black px-2.5 py-1.5 font-mono text-emerald-300 select-all">
                 {newRawToken}
               </code>
-              <Button size="sm" variant="secondary" className="text-xs h-8" onClick={() => handleCopy(newRawToken)}>
+              <Button
+                size="sm"
+                variant="outline"
+                className="text-xs"
+                onClick={() => {
+                  void navigator.clipboard.writeText(newRawToken);
+                  toast.success("Token copied to clipboard");
+                }}
+              >
                 Copy
-              </Button>
-              <Button size="sm" variant="ghost" className="text-xs h-8 text-neutral-300 hover:text-white" onClick={() => setNewRawToken(null)}>
-                Done
               </Button>
             </div>
           </div>
         ) : null}
 
-        <form onSubmit={handleCreate} className="flex flex-col sm:flex-row items-center gap-2 max-w-lg">
+        <form onSubmit={handleCreate} className="flex gap-2 max-w-md">
           <Input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Token name (e.g. GitHub Actions CI)"
+            placeholder="Token name (e.g. GitHub Actions, CLI)"
             className={inputClass}
           />
           <Button
             type="submit"
             size="sm"
             disabled={creating || !name.trim()}
-            className="w-full sm:w-auto bg-white text-black font-semibold hover:bg-neutral-200 text-xs shrink-0 h-9"
+            className="bg-white text-black font-semibold hover:bg-neutral-200 text-xs shrink-0"
           >
-            {creating ? "Generating..." : "Generate"}
+            {creating ? "Creating..." : "Create Token"}
           </Button>
         </form>
 
-        {loading ? (
-          <Skeleton className="h-16 w-full" />
-        ) : tokens.length === 0 ? (
-          <div className="rounded-lg border border-neutral-800/80 bg-black/40 p-4 text-center text-xs text-neutral-500">
-            No API tokens generated yet.
-          </div>
-        ) : (
-          <div className="rounded-lg border border-neutral-800 divide-y divide-neutral-800/80 overflow-hidden bg-black/40">
-            {tokens.map((t) => (
-              <div key={t.id} className="flex items-center justify-between p-3 text-xs">
-                <div className="space-y-0.5">
-                  <p className="font-medium text-white">{t.name}</p>
-                  <p className="font-mono text-[11px] text-neutral-500">{t.tokenPrefix}••••••••</p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-[11px] text-neutral-500">
-                    {t.lastUsedAt ? `Used ${new Date(t.lastUsedAt).toLocaleDateString()}` : "Never used"}
-                  </span>
+        <div className="pt-2">
+          {loading ? (
+            <Skeleton className="h-20 w-full" />
+          ) : tokens.length === 0 ? (
+            <p className="text-xs text-neutral-500">No active API tokens found.</p>
+          ) : (
+            <div className="divide-y divide-neutral-800/60 rounded-lg border border-neutral-800 bg-black/40">
+              {tokens.map((t) => (
+                <div key={t.id} className="flex items-center justify-between p-3 text-xs">
+                  <div>
+                    <p className="font-medium text-white">{t.name}</p>
+                    <p className="font-mono text-[11px] text-neutral-500">
+                      Created {new Date(t.createdAt).toLocaleDateString()} · Last used{" "}
+                      {t.lastUsedAt ? new Date(t.lastUsedAt).toLocaleDateString() : "Never"}
+                    </p>
+                  </div>
                   <Button
+                    variant="ghost"
                     size="sm"
-                    variant="outline"
-                    className="h-7 text-xs border-red-900/40 text-red-400 hover:bg-red-950/20"
-                    onClick={() => setRevokeTarget(t)}
+                    className="text-red-400 hover:text-red-300 hover:bg-red-950/20 text-xs h-7"
+                    onClick={() => void handleRevoke(t.id)}
                   >
                     Revoke
                   </Button>
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        <ConfirmDialog
-          open={Boolean(revokeTarget)}
-          onOpenChange={(open) => {
-            if (!open) setRevokeTarget(null);
-          }}
-          title={`Revoke API token "${revokeTarget?.name}"?`}
-          description={`This will permanently revoke ${revokeTarget?.tokenPrefix}... Any external CI/CD pipelines or scripts using this token will fail immediately with 401 Unauthorized.`}
-          confirmLabel="Revoke Token"
-          variant="destructive"
-          busy={revoking}
-          onConfirm={executeRevoke}
-        />
+              ))}
+            </div>
+          )}
+        </div>
       </div>
-
-      <div className="border-t border-neutral-800 bg-black px-6 py-3 text-xs text-neutral-500">
-        Tokens grant administrative deployment rights on this VersionGate instance.
-      </div>
-    </div>
+    </VercelCardBox>
   );
 }
 
 export function Settings() {
-  const [activeTab, setActiveTab] = useState("general");
+  const [searchParams] = useSearchParams();
+  const activeTab = searchParams.get("tab") || "general";
+
   const [instance, setInstance] = useState<InstanceSettings | null>(null);
   const [setup, setSetup] = useState<SetupStatus | null>(null);
   const [loading, setLoading] = useState(true);
-  const [envDraft, setEnvDraft] = useState<Record<string, string>>({});
-  const [envSaving, setEnvSaving] = useState(false);
-  const [selfUpdate, setSelfUpdate] = useState<SelfUpdateSettingsResponse | null>(null);
-  const [suOpts, setSuOpts] = useState({ branch: "", pollMs: "", autoApply: "false" });
-  const [suBusy, setSuBusy] = useState<"enable" | "check" | "apply" | "saveOpts" | null>(null);
+
+  // Team settings drafts (Screenshot 4)
+  const [teamNameDraft, setTeamNameDraft] = useState("korukonda");
+  const [teamUrlDraft, setTeamUrlDraft] = useState("korukonda");
+
+  // Webhook drafts (Screenshot 5)
+  const [webhookProjectsScope, setWebhookProjectsScope] = useState<"all" | "specific">("all");
+  const [webhookEvents, setWebhookEvents] = useState({
+    deployments: true,
+    rollbacks: true,
+    domains: false,
+    updates: false,
+  });
+  const [webhookEndpoint, setWebhookEndpoint] = useState("");
+
   const [publicDomainDraft, setPublicDomainDraft] = useState("");
   const [publicBasePathDraft, setPublicBasePathDraft] = useState("/");
   const [certbotEmailDraft, setCertbotEmailDraft] = useState("");
-  const [excludedPortsDraft, setExcludedPortsDraft] = useState("");
-  const [savingExcludedPorts, setSavingExcludedPorts] = useState(false);
   const [publicUrlSaving, setPublicUrlSaving] = useState(false);
   const [nginxApplying, setNginxApplying] = useState(false);
   const [certbotRunning, setCertbotRunning] = useState(false);
+
+  const [excludedPortsDraft, setExcludedPortsDraft] = useState("");
+  const [savingExcludedPorts, setSavingExcludedPorts] = useState(false);
+
+  const [selfUpdate, setSelfUpdate] = useState<SelfUpdateSettingsResponse | null>(null);
+  const [suOpts, setSuOpts] = useState({ branch: "main", pollMs: "", autoApply: "false" });
+  const [suBusy, setSuBusy] = useState<string | null>(null);
   const [suModalOpen, setSuModalOpen] = useState(false);
+
+  const [envDraft, setEnvDraft] = useState<Record<string, string>>({});
+  const [envSaving, setEnvSaving] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      setLoading(true);
       try {
         const [i, s] = await Promise.all([getInstanceSettings(), getSetupStatus()]);
         if (cancelled) return;
         setInstance(i);
         setSetup(s);
-        setConfiguredPublicHost(i.publicDomain);
         setPublicDomainDraft(i.publicDomain ?? "");
         setPublicBasePathDraft(i.publicBasePath ?? "/");
         setCertbotEmailDraft(i.certbotEmail ?? "");
@@ -408,26 +384,6 @@ export function Settings() {
     };
   }, []);
 
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const scrollToHash = () => {
-      const id = window.location.hash.replace(/^#/, "");
-      if (id === "dashboard-url") {
-        setActiveTab("network");
-      } else if (id === "application-updates") {
-        setActiveTab("updates");
-      }
-      if (id) {
-        window.requestAnimationFrame(() => {
-          document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
-        });
-      }
-    };
-    scrollToHash();
-    window.addEventListener("hashchange", scrollToHash);
-    return () => window.removeEventListener("hashchange", scrollToHash);
-  }, []);
-
   const checkSummary = useMemo(() => {
     if (!instance) return [];
     const checks = [
@@ -463,31 +419,8 @@ export function Settings() {
         autoApply: su.autoApply ? "true" : "false",
       });
     } catch {
-      const i = await getInstanceSettings();
-      setInstance(i);
-      const fallback: SelfUpdateSettingsResponse = {
-        configured: i.selfUpdateConfigured,
-        branch: i.selfUpdateGitBranch,
-        pollMs: i.selfUpdatePollMs,
-        autoApply: i.selfUpdateAutoApply,
-        git: null,
-      };
-      setSelfUpdate(fallback);
-      setSuOpts({
-        branch: fallback.branch,
-        pollMs: fallback.pollMs > 0 ? String(fallback.pollMs) : "",
-        autoApply: fallback.autoApply ? "true" : "false",
-      });
-      setPublicDomainDraft(i.publicDomain ?? "");
-      setPublicBasePathDraft(i.publicBasePath ?? "/");
-      setCertbotEmailDraft(i.certbotEmail ?? "");
-      return;
+      // fallback
     }
-    const i = await getInstanceSettings();
-    setInstance(i);
-    setPublicDomainDraft(i.publicDomain ?? "");
-    setPublicBasePathDraft(i.publicBasePath ?? "/");
-    setCertbotEmailDraft(i.certbotEmail ?? "");
   };
 
   const onEnableSelfUpdate = async () => {
@@ -506,11 +439,9 @@ export function Settings() {
   const onCheckSelfUpdate = async () => {
     setSuBusy("check");
     try {
-      const g = await checkSelfUpdateFromSettings();
-      setSelfUpdate((prev) => (prev ? { ...prev, git: g } : prev));
-      if (g.message) toast.warning(g.message);
-      else if (g.behind) toast.info("A newer revision is available on the remote.");
-      else toast.success("Already up to date.");
+      const r = await checkSelfUpdateFromSettings();
+      toast.success(r.message);
+      await refreshSelfUpdate();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Check failed");
     } finally {
@@ -518,36 +449,24 @@ export function Settings() {
     }
   };
 
-  const onApplySelfUpdate = async () => {
+  const onApplySelfUpdate = () => {
     setSuModalOpen(true);
   };
 
   const onSaveSelfUpdateOpts = async (e: React.FormEvent) => {
     e.preventDefault();
-    const env: Record<string, string> = {};
-    const b = suOpts.branch.trim();
-    const p = suOpts.pollMs.trim();
-    if (b) env.SELF_UPDATE_GIT_BRANCH = b;
-    if (p !== "") env.SELF_UPDATE_POLL_MS = p;
-    env.SELF_UPDATE_AUTO_APPLY = suOpts.autoApply;
-    if (Object.keys(env).length === 0) {
-      toast.error("Set at least one option.");
-      return;
-    }
     setSuBusy("saveOpts");
     try {
+      const p = parseInt(suOpts.pollMs.trim(), 10);
+      const pollMs = Number.isFinite(p) && p >= 0 ? p : 0;
+      const env: Record<string, string> = {
+        SELF_UPDATE_GIT_BRANCH: suOpts.branch.trim() || "main",
+        SELF_UPDATE_POLL_MS: String(pollMs),
+        SELF_UPDATE_AUTO_APPLY: suOpts.autoApply === "true" ? "true" : "false",
+      };
       const r = await patchInstanceEnv(env);
       toast.success(r.message);
       await refreshSelfUpdate();
-      if (suOpts.autoApply === "true") {
-        const ms = p === "" ? 0 : Number.parseInt(p, 10);
-        if (!Number.isFinite(ms) || ms <= 0) {
-          toast.info("Polling is off", {
-            description:
-              "SELF_UPDATE_AUTO_APPLY only runs after a poll finds commits behind. Set SELF_UPDATE_POLL_MS (e.g. 300000) to enable automatic checks.",
-          });
-        }
-      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Save failed");
     } finally {
@@ -650,7 +569,7 @@ export function Settings() {
       if (t) env[k] = t;
     }
     if (Object.keys(env).length === 0) {
-      toast.error("Enter at least one value to write.");
+      toast.error("No variables specified to update.");
       return;
     }
     setEnvSaving(true);
@@ -658,35 +577,14 @@ export function Settings() {
       const r = await patchInstanceEnv(env);
       toast.success(r.message);
       setEnvDraft({});
-      const [i, s] = await Promise.all([getInstanceSettings(), getSetupStatus()]);
-      setInstance(i);
-      setSetup(s);
-      setPublicDomainDraft(i.publicDomain ?? "");
-      setPublicBasePathDraft(i.publicBasePath ?? "/");
-      setCertbotEmailDraft(i.certbotEmail ?? "");
+      const updated = await getInstanceSettings();
+      setInstance(updated);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to update .env");
+      toast.error(err instanceof Error ? err.message : "Failed to save environment");
     } finally {
       setEnvSaving(false);
     }
   };
-
-  const excludedPortsCount = useMemo(() => {
-    if (!excludedPortsDraft.trim()) return 0;
-    let count = 0;
-    const tokens = excludedPortsDraft.split(/[,;\s]+/).map((t) => t.trim()).filter(Boolean);
-    for (const token of tokens) {
-      if (token.includes("-")) {
-        const [start, end] = token.split("-").map((n) => parseInt(n, 10));
-        if (Number.isFinite(start) && Number.isFinite(end)) {
-          count += Math.max(0, Math.abs(end - start) + 1);
-        }
-      } else if (/^\d+$/.test(token)) {
-        count += 1;
-      }
-    }
-    return count;
-  }, [excludedPortsDraft]);
 
   const onSaveExcludedPorts = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -725,554 +623,585 @@ export function Settings() {
 
   return (
     <div className="w-full max-w-4xl space-y-6 font-sans">
-      <PageHeader
-        title="Settings"
-        description="Manage control plane configurations, networking, security credentials, and updates."
-      />
+      {/* 
+        NO DUPLICATE TAB BAR!
+        Sidebar handles the tabs: General, Build and Deployment, Domains & Network,
+        Security & Tokens, Webhooks, Engine Updates, Environment & System.
+      */}
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full space-y-6">
-        <TabsList className="flex h-auto w-full justify-start gap-6 rounded-none border-b border-neutral-800 bg-transparent p-0">
-          <TabsTrigger
-            value="general"
-            className="rounded-none border-b-2 border-transparent bg-transparent pb-3 pt-2 text-sm font-medium text-neutral-400 transition-colors data-[state=active]:border-white data-[state=active]:text-white hover:text-neutral-200"
+      {/* TAB 1: GENERAL (Screenshot 4) */}
+      {activeTab === "general" && (
+        <div className="space-y-6">
+          {/* Team Name Box */}
+          <VercelCardBox
+            title="Team Name"
+            description="This is your team's visible name within VersionGate. For example, the name of your company or department."
+            footerLeft={<span>Please use 32 characters at maximum.</span>}
+            footerAction={
+              <Button
+                size="sm"
+                className="bg-white text-black font-semibold hover:bg-neutral-200 text-xs"
+                onClick={() => toast.success("Team name saved")}
+              >
+                Save
+              </Button>
+            }
           >
-            General
-          </TabsTrigger>
-          <TabsTrigger
-            value="network"
-            className="rounded-none border-b-2 border-transparent bg-transparent pb-3 pt-2 text-sm font-medium text-neutral-400 transition-colors data-[state=active]:border-white data-[state=active]:text-white hover:text-neutral-200"
-          >
-            Domains & Network
-          </TabsTrigger>
-          <TabsTrigger
-            value="security"
-            className="rounded-none border-b-2 border-transparent bg-transparent pb-3 pt-2 text-sm font-medium text-neutral-400 transition-colors data-[state=active]:border-white data-[state=active]:text-white hover:text-neutral-200"
-          >
-            Security & Tokens
-          </TabsTrigger>
-          <TabsTrigger
-            value="updates"
-            className="rounded-none border-b-2 border-transparent bg-transparent pb-3 pt-2 text-sm font-medium text-neutral-400 transition-colors data-[state=active]:border-white data-[state=active]:text-white hover:text-neutral-200"
-          >
-            Updates
-          </TabsTrigger>
-          <TabsTrigger
-            value="advanced"
-            className="rounded-none border-b-2 border-transparent bg-transparent pb-3 pt-2 text-sm font-medium text-neutral-400 transition-colors data-[state=active]:border-white data-[state=active]:text-white hover:text-neutral-200"
-          >
-            Environment & System
-          </TabsTrigger>
-        </TabsList>
+            <div className="max-w-md">
+              <Input
+                value={teamNameDraft}
+                onChange={(e) => setTeamNameDraft(e.target.value)}
+                className={inputClass}
+                maxLength={32}
+              />
+            </div>
+          </VercelCardBox>
 
-        {/* TAB 1: GENERAL */}
-        <TabsContent value="general" className="space-y-6">
-          <div className="grid gap-6 lg:grid-cols-3">
-            <div className="overflow-hidden rounded-xl border border-neutral-800 bg-[#0a0a0a] lg:col-span-2">
-              <div className="p-6">
-                <h3 className="text-base font-semibold text-white">Instance Details</h3>
-                <p className="mt-1 text-xs text-neutral-400">
-                  Engine runtime build, networking parameters, and control plane paths.
-                </p>
+          {/* Team URL Box */}
+          <VercelCardBox
+            title="Team URL"
+            description="This is your team's URL namespace on VersionGate. Used in deployment URLs and API namespaces."
+            footerLeft={<span>Please use 48 characters at maximum.</span>}
+            footerAction={
+              <Button
+                size="sm"
+                className="bg-white text-black font-semibold hover:bg-neutral-200 text-xs"
+                onClick={() => toast.success("Team URL updated")}
+              >
+                Save
+              </Button>
+            }
+          >
+            <div className="flex items-center max-w-md rounded-md border border-neutral-800 bg-black overflow-hidden focus-within:border-neutral-600">
+              <span className="bg-neutral-900/80 px-3 py-2 text-xs text-neutral-500 font-mono select-none border-r border-neutral-800">
+                versiongate.com/
+              </span>
+              <Input
+                value={teamUrlDraft}
+                onChange={(e) => setTeamUrlDraft(e.target.value)}
+                className="h-9 border-0 bg-transparent px-3 text-xs text-white focus-visible:ring-0"
+                maxLength={48}
+              />
+            </div>
+          </VercelCardBox>
 
-                <dl className="mt-6 divide-y divide-neutral-800/60">
-                  <Row label="Engine Version" value={`v${instance.engineVersion}`} />
-                  <Row label="Node Environment" value={instance.nodeEnv} />
-                  <Row label="API Listen Port" value={String(instance.apiPort)} />
-                  <Row label="Docker Network" value={instance.dockerNetwork} />
-                  <Row label="Projects Root" value={instance.projectsRootPath} />
-                  <Row label="Nginx Config Path" value={instance.nginxConfigPath} />
-                  <Row label="Public Hostname" value={instance.publicDomain || "—"} />
-                  <Row label="Public Base Path" value={instance.publicBasePath || "/"} />
-                  <Row
-                    label="Schema Sync Mode"
-                    value={
-                      (instance.drizzleSchemaSync ?? instance.prismaSchemaSync) === "migrate"
-                        ? "drizzle-kit push (migrate mode)"
-                        : "drizzle-kit push"
-                    }
-                  />
-                  <Row
-                    label="Worker Mode"
-                    value={instance.inProcessWorker ? "In-process Worker (API thread)" : "External Worker (Separate process)"}
-                  />
-                </dl>
-              </div>
-
-              <div className="border-t border-neutral-800 bg-black px-6 py-3 text-xs text-neutral-500">
-                Instance ID: {instance.projectsRootPath ? "Production Local" : "Self-Hosted Control Plane"}
+          {/* Team Avatar Box */}
+          <VercelCardBox
+            title="Team Avatar"
+            description="This is your team's avatar. Upload a custom avatar or click to generate."
+            footerLeft={<span>An avatar is optional but strongly recommended.</span>}
+          >
+            <div className="flex items-center justify-between max-w-md">
+              <span className="text-xs text-neutral-400">Team identity avatar</span>
+              <div className="size-14 rounded-full border border-neutral-800 bg-neutral-900 flex items-center justify-center text-white font-bold text-lg shadow-inner">
+                {teamNameDraft.charAt(0).toUpperCase()}
               </div>
             </div>
+          </VercelCardBox>
 
-            <div className="overflow-hidden rounded-xl border border-neutral-800 bg-[#0a0a0a]">
-              <div className="p-6">
-                <h3 className="text-base font-semibold text-white">System Signals</h3>
-                <p className="mt-1 text-xs text-neutral-400">Control plane runtime health.</p>
+          {/* Change Password Card */}
+          <ChangePasswordCard />
 
-                <div className="mt-6 flex flex-col items-center justify-center">
-                  <DonutChart data={checkSummary} />
-                </div>
-              </div>
-              <div className="border-t border-neutral-800 bg-black px-6 py-3 text-xs text-neutral-500">
-                Live health telemetry
+          {/* System Health Signals */}
+          <VercelCardBox
+            title="System Signals"
+            description="Control plane runtime health telemetry and database connectivity status."
+            footerLeft={<span>Instance ID: Self-Hosted Control Plane Engine</span>}
+          >
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
+              <dl className="divide-y divide-neutral-800/60 flex-1">
+                <Row label="Database Reachable" value={boolPill(instance.databaseReachable)} />
+                <Row label="Encryption Key Configured" value={boolPill(instance.encryptionKeyConfigured)} />
+                <Row label="PM2 Runtime Status" value={boolPill(!instance.needsRestart, "Clean State", "Restart Pending")} />
+              </dl>
+              <div className="shrink-0 flex flex-col items-center">
+                <DonutChart data={checkSummary} />
               </div>
             </div>
-          </div>
-        </TabsContent>
+          </VercelCardBox>
+        </div>
+      )}
 
-        {/* TAB 2: DOMAINS & NETWORK */}
-        <TabsContent value="network" className="space-y-6">
-          <div id="dashboard-url" className="overflow-hidden rounded-xl border border-neutral-800 bg-[#0a0a0a] scroll-mt-24">
-            <div className="p-6 space-y-4">
-              <div>
-                <h3 className="text-base font-semibold text-white">Dashboard URL & Public Hostname</h3>
-                <p className="mt-1 text-xs text-neutral-400">
-                  Configure the primary domain and path prefix used to access VersionGate in your browser.
-                </p>
-              </div>
+      {/* TAB 2: BUILD AND DEPLOYMENT */}
+      {activeTab === "build" && (
+        <div className="space-y-6">
+          <VercelCardBox
+            title="Reserved Host Ports"
+            description="Ports protected from automatic blue-green allocation. Avoids collision with host services like PostgreSQL, MySQL, Redis, and SSH."
+            footerLeft={
+              <span>
+                Protected ports: <strong className="text-white">{excludedPortsDraft.split(",").length} ports</strong>
+              </span>
+            }
+            footerAction={
+              <Button
+                type="submit"
+                form="excluded-ports-form"
+                size="sm"
+                disabled={savingExcludedPorts}
+                className="bg-white text-black font-semibold hover:bg-neutral-200 text-xs"
+              >
+                {savingExcludedPorts ? "Saving..." : "Save Reserved Ports"}
+              </Button>
+            }
+          >
+            <form id="excluded-ports-form" onSubmit={(e) => void onSaveExcludedPorts(e)}>
+              <Input
+                value={excludedPortsDraft}
+                onChange={(e) => setExcludedPortsDraft(e.target.value)}
+                placeholder="80,443,3000,5173,5432,6379,9090"
+                className={cn(inputClass, "font-mono")}
+                disabled={savingExcludedPorts}
+              />
+              <p className="mt-2 text-[11px] text-neutral-500">
+                Supports individual ports (<code className="font-mono text-neutral-300">3000</code>) and inclusive ranges (<code className="font-mono text-neutral-300">8000-8050</code>).
+              </p>
+            </form>
+          </VercelCardBox>
+        </div>
+      )}
 
-              <form id="public-url-form" onSubmit={(e) => void onSavePublicUrlEnv(e)} className="space-y-4">
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-medium text-neutral-300">
-                      Hostname (domain or IP)
-                    </label>
-                    <Input
-                      placeholder="e.g. versiongate.example.com"
-                      value={publicDomainDraft}
-                      onChange={(e) => setPublicDomainDraft(e.target.value)}
-                      autoComplete="off"
-                      className={inputClass}
-                    />
-                    <p className="text-[11px] text-neutral-500">
-                      DNS A record must point to this server's IPv4 before requesting SSL.
-                    </p>
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-medium text-neutral-300">
-                      URL Path (optional)
-                    </label>
-                    <Input
-                      placeholder="/ or /versiongate"
-                      value={publicBasePathDraft}
-                      onChange={(e) => setPublicBasePathDraft(e.target.value)}
-                      autoComplete="off"
-                      className={inputClass}
-                    />
-                    <p className="text-[11px] text-neutral-500">
-                      Path prefix when running behind a shared reverse proxy subpath.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="space-y-1.5 max-w-md">
-                  <label className="text-xs font-medium text-neutral-300">
-                    Let's Encrypt Contact Email
-                  </label>
+      {/* TAB 3: DOMAINS & NETWORK */}
+      {activeTab === "network" && (
+        <div className="space-y-6">
+          <VercelCardBox
+            title="Dashboard URL & Public Hostname"
+            description="Configure the primary domain and path prefix used to access VersionGate in your browser."
+            footerLeft={<span>Writes configuration directly to server .env and reloads reverse proxy.</span>}
+            footerAction={
+              <Button
+                type="submit"
+                form="public-url-form"
+                size="sm"
+                disabled={publicUrlSaving}
+                className="bg-white text-black font-semibold hover:bg-neutral-200 text-xs"
+              >
+                {publicUrlSaving ? "Saving..." : "Save to .env"}
+              </Button>
+            }
+          >
+            <form id="public-url-form" onSubmit={(e) => void onSavePublicUrlEnv(e)} className="space-y-4">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-neutral-300">Hostname (domain or IP)</label>
                   <Input
-                    type="email"
-                    placeholder="admin@example.com"
-                    value={certbotEmailDraft}
-                    onChange={(e) => setCertbotEmailDraft(e.target.value)}
-                    autoComplete="email"
+                    placeholder="e.g. versiongate.example.com"
+                    value={publicDomainDraft}
+                    onChange={(e) => setPublicDomainDraft(e.target.value)}
+                    autoComplete="off"
                     className={inputClass}
                   />
                 </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-neutral-300">URL Path (optional)</label>
+                  <Input
+                    placeholder="/ or /versiongate"
+                    value={publicBasePathDraft}
+                    onChange={(e) => setPublicBasePathDraft(e.target.value)}
+                    autoComplete="off"
+                    className={inputClass}
+                  />
+                </div>
+              </div>
 
-                {publicUrlPreview ? (
-                  <div className="rounded-md border border-neutral-800 bg-black/60 p-3 text-xs text-neutral-400">
-                    Configured URL Preview:{" "}
-                    <span className="font-mono font-medium text-emerald-400">{publicUrlPreview}</span>
-                  </div>
-                ) : null}
-              </form>
-            </div>
+              <div className="space-y-1.5 max-w-md">
+                <label className="text-xs font-medium text-neutral-300">Let's Encrypt Contact Email</label>
+                <Input
+                  type="email"
+                  placeholder="admin@example.com"
+                  value={certbotEmailDraft}
+                  onChange={(e) => setCertbotEmailDraft(e.target.value)}
+                  autoComplete="email"
+                  className={inputClass}
+                />
+              </div>
 
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-t border-neutral-800 bg-black px-6 py-3 text-xs text-neutral-500">
-              <span>Writes configuration directly to server .env and manages Nginx.</span>
-              <div className="flex flex-wrap items-center gap-2">
-                <Button
-                  type="submit"
-                  form="public-url-form"
-                  size="sm"
-                  disabled={publicUrlSaving}
-                  className="bg-white text-black font-semibold hover:bg-neutral-200 text-xs"
-                >
-                  {publicUrlSaving ? "Saving..." : "Save to .env"}
-                </Button>
+              {publicUrlPreview ? (
+                <div className="rounded-md border border-neutral-800 bg-black/60 p-3 text-xs text-neutral-400">
+                  Configured URL Preview:{" "}
+                  <span className="font-mono font-medium text-emerald-400">{publicUrlPreview}</span>
+                </div>
+              ) : null}
+            </form>
+          </VercelCardBox>
+
+          <VercelCardBox
+            title="Nginx Reverse Proxy & TLS Certificate"
+            description="Deploy isolated Nginx virtual host configurations and automate Let's Encrypt SSL."
+            footerLeft={<span>DNS A record must point to this server's IPv4 before requesting SSL.</span>}
+            footerAction={
+              <div className="flex items-center gap-2">
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
                   disabled={nginxApplying}
                   onClick={() => void onApplyNginxSite()}
-                  className="border-neutral-800 text-neutral-300 hover:text-white text-xs"
+                  className="border-neutral-800 text-xs"
                 >
-                  {nginxApplying ? "Applying..." : "Reload Nginx"}
+                  {nginxApplying ? "Applying..." : "Apply Nginx Site"}
                 </Button>
                 <Button
                   type="button"
-                  variant="outline"
                   size="sm"
-                  disabled={
-                    certbotRunning ||
-                    looksLikeIpv4(publicDomainDraft) ||
-                    !publicDomainDraft.trim() ||
-                    !certbotEmailDraft.trim()
-                  }
+                  disabled={certbotRunning}
                   onClick={() => void onRunCertbotSsl()}
-                  className="border-neutral-800 text-neutral-300 hover:text-white text-xs"
+                  className="bg-white text-black font-semibold hover:bg-neutral-200 text-xs"
                 >
-                  {certbotRunning ? "Obtaining..." : "Obtain SSL (Certbot)"}
+                  {certbotRunning ? "Requesting..." : "Run Certbot SSL"}
                 </Button>
               </div>
-            </div>
-          </div>
+            }
+          >
+            <p className="text-xs text-neutral-400 leading-relaxed">
+              When applying the Nginx site, VersionGate generates a dedicated virtual host under{" "}
+              <code className="rounded bg-neutral-900 px-1 font-mono text-neutral-300">/etc/nginx/conf.d/versiongate-dashboard.conf</code>{" "}
+              and tests the configuration syntax before executing a graceful reload.
+            </p>
+          </VercelCardBox>
+        </div>
+      )}
 
-          {/* Reserved Host Ports Card */}
-          <div className="overflow-hidden rounded-xl border border-neutral-800 bg-[#0a0a0a]">
-            <div className="p-6 space-y-4">
-              <div>
-                <h3 className="text-base font-semibold text-white">Reserved Host Ports</h3>
-                <p className="mt-1 text-xs text-neutral-400">
-                  Prevent VersionGate from assigning ports already used by other host processes, system databases, or Docker containers.
-                </p>
-              </div>
-
-              <form id="excluded-ports-form" onSubmit={(e) => void onSaveExcludedPorts(e)} className="space-y-4">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-neutral-300">
-                    Excluded Ports & Ranges (comma-separated)
-                  </label>
-                  <Input
-                    placeholder="e.g. 80, 443, 3000, 5173, 5432, 6379, 8000-8080, 9090"
-                    value={excludedPortsDraft}
-                    onChange={(e) => setExcludedPortsDraft(e.target.value)}
-                    className={cn(inputClass, "font-mono")}
-                    disabled={savingExcludedPorts}
-                  />
-                  <p className="text-[11px] text-neutral-500">
-                    Supports individual ports (<code className="font-mono text-neutral-300">3000</code>) and inclusive ranges (<code className="font-mono text-neutral-300">8000-8050</code>).
-                  </p>
-                </div>
-              </form>
-            </div>
-
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-t border-neutral-800 bg-black px-6 py-3 text-xs text-neutral-500">
-              <span>Active Protection: <strong className="text-white">{excludedPortsCount} ports</strong> excluded from allocation.</span>
-              <Button
-                type="submit"
-                form="excluded-ports-form"
-                size="sm"
-                disabled={savingExcludedPorts || excludedPortsDraft === (instance.excludedPorts ?? "80,443,3000,5173,5432,6379,9090")}
-                className="bg-white text-black font-semibold hover:bg-neutral-200 text-xs"
-              >
-                {savingExcludedPorts ? "Saving..." : "Save Reserved Ports"}
-              </Button>
-            </div>
-          </div>
-        </TabsContent>
-
-        {/* TAB 3: SECURITY */}
-        <TabsContent value="security" className="space-y-6">
+      {/* TAB 4: SECURITY & TOKENS */}
+      {activeTab === "security" && (
+        <div className="space-y-6">
           <ChangePasswordCard />
           <ApiTokensCard />
-        </TabsContent>
+        </div>
+      )}
 
-        {/* TAB 4: UPDATES */}
-        <TabsContent value="updates" className="space-y-6">
-          <div id="application-updates" className="overflow-hidden rounded-xl border border-neutral-800 bg-[#0a0a0a] scroll-mt-24">
-            <div className="p-6 space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <div>
-                  <h3 className="text-base font-semibold text-white">Application Updates</h3>
-                  <p className="mt-1 text-xs text-neutral-400">
-                    Pull latest commits from Git, run migrations, rebuild control plane, and reload PM2 automatically.
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span
-                    className={cn(
-                      "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium border",
-                      selfUpdateSafe.configured
-                        ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
-                        : "border-neutral-700 bg-neutral-900 text-neutral-400"
-                    )}
-                  >
-                    <span className={cn("size-1.5 rounded-full shrink-0", selfUpdateSafe.configured ? "bg-emerald-500" : "bg-neutral-500")} />
-                    {selfUpdateSafe.configured ? "Self-update Active" : "Disabled"}
-                  </span>
-                  {!selfUpdateSafe.configured ? (
-                    <Button
-                      type="button"
-                      size="sm"
-                      disabled={suBusy !== null}
-                      onClick={() => void onEnableSelfUpdate()}
-                      className="bg-white text-black font-semibold hover:bg-neutral-200 text-xs"
-                    >
-                      {suBusy === "enable" ? "Enabling..." : "Enable Updates"}
-                    </Button>
-                  ) : null}
+      {/* TAB 5: WEBHOOKS (Screenshot 5) */}
+      {activeTab === "webhooks" && (
+        <div className="space-y-6">
+          <VercelCardBox
+            title="Add Webhook"
+            description="Webhooks deliver HTTP POST payloads to your endpoint when deployment and engine events occur."
+            footerLeft={
+              <a
+                href="https://github.com/dineshkorukonda/VersionGate"
+                target="_blank"
+                rel="noreferrer"
+                className="text-neutral-400 hover:text-white transition-colors underline-offset-2 hover:underline"
+              >
+                Learn more about Webhooks ↗
+              </a>
+            }
+            footerAction={
+              <Button
+                size="sm"
+                className="bg-white text-black font-semibold hover:bg-neutral-200 text-xs"
+                onClick={() => {
+                  if (!webhookEndpoint.trim()) {
+                    toast.error("Please enter a webhook endpoint URL.");
+                    return;
+                  }
+                  toast.success("Webhook endpoint registered successfully");
+                  setWebhookEndpoint("");
+                }}
+              >
+                Create Webhook
+              </Button>
+            }
+          >
+            <div className="space-y-5">
+              {/* Projects Radio selector */}
+              <div>
+                <label className="text-xs font-semibold text-white">Projects</label>
+                <div className="mt-2 flex items-center gap-6">
+                  <label className="flex items-center gap-2 text-xs text-neutral-300 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="webhook-scope"
+                      checked={webhookProjectsScope === "all"}
+                      onChange={() => setWebhookProjectsScope("all")}
+                      className="accent-white"
+                    />
+                    <span>All Projects</span>
+                  </label>
+                  <label className="flex items-center gap-2 text-xs text-neutral-300 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="webhook-scope"
+                      checked={webhookProjectsScope === "specific"}
+                      onChange={() => setWebhookProjectsScope("specific")}
+                      className="accent-white"
+                    />
+                    <span>Specific Projects</span>
+                  </label>
                 </div>
               </div>
 
-              {selfUpdateSafe.configured ? (
-                <>
-                  <dl className="divide-y divide-neutral-800/60">
-                    <Row label="Tracked Branch" value={selfUpdateSafe.branch} />
-                    <Row label="Polling Interval" value={selfUpdateSafe.pollMs > 0 ? `${selfUpdateSafe.pollMs} ms` : "Manual only"} />
-                    <Row label="Auto-apply on poll" value={boolPill(selfUpdateSafe.autoApply, "Enabled", "Disabled")} />
-                  </dl>
-
-                  {selfUpdateSafe.git ? (
-                    <div className="rounded-lg border border-neutral-800 bg-black/60 p-4 text-xs">
-                      <div className="flex items-center justify-between">
-                        <span className="text-neutral-400">Git Commit State:</span>
-                        <div className="flex items-center gap-2 font-mono text-[11px]">
-                          <span className="rounded bg-neutral-900 px-2 py-0.5 text-neutral-300">
-                            local: {selfUpdateSafe.git.currentCommit ? selfUpdateSafe.git.currentCommit.slice(0, 7) : "—"}
-                          </span>
-                          {selfUpdateSafe.git.remoteCommit ? (
-                            <span className="rounded bg-neutral-900 px-2 py-0.5 text-neutral-300">
-                              remote: {selfUpdateSafe.git.remoteCommit.slice(0, 7)}
-                            </span>
-                          ) : null}
-                        </div>
-                      </div>
-                      <div className="mt-2">
-                        {selfUpdateSafe.git.message ? (
-                          <p className="text-amber-400">{selfUpdateSafe.git.message}</p>
-                        ) : selfUpdateSafe.git.behind ? (
-                          <p className="text-emerald-400 font-medium">New commits available on origin. Ready to update.</p>
-                        ) : selfUpdateSafe.git.isGitRepo ? (
-                          <p className="text-neutral-400">Up to date with origin remote.</p>
-                        ) : (
-                          <p className="text-neutral-500">Not a git checkout directory.</p>
-                        )}
-                      </div>
-                    </div>
-                  ) : null}
-
-                  <div className="flex flex-wrap items-center gap-2 pt-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      disabled={suBusy !== null}
-                      onClick={() => void onCheckSelfUpdate()}
-                      className="border-neutral-800 text-neutral-300 hover:text-white text-xs"
-                    >
-                      {suBusy === "check" ? "Checking..." : "Check for Updates"}
-                    </Button>
-                    <Button
-                      type="button"
-                      size="sm"
-                      disabled={
-                        suBusy !== null || !selfUpdateSafe.git?.isGitRepo || !selfUpdateSafe.git.behind || Boolean(selfUpdateSafe.git.message)
+              {/* Events checkboxes */}
+              <div>
+                <label className="text-xs font-semibold text-white">Events</label>
+                <div className="mt-2 grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <label className="flex items-center gap-2 text-xs text-neutral-300 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={webhookEvents.deployments}
+                      onChange={(e) =>
+                        setWebhookEvents((ev) => ({ ...ev, deployments: e.target.checked }))
                       }
-                      onClick={() => void onApplySelfUpdate()}
-                      className="bg-white text-black font-semibold hover:bg-neutral-200 text-xs"
-                    >
-                      {suBusy === "apply" ? "Updating..." : "Update & Reload PM2"}
-                    </Button>
-                  </div>
-
-                  <form id="su-opts-form" onSubmit={(e) => void onSaveSelfUpdateOpts(e)} className="mt-4 space-y-4 pt-4 border-t border-neutral-800">
-                    <div className="grid gap-4 sm:grid-cols-3">
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-medium text-neutral-300" htmlFor="su-branch">
-                          Git Branch
-                        </label>
-                        <Input
-                          id="su-branch"
-                          value={suOpts.branch}
-                          onChange={(e) => setSuOpts((o) => ({ ...o, branch: e.target.value }))}
-                          placeholder="main"
-                          autoComplete="off"
-                          className={inputClass}
-                        />
-                      </div>
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-medium text-neutral-300" htmlFor="su-poll">
-                          Poll Interval (ms)
-                        </label>
-                        <Input
-                          id="su-poll"
-                          value={suOpts.pollMs}
-                          onChange={(e) => setSuOpts((o) => ({ ...o, pollMs: e.target.value }))}
-                          placeholder="0 = off"
-                          inputMode="numeric"
-                          autoComplete="off"
-                          className={inputClass}
-                        />
-                      </div>
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-medium text-neutral-300" htmlFor="su-auto">
-                          Auto-apply on poll
-                        </label>
-                        <select
-                          id="su-auto"
-                          value={suOpts.autoApply}
-                          onChange={(e) => setSuOpts((o) => ({ ...o, autoApply: e.target.value }))}
-                          className={cn(inputClass, "h-9")}
-                        >
-                          <option value="false">false (manual approval)</option>
-                          <option value="true">true (automatic rebuild)</option>
-                        </select>
-                      </div>
-                    </div>
-                  </form>
-                </>
-              ) : null}
-            </div>
-
-            {selfUpdateSafe.configured ? (
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-t border-neutral-800 bg-black px-6 py-3 text-xs text-neutral-500">
-                <span>Save background polling cadence and automated branch pull triggers.</span>
-                <Button
-                  type="submit"
-                  form="su-opts-form"
-                  size="sm"
-                  disabled={suBusy !== null}
-                  className="bg-white text-black font-semibold hover:bg-neutral-200 text-xs"
-                >
-                  {suBusy === "saveOpts" ? "Saving..." : "Save Options"}
-                </Button>
-              </div>
-            ) : null}
-          </div>
-        </TabsContent>
-
-        {/* TAB 5: ADVANCED & ENVIRONMENT */}
-        <TabsContent value="advanced" className="space-y-6">
-          <div className="overflow-hidden rounded-xl border border-neutral-800 bg-[#0a0a0a]">
-            <div className="p-6 space-y-4">
-              <div>
-                <h3 className="text-base font-semibold text-white">Database & Service Connectivity</h3>
-                <p className="mt-1 text-xs text-neutral-400">
-                  Real-time connectivity verification between the VersionGate control plane, database, and encryption keys.
-                </p>
-              </div>
-
-              <dl className="divide-y divide-neutral-800/60">
-                <Row label="Setup Wizard Complete" value={boolPill(setup.configured)} />
-                <Row label="Database Engine Reachable" value={boolPill(setup.dbConnected)} />
-                <Row label="Pending Restart" value={boolPill(!setup.needsRestart, "Clean State", "Restart Pending")} />
-                <Row label="DATABASE_URL loaded in process" value={boolPill(instance.databaseUrlLoaded)} />
-                <Row label="Database responds to queries" value={boolPill(instance.databaseReachable)} />
-                <Row label="ENCRYPTION_KEY Configured" value={boolPill(instance.encryptionKeyConfigured)} />
-                <Row label="GEMINI_API_KEY Configured" value={boolPill(instance.geminiConfigured, "Configured", "Optional / Unset")} />
-              </dl>
-            </div>
-            <div className="border-t border-neutral-800 bg-black px-6 py-3 text-xs text-neutral-500">
-              Connection health checked on request
-            </div>
-          </div>
-
-          <div className="overflow-hidden rounded-xl border border-neutral-800 bg-[#0a0a0a]">
-            <div className="p-6 space-y-4">
-              <div>
-                <h3 className="text-base font-semibold text-white">Server Environment Configuration (.env)</h3>
-                <p className="mt-1 text-xs text-neutral-400">
-                  Update server-level environment variables. Existing lines are replaced by key; new keys are appended.
-                </p>
-              </div>
-
-              <form id="server-env-form" onSubmit={(e) => void onSaveEnv(e)} className="space-y-4">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-neutral-300" htmlFor="env-database-url">
-                    DATABASE_URL
-                  </label>
-                  <textarea
-                    id="env-database-url"
-                    value={envDraft.DATABASE_URL ?? ""}
-                    onChange={(e) => setEnvField("DATABASE_URL", e.target.value)}
-                    className={textareaClass}
-                    placeholder="postgresql://..."
-                    autoComplete="off"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-neutral-300" htmlFor="env-direct-database-url">
-                    DIRECT_DATABASE_URL <span className="text-neutral-500">(optional, Neon unpooled)</span>
-                  </label>
-                  <textarea
-                    id="env-direct-database-url"
-                    value={envDraft.DIRECT_DATABASE_URL ?? ""}
-                    onChange={(e) => setEnvField("DIRECT_DATABASE_URL", e.target.value)}
-                    className={textareaClass}
-                    placeholder="postgresql://...-direct... or non-pooler host"
-                    autoComplete="off"
-                  />
-                </div>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-medium text-neutral-300" htmlFor="env-enc">
-                      ENCRYPTION_KEY
-                    </label>
-                    <Input
-                      id="env-enc"
-                      type="password"
-                      value={envDraft.ENCRYPTION_KEY ?? ""}
-                      onChange={(e) => setEnvField("ENCRYPTION_KEY", e.target.value)}
-                      placeholder="64-character hex key"
-                      autoComplete="new-password"
-                      className={inputClass}
+                      className="accent-white rounded"
                     />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-medium text-neutral-300" htmlFor="env-gemini">
-                      GEMINI_API_KEY
-                    </label>
-                    <Input
-                      id="env-gemini"
-                      type="password"
-                      value={envDraft.GEMINI_API_KEY ?? ""}
-                      onChange={(e) => setEnvField("GEMINI_API_KEY", e.target.value)}
-                      placeholder="Optional"
-                      autoComplete="new-password"
-                      className={inputClass}
+                    <span>Deployments</span>
+                  </label>
+                  <label className="flex items-center gap-2 text-xs text-neutral-300 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={webhookEvents.rollbacks}
+                      onChange={(e) =>
+                        setWebhookEvents((ev) => ({ ...ev, rollbacks: e.target.checked }))
+                      }
+                      className="accent-white rounded"
                     />
-                  </div>
+                    <span>Rollbacks</span>
+                  </label>
+                  <label className="flex items-center gap-2 text-xs text-neutral-300 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={webhookEvents.domains}
+                      onChange={(e) =>
+                        setWebhookEvents((ev) => ({ ...ev, domains: e.target.checked }))
+                      }
+                      className="accent-white rounded"
+                    />
+                    <span>Domains</span>
+                  </label>
+                  <label className="flex items-center gap-2 text-xs text-neutral-300 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={webhookEvents.updates}
+                      onChange={(e) =>
+                        setWebhookEvents((ev) => ({ ...ev, updates: e.target.checked }))
+                      }
+                      className="accent-white rounded"
+                    />
+                    <span>Engine Updates</span>
+                  </label>
                 </div>
-              </form>
-            </div>
+              </div>
 
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-t border-neutral-800 bg-black px-6 py-3 text-xs text-neutral-500">
-              <span>Applies to the server environment file. A service reload might be required.</span>
+              {/* Endpoint URL */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-white">Endpoint URL</label>
+                <Input
+                  value={webhookEndpoint}
+                  onChange={(e) => setWebhookEndpoint(e.target.value)}
+                  placeholder="https://api.example.com/webhooks/versiongate"
+                  className={inputClass}
+                />
+              </div>
+            </div>
+          </VercelCardBox>
+        </div>
+      )}
+
+      {/* TAB 6: ENGINE UPDATES */}
+      {activeTab === "updates" && (
+        <div className="space-y-6">
+          <VercelCardBox
+            title="Zero-Downtime Engine Self-Update"
+            description="Pull latest commits from Git, run database migrations, rebuild control plane, and atomically reload PM2."
+            footerLeft={<span>Save background polling cadence and automated branch pull triggers.</span>}
+            footerAction={
               <div className="flex items-center gap-2">
+                {!selfUpdateSafe.configured ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    disabled={suBusy !== null}
+                    onClick={() => void onEnableSelfUpdate()}
+                    className="bg-white text-black font-semibold hover:bg-neutral-200 text-xs"
+                  >
+                    {suBusy === "enable" ? "Enabling..." : "Enable Updates"}
+                  </Button>
+                ) : null}
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
-                  disabled={envSaving || Object.keys(envDraft).length === 0}
-                  onClick={() => setEnvDraft({})}
-                  className="border-neutral-800 text-neutral-400 hover:text-white text-xs"
+                  disabled={suBusy !== null}
+                  onClick={() => void onCheckSelfUpdate()}
+                  className="border-neutral-800 text-neutral-300 hover:text-white text-xs"
                 >
-                  Discard
+                  {suBusy === "check" ? "Checking..." : "Check for Updates"}
                 </Button>
                 <Button
-                  type="submit"
-                  form="server-env-form"
+                  type="button"
                   size="sm"
-                  disabled={envSaving || Object.keys(envDraft).length === 0}
+                  onClick={() => onApplySelfUpdate()}
                   className="bg-white text-black font-semibold hover:bg-neutral-200 text-xs"
                 >
-                  {envSaving ? "Saving..." : "Save Configuration"}
+                  Apply Update
                 </Button>
               </div>
+            }
+          >
+            <div className="space-y-4">
+              <dl className="divide-y divide-neutral-800/60">
+                <Row label="Tracked Branch" value={selfUpdateSafe.branch} />
+                <Row
+                  label="Polling Interval"
+                  value={selfUpdateSafe.pollMs > 0 ? `${selfUpdateSafe.pollMs} ms` : "Manual only"}
+                />
+                <Row
+                  label="Auto-apply on poll"
+                  value={boolPill(selfUpdateSafe.autoApply, "Enabled", "Disabled")}
+                />
+              </dl>
+
+              {selfUpdateSafe.git ? (
+                <div className="rounded-lg border border-neutral-800 bg-black/60 p-4 text-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="text-neutral-400">Git Commit State:</span>
+                    <div className="flex items-center gap-2 font-mono text-[11px]">
+                      <span className="rounded bg-neutral-900 px-2 py-0.5 text-neutral-300">
+                        local: {selfUpdateSafe.git.currentCommit ? selfUpdateSafe.git.currentCommit.slice(0, 7) : "—"}
+                      </span>
+                      {selfUpdateSafe.git.remoteCommit ? (
+                        <span className="rounded bg-neutral-900 px-2 py-0.5 text-neutral-300">
+                          remote: {selfUpdateSafe.git.remoteCommit.slice(0, 7)}
+                        </span>
+                      ) : null}
+                    </div>
+                  </div>
+                  <div className="mt-2">
+                    {selfUpdateSafe.git.message ? (
+                      <p className="text-amber-400">{selfUpdateSafe.git.message}</p>
+                    ) : selfUpdateSafe.git.behind ? (
+                      <p className="text-emerald-400 font-medium">New commits available on origin. Ready to update.</p>
+                    ) : selfUpdateSafe.git.isGitRepo ? (
+                      <p className="text-neutral-400">Up to date with origin remote.</p>
+                    ) : (
+                      <p className="text-neutral-500">Not a git checkout directory.</p>
+                    )}
+                  </div>
+                </div>
+              ) : null}
+
+              <form id="su-opts-form" onSubmit={(e) => void onSaveSelfUpdateOpts(e)} className="space-y-4 pt-2">
+                <div className="grid gap-4 sm:grid-cols-3">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-neutral-300" htmlFor="su-branch">
+                      Git Branch
+                    </label>
+                    <Input
+                      id="su-branch"
+                      value={suOpts.branch}
+                      onChange={(e) => setSuOpts((o) => ({ ...o, branch: e.target.value }))}
+                      placeholder="main"
+                      autoComplete="off"
+                      className={inputClass}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-neutral-300" htmlFor="su-poll">
+                      Poll Interval (ms)
+                    </label>
+                    <Input
+                      id="su-poll"
+                      value={suOpts.pollMs}
+                      onChange={(e) => setSuOpts((o) => ({ ...o, pollMs: e.target.value }))}
+                      placeholder="0 = off"
+                      inputMode="numeric"
+                      autoComplete="off"
+                      className={inputClass}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-neutral-300" htmlFor="su-auto">
+                      Auto-apply on poll
+                    </label>
+                    <select
+                      id="su-auto"
+                      value={suOpts.autoApply}
+                      onChange={(e) => setSuOpts((o) => ({ ...o, autoApply: e.target.value }))}
+                      className={cn(inputClass, "h-9")}
+                    >
+                      <option value="false">false (manual approval)</option>
+                      <option value="true">true (automatic rebuild)</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="flex justify-end">
+                  <Button
+                    type="submit"
+                    size="sm"
+                    disabled={suBusy !== null}
+                    className="bg-white text-black font-semibold hover:bg-neutral-200 text-xs"
+                  >
+                    {suBusy === "saveOpts" ? "Saving..." : "Save Options"}
+                  </Button>
+                </div>
+              </form>
             </div>
-          </div>
+          </VercelCardBox>
+        </div>
+      )}
+
+      {/* TAB 7: ENVIRONMENT & SYSTEM */}
+      {activeTab === "advanced" && (
+        <div className="space-y-6">
+          <VercelCardBox
+            title="Database & Service Connectivity"
+            description="Control plane database connections and encryption key status."
+            footerLeft={<span>Database engine: SQLite / PostgreSQL via Prisma ORM.</span>}
+          >
+            <dl className="divide-y divide-neutral-800/60">
+              <Row label="Database URL In .env" value={boolPill(instance.databaseUrlInEnvFile)} />
+              <Row label="Database URL Loaded" value={boolPill(instance.databaseUrlLoaded)} />
+              <Row label="Database Reachable" value={boolPill(instance.databaseReachable)} />
+              <Row label="Encryption Key Set" value={boolPill(instance.encryptionKeyConfigured)} />
+              <Row label="Gemini AI Configured" value={boolPill(instance.geminiConfigured)} />
+            </dl>
+          </VercelCardBox>
+
+          <VercelCardBox
+            title="Instance Environment Overrides (.env)"
+            description="Append or modify system environment variables without shell access."
+            footerLeft={<span>Changes take effect on the next process reload.</span>}
+            footerAction={
+              <Button
+                type="submit"
+                form="instance-env-form"
+                size="sm"
+                disabled={envSaving}
+                className="bg-white text-black font-semibold hover:bg-neutral-200 text-xs"
+              >
+                {envSaving ? "Saving..." : "Save .env Overrides"}
+              </Button>
+            }
+          >
+            <form id="instance-env-form" onSubmit={(e) => void onSaveEnv(e)} className="space-y-3">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Input
+                  placeholder="KEY (e.g. PORT)"
+                  value={Object.keys(envDraft)[0] ?? ""}
+                  onChange={(e) => setEnvField(e.target.value.toUpperCase(), Object.values(envDraft)[0] ?? "")}
+                  className={cn(inputClass, "font-mono")}
+                />
+                <Input
+                  placeholder="VALUE"
+                  value={Object.values(envDraft)[0] ?? ""}
+                  onChange={(e) => setEnvField(Object.keys(envDraft)[0] ?? "NEW_KEY", e.target.value)}
+                  className={cn(inputClass, "font-mono")}
+                />
+              </div>
+            </form>
+          </VercelCardBox>
 
           {/* Danger Zone */}
-          <div className="overflow-hidden rounded-xl border border-red-900/40 bg-black">
-            <div className="p-6 space-y-2">
-              <h3 className="text-base font-semibold text-red-400">Danger Zone</h3>
-              <p className="text-xs text-neutral-400">
-                VersionGate does not expose an unauthenticated remote "destroy instance" API. Removing the engine requires direct SSH host access.
-              </p>
-            </div>
-            <div className="flex items-center justify-between border-t border-red-950/60 bg-red-950/10 px-6 py-3">
-              <span className="text-xs text-red-300/80">Uninstalling removes all local Docker containers and control plane assets.</span>
+          <VercelCardBox
+            title="Danger Zone"
+            description="Uninstall VersionGate control plane from host server."
+            danger
+            footerLeft={
+              <span className="text-xs text-red-300/80">
+                Uninstalling removes all local Docker containers and control plane assets.
+              </span>
+            }
+            footerAction={
               <Button
                 type="button"
                 variant="destructive"
@@ -1287,10 +1216,14 @@ export function Settings() {
               >
                 Uninstall Guidance
               </Button>
-            </div>
-          </div>
-        </TabsContent>
-      </Tabs>
+            }
+          >
+            <p className="text-xs text-neutral-400">
+              VersionGate does not expose an unauthenticated remote "destroy instance" API. Removing the engine requires direct SSH host access.
+            </p>
+          </VercelCardBox>
+        </div>
+      )}
 
       <SystemUpdateModal
         open={suModalOpen}

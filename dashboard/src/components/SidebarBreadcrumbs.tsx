@@ -1,73 +1,40 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
-import { getProject } from "@/lib/api";
+import { useLocation, useNavigate } from "react-router-dom";
+import { getProject, type Project } from "@/lib/api";
 import { projectTabFromPath } from "@/lib/project-routes";
-import { cn } from "@/lib/utils";
-import { useSidebar } from "@/components/ui/sidebar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { NavIconChevronsUpDown, NavIconSparkle } from "@/components/nav-icons";
 
-type Crumb = { label: string; to?: string };
-
-const tabLabels: Record<string, string> = {
-  overview: "Overview",
-  deployments: "Deployments",
-  domains: "Domains",
-  cron: "Cron Jobs",
-  logs: "Runtime Logs",
-  settings: "Settings",
-};
-
-function crumbsForPath(pathname: string, projectName: string | null): Crumb[] {
-  if (pathname === "/" || pathname === "") return [{ label: "Overview" }];
-  if (pathname === "/activity") return [{ label: "Logs" }];
-  if (pathname === "/deployments") return [{ label: "Deployments" }];
-  if (pathname === "/projects") return [{ label: "Projects" }];
-  if (pathname === "/projects/new") return [{ label: "Projects", to: "/projects" }, { label: "New Project" }];
-  if (pathname === "/databases") return [{ label: "Databases" }];
-  if (pathname === "/cron") return [{ label: "Cron Jobs" }];
-  if (pathname === "/system") return [{ label: "Observability" }];
-  if (pathname === "/settings") return [{ label: "Settings" }];
-  if (pathname === "/dashboard/integrations") return [{ label: "Integrations" }];
-
-  const deployM = pathname.match(/^\/projects\/([^/]+)\/deploy\/([^/]+)$/);
-  if (deployM) {
-    const pid = deployM[1];
-    return [
-      { label: "Projects", to: "/projects" },
-      { label: projectName ?? "Project", to: `/projects/${pid}` },
-      { label: "Deploy log" },
-    ];
-  }
-
-  const projM = pathname.match(/^\/projects\/([^/]+)/);
-  if (projM) {
-    const pid = projM[1];
-    const tab = projectTabFromPath(pathname, pid);
-    const crumbs: Crumb[] = [
-      { label: "Projects", to: "/projects" },
-      { label: projectName ?? `Project ${pid.slice(0, 8)}`, to: `/projects/${pid}` },
-    ];
-    if (tab !== "overview") {
-      crumbs.push({ label: tabLabels[tab] ?? tab });
-    }
-    return crumbs;
-  }
-
-  return [{ label: pathname }];
+interface SidebarBreadcrumbsProps {
+  projects?: Project[];
 }
 
-export function SidebarBreadcrumbs() {
-  const { pathname } = useLocation();
-  const { state: sidebarState } = useSidebar();
+export function SidebarBreadcrumbs({ projects = [] }: SidebarBreadcrumbsProps) {
+  const navigate = useNavigate();
+  const { pathname, search } = useLocation();
   const [projectName, setProjectName] = useState<string | null>(null);
 
+  const projectMatch = pathname.match(/^\/projects\/([^/]+)/);
+  const currentProjectId = projectMatch && projectMatch[1] !== "new" ? projectMatch[1] : null;
+
   useEffect(() => {
-    const m = pathname.match(/^\/projects\/([^/]+)/);
-    if (!m?.[1]) {
+    if (!currentProjectId) {
       queueMicrotask(() => setProjectName(null));
       return;
     }
+    const found = projects.find((p) => p.id === currentProjectId);
+    if (found) {
+      setProjectName(found.name);
+      return;
+    }
     let cancelled = false;
-    void getProject(m[1])
+    void getProject(currentProjectId)
       .then((r) => {
         if (!cancelled) setProjectName(r.project.name);
       })
@@ -77,34 +44,137 @@ export function SidebarBreadcrumbs() {
     return () => {
       cancelled = true;
     };
-  }, [pathname]);
+  }, [currentProjectId, projects]);
 
-  const crumbs = useMemo(() => crumbsForPath(pathname, projectName), [pathname, projectName]);
-  const visible = sidebarState === "collapsed" ? crumbs.slice(-1) : crumbs;
+  // Determine current page title
+  const pageTitle = useMemo(() => {
+    if (currentProjectId) {
+      const tab = projectTabFromPath(pathname, currentProjectId);
+      switch (tab) {
+        case "overview":
+          return "Overview";
+        case "deployments":
+          return "Deployments";
+        case "logs":
+          return "Logs";
+        case "observability":
+          return "Observability";
+        case "env":
+          return "Environment Variables";
+        case "domains":
+          return "Domains";
+        case "databases":
+          return "Storage";
+        case "cron":
+          return "Cron Jobs";
+        case "settings":
+          return "Project Settings";
+        default:
+          return "Overview";
+      }
+    }
+
+    if (pathname.startsWith("/settings")) {
+      const sp = new URLSearchParams(search);
+      const tab = sp.get("tab") || "general";
+      switch (tab) {
+        case "general":
+          return "Team Settings";
+        case "build":
+          return "Build & Deployment";
+        case "network":
+          return "Domains & Network";
+        case "security":
+          return "Security & Tokens";
+        case "webhooks":
+          return "Webhooks";
+        case "updates":
+          return "Engine Updates";
+        case "advanced":
+          return "Environment & System";
+        default:
+          return "Team Settings";
+      }
+    }
+
+    if (pathname === "/" || pathname === "/projects") return "Projects";
+    if (pathname.startsWith("/deployments")) return "Deployments";
+    if (pathname.startsWith("/activity")) return "Activity Logs";
+    if (pathname.startsWith("/databases")) return "Databases";
+    if (pathname.startsWith("/cron")) return "Cron Jobs";
+    if (pathname.startsWith("/system")) return "System Metrics";
+    if (pathname.startsWith("/dashboard/integrations")) return "Integrations";
+
+    return "VersionGate";
+  }, [currentProjectId, pathname, search]);
 
   return (
-    <nav
-      aria-label="Breadcrumb"
-      className={cn(
-        "flex flex-wrap items-center gap-1 text-xs text-neutral-500",
-        sidebarState === "collapsed" && "justify-center"
-      )}
-    >
-      {visible.map((c, i) => (
-        <span key={`${c.label}-${i}`} className="flex items-center gap-1">
-          {i > 0 ? <span className="text-neutral-700">/</span> : null}
-          {c.to ? (
-            <Link
-              to={c.to}
-              className="truncate text-neutral-400 underline-offset-2 hover:text-white hover:underline"
+    <div className="flex h-12 w-full items-center justify-between px-4">
+      {/* LEFT: Project Switcher Dropdown (Vercel Style: <Avatar> <Name> ⇅) */}
+      <div className="flex items-center gap-2">
+        <DropdownMenu>
+          <DropdownMenuTrigger className="flex items-center gap-2 rounded-md px-2 py-1 text-xs font-medium text-neutral-200 hover:bg-neutral-800/80 transition-colors focus:outline-none">
+            {currentProjectId ? (
+              <>
+                <span className="flex size-4 items-center justify-center rounded bg-blue-600/80 text-[10px] font-bold text-white uppercase shadow-sm">
+                  {projectName ? projectName.charAt(0) : "P"}
+                </span>
+                <span className="font-semibold text-white truncate max-w-[140px] sm:max-w-[200px]">
+                  {projectName || "Project"}
+                </span>
+              </>
+            ) : (
+              <>
+                <span className="flex size-4 items-center justify-center rounded bg-neutral-800 text-[10px] font-bold text-white shadow-sm">
+                  VG
+                </span>
+                <span className="font-semibold text-white">VersionGate</span>
+              </>
+            )}
+            <NavIconChevronsUpDown className="size-3 text-neutral-500" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-56 border-neutral-800 bg-[#0a0a0a] text-white">
+            <DropdownMenuItem
+              onClick={() => navigate("/")}
+              className="cursor-pointer text-xs text-neutral-300 hover:text-white"
             >
-              {c.label}
-            </Link>
-          ) : (
-            <span className="truncate font-medium text-neutral-200">{c.label}</span>
-          )}
+              All Projects
+            </DropdownMenuItem>
+            {projects.length > 0 && <DropdownMenuSeparator className="bg-neutral-800" />}
+            {projects.map((p) => (
+              <DropdownMenuItem
+                key={p.id}
+                onClick={() => navigate(`/projects/${p.id}`)}
+                className="flex items-center gap-2 cursor-pointer text-xs text-neutral-300 hover:text-white"
+              >
+                <span className="flex size-3.5 items-center justify-center rounded bg-neutral-800 text-[9px] font-semibold text-neutral-300">
+                  {p.name.charAt(0).toUpperCase()}
+                </span>
+                <span className="truncate">{p.name}</span>
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
+      {/* CENTER: Exact Page Title matching screenshot ("Overview", "Deployments", "Project Settings", etc.) */}
+      <div className="absolute left-1/2 -translate-x-1/2 hidden md:flex items-center">
+        <span className="text-xs font-semibold text-neutral-300 tracking-wide">
+          {pageTitle}
         </span>
-      ))}
-    </nav>
+      </div>
+
+      {/* RIGHT: Vercel Agent Action Button */}
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => navigate("/activity")}
+          className="inline-flex items-center gap-1.5 rounded-full border border-neutral-800 bg-neutral-900/90 px-3 py-1 text-xs font-medium text-neutral-300 hover:border-neutral-700 hover:text-white transition-colors"
+        >
+          <NavIconSparkle className="size-3 text-amber-400" />
+          <span>Agent</span>
+        </button>
+      </div>
+    </div>
   );
 }

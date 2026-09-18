@@ -96,3 +96,61 @@ export function NavIconSearch({ className }: IconProps) {
     </svg>
   );
 }
+
+export function NavIconGlobe({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className={cn("size-4 shrink-0", className)} aria-hidden>
+      <circle cx="8" cy="8" r="6" />
+      <path d="M2 8h12M8 2a9 9 0 0 1 3 6 9 9 0 0 1-3 6 9 9 0 0 1-3-6 9 9 0 0 1 3-6z" />
+    </svg>
+  );
+}
+
+export function NavIconKey({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className={cn("size-4 shrink-0", className)} aria-hidden>
+      <circle cx="5.5" cy="8" r="3" />
+      <path d="M8.5 8h5.5M11.5 8v2M13 8v1.5" />
+    </svg>
+  );
+}
+
+export function NavIconShield({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className={cn("size-4 shrink-0", className)} aria-hidden>
+      <path d="M8 2l5 2v4c0 3.5-3 5.5-5 6-2-.5-5-2.5-5-6V4l5-2z" />
+    </svg>
+  );
+}
+
+export function NavIconSparkle({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 16 16" fill="currentColor" className={cn("size-3.5 shrink-0", className)} aria-hidden>
+      <path d="M8 1a.75.75 0 0 1 .71.51l1.19 3.58 3.58 1.2a.75.75 0 0 1 0 1.42l-3.58 1.2-1.19 3.58a.75.75 0 0 1-1.42 0l-1.2-3.58-3.57-1.2a.75.75 0 0 1 0-1.42l3.58-1.2 1.19-3.58A.75.75 0 0 1 8 1z" />
+    </svg>
+  );
+}
+
+export function NavIconChevronsUpDown({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className={cn("size-3.5 shrink-0 text-neutral-500", className)} aria-hidden>
+      <path d="M5 6l3-3 3 3M5 10l3 3 3-3" />
+    </svg>
+  );
+}
+
+export function NavIconArrowLeft({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className={cn("size-3.5 shrink-0", className)} aria-hidden>
+      <path d="M10 3L5 8l5 5" />
+    </svg>
+  );
+}
+
+export function NavIconCheck({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" className={cn("size-3.5 shrink-0", className)} aria-hidden>
+      <path d="M3.5 8.5l3 3 6-7" />
+    </svg>
+  );
+}
