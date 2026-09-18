@@ -32,7 +32,7 @@ export class GitService {
     const branch = (branchOverride ?? project.branch).trim() || project.branch;
     logger.debug({ projectId: project.id, branch }, "Preparing source");
 
-    await this.ensureProjectDirectory(project);
+    await this.ensureProjectsRoot();
 
     const repoDir = this.projectPath(project);
     const isExisting = await this.isGitRepo(repoDir);
@@ -43,6 +43,7 @@ export class GitService {
       (await this.dirExists(project.localPath))
     ) {
       logger.info({ projectId: project.id, localPath: project.localPath }, "Preparing source from local adopted directory");
+      await fs.mkdir(repoDir, { recursive: true });
       await this.copyLocalDirectory(project.localPath, repoDir);
     } else if (isExisting) {
       logger.debug({ projectId: project.id }, "Repo exists — fetching latest");
@@ -71,13 +72,13 @@ export class GitService {
     });
   }
 
-  private async ensureProjectDirectory(project: Pick<ProjectSelect, "id">): Promise<void> {
-    const dir = path.join(config.projectsRootPath, project.id);
-    await fs.mkdir(dir, { recursive: true });
+  private async ensureProjectsRoot(): Promise<void> {
+    await fs.mkdir(config.projectsRootPath, { recursive: true });
   }
 
   private async cloneRepo(project: ProjectSelect, repoDir: string, branch: string): Promise<void> {
     const authUrl = this.buildAuthUrl(project.repoUrl);
+    await fs.rm(repoDir, { recursive: true, force: true });
     try {
       await execFileAsync("git", [
         "clone",
@@ -91,17 +92,22 @@ export class GitService {
     }
   }
 
-  private async pullLatest(_project: ProjectSelect, repoDir: string, branch: string): Promise<void> {
+  private async pullLatest(project: ProjectSelect, repoDir: string, branch: string): Promise<void> {
+    const authUrl = this.buildAuthUrl(project.repoUrl);
     try {
+      await execFileAsync("git", ["-C", repoDir, "remote", "set-url", "origin", authUrl]).catch(() =>
+        execFileAsync("git", ["-C", repoDir, "remote", "add", "origin", authUrl])
+      );
       await execFileAsync("git", ["-C", repoDir, "fetch", "origin", branch]);
       await execFileAsync("git", ["-C", repoDir, "checkout", "-B", branch, `origin/${branch}`]);
       await execFileAsync("git", [
         "-C", repoDir,
         "reset", "--hard", `origin/${branch}`,
       ]);
+      await execFileAsync("git", ["-C", repoDir, "clean", "-fdx"]).catch(() => {});
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      throw new DeploymentError(`Git pull failed: ${message}`);
+      logger.warn({ projectId: project.id, err }, "Git pull failed, removing directory and cloning cleanly");
+      await this.cloneRepo(project, repoDir, branch);
     }
   }
 
