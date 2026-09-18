@@ -25,20 +25,20 @@ function phaseBadge(phase: SlotPhase): { label: string; dot: string; pill: strin
   switch (phase) {
     case "live":
       return {
-        label: "Receiving 100% Traffic",
+        label: "Receiving Traffic",
         dot: "bg-emerald-500",
         pill: "border-emerald-500/30 bg-emerald-500/10 text-emerald-400",
       };
     case "deploying":
       return {
-        label: "Deploying & Warming",
+        label: "Deploying",
         dot: "bg-blue-500 animate-pulse",
         pill: "border-blue-500/30 bg-blue-500/10 text-blue-400",
       };
     default:
       return {
-        label: "Standby (0% Traffic)",
-        dot: "bg-neutral-600",
+        label: "Idle Slot",
+        dot: "bg-neutral-500",
         pill: "border-neutral-800 bg-neutral-900 text-neutral-400",
       };
   }
@@ -81,21 +81,29 @@ export function BlueGreenTrafficCard({
 
   return (
     <div className="overflow-hidden rounded-xl border border-neutral-800 bg-[#0a0a0a]">
-      <div className="p-6 space-y-6">
+      <div className="p-6 space-y-5">
         <div>
-          <h3 className="text-base font-semibold text-white">Blue-Green Deployment Infrastructure</h3>
+          <h3 className="text-base font-semibold text-white">Blue-Green Deployment Slots</h3>
           <p className="mt-1 text-xs text-neutral-400">
-            Zero-downtime traffic switching. Live client traffic is routed instantly to the healthy upstream slot.
+            Zero-downtime routing infrastructure. Live HTTP traffic is instantly swapped to the healthy slot.
           </p>
         </div>
 
-        {/* Traffic Flow Pipeline */}
-        <div className="rounded-xl border border-neutral-800/80 bg-black/60 p-4">
-          <div className="flex items-center justify-between gap-2 pb-3">
-            <span className="text-[11px] font-medium uppercase tracking-wider text-neutral-500">Live Traffic Route</span>
-            <span className="flex items-center gap-1.5 text-[11px] text-emerald-400 font-medium">
-              <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              Active Swap Ready
+        {/* Traffic flow */}
+        <div className="rounded-lg border border-neutral-800 bg-black/40 px-4 py-3">
+          <p className="text-[11px] font-medium text-neutral-400">Traffic Routing</p>
+          <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+            <span className="rounded border border-neutral-800 bg-neutral-900 px-2 py-1 font-mono text-neutral-300">
+              Clients
+            </span>
+            <span className="text-neutral-500" aria-hidden>
+              →
+            </span>
+            <span className="rounded border border-violet-500/30 bg-violet-500/10 px-2 py-1 font-mono text-violet-300">
+              Nginx Gateway
+            </span>
+            <span className="text-neutral-500" aria-hidden>
+              →
             </span>
           </div>
 
@@ -119,23 +127,20 @@ export function BlueGreenTrafficCard({
             </svg>
 
             {liveHostPort != null && liveUrl ? (
-              <div className="flex items-center gap-1.5 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-1.5 font-mono text-emerald-300 font-medium">
-                <span className="size-1.5 rounded-full bg-emerald-400" />
-                <span>Slot {active?.color ?? "—"} (:{liveHostPort})</span>
-              </div>
+              <span className="rounded border border-emerald-500/30 bg-emerald-500/10 px-2 py-1 font-mono text-emerald-400">
+                :{liveHostPort} ({active?.color ?? "—"})
+              </span>
             ) : (
-              <div className="flex items-center gap-1.5 rounded-lg border border-dashed border-neutral-800 px-3 py-1.5 text-neutral-500">
-                <span>Pending first deployment</span>
-              </div>
+              <span className="rounded border border-dashed border-neutral-800 px-2 py-1 font-mono text-neutral-500">
+                no active slot yet
+              </span>
             )}
-
-            <svg viewBox="0 0 16 16" fill="currentColor" className="size-3.5 text-neutral-600 shrink-0">
-              <path fillRule="evenodd" d="M6.22 3.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.06-1.06L9.94 8 6.22 4.28a.75.75 0 0 1 0-1.06z" />
-            </svg>
-
-            <div className="flex items-center gap-1.5 rounded-lg border border-neutral-800 bg-neutral-900/90 px-3 py-1.5 font-mono text-neutral-300">
-              <span>{project.deploymentType === "pm2" ? "pm2" : "container"} :{project.appPort}</span>
-            </div>
+            <span className="text-neutral-500" aria-hidden>
+              →
+            </span>
+            <span className="rounded border border-neutral-800 bg-neutral-900 px-2 py-1 font-mono text-neutral-300">
+              {project.deploymentType === "pm2" ? "pm2" : "container"} :{project.appPort}
+            </span>
           </div>
         </div>
 
@@ -166,10 +171,8 @@ export function BlueGreenTrafficCard({
               <div
                 key={color}
                 className={cn(
-                  "relative flex flex-col justify-between rounded-xl border p-5 transition-all",
-                  isLive
-                    ? "border-emerald-500/40 bg-emerald-500/[0.02] shadow-sm shadow-emerald-950/20"
-                    : "border-neutral-800/80 bg-black/40 hover:border-neutral-700"
+                  "relative flex flex-col justify-between rounded-lg border p-4 transition-colors",
+                  isLive ? "border-emerald-500/40 bg-emerald-500/[0.03]" : "border-neutral-800 bg-black/40"
                 )}
               >
                 <div>
@@ -178,7 +181,7 @@ export function BlueGreenTrafficCard({
                       <SlotBadge color={color} />
                       <span
                         className={cn(
-                          "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium border",
+                          "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium border",
                           pb.pill
                         )}
                       >
@@ -186,30 +189,32 @@ export function BlueGreenTrafficCard({
                         {pb.label}
                       </span>
                     </div>
-                    <span className="font-mono text-xs text-neutral-400 font-medium">host:{port}</span>
+                    <span className="font-mono text-xs text-neutral-500">host:{port}</span>
                   </div>
 
-                  <p className="break-all font-mono text-xs text-neutral-300">
+                  <p className="break-all font-mono text-xs text-neutral-200">
                     {url.replace(/^https?:\/\//, "")}
                   </p>
 
                   <dl className="mt-4 space-y-2 text-xs divide-y divide-neutral-800/40">
-                    <div className="flex justify-between gap-2 pt-2">
-                      <dt className="text-neutral-500 font-sans">Upstream Target</dt>
+                    <div className="flex justify-between gap-2 pt-1.5">
+                      <dt className="text-neutral-500">
+                        {project.deploymentType === "pm2" ? "Process Port" : "Container Port"}
+                      </dt>
                       <dd className="font-mono text-right text-neutral-300">
                         {port} → {project.appPort}
                       </dd>
                     </div>
                     {latest ? (
                       <>
-                        <div className="flex justify-between gap-2 pt-2">
-                          <dt className="text-neutral-500 font-sans">Active Image</dt>
+                        <div className="flex justify-between gap-2 pt-1.5">
+                          <dt className="text-neutral-500">Slot Version</dt>
                           <dd className="font-mono text-right text-neutral-200">
                             {statusLine(latest)}
                           </dd>
                         </div>
-                        <div className="flex justify-between gap-2 pt-2">
-                          <dt className="text-neutral-500 font-sans">
+                        <div className="flex justify-between gap-2 pt-1.5">
+                          <dt className="text-neutral-500">
                             {project.deploymentType === "pm2" ? "Process" : "Container"}
                           </dt>
                           <dd className="max-w-[14rem] truncate font-mono text-right text-neutral-400" title={latest.containerName}>
@@ -218,24 +223,41 @@ export function BlueGreenTrafficCard({
                         </div>
                       </>
                     ) : (
-                      <p className="pt-2 text-neutral-500 text-xs font-sans">No deployment in this slot yet.</p>
+                      <p className="pt-2 text-neutral-500">No deployment in this slot yet.</p>
                     )}
                   </dl>
                 </div>
 
-                <div className="mt-5 flex flex-wrap items-center gap-2 pt-4 border-t border-neutral-800/60 font-sans">
+                <div className="mt-4 flex flex-wrap gap-2 pt-3 border-t border-neutral-800/60">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-7 text-xs border-neutral-800 text-neutral-300 hover:text-white"
+                    onClick={() => onCopy(url, "App URL")}
+                  >
+                    Copy URL
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-7 text-xs border-neutral-800 text-neutral-300 hover:text-white"
+                    onClick={() => onCopy(healthUrl, "Health URL")}
+                  >
+                    Copy Health
+                  </Button>
                   <a
                     href={url}
                     target="_blank"
                     rel="noreferrer"
                     className={buttonVariants({
-                      variant: "outline",
+                      variant: "secondary",
                       size: "sm",
-                      className: "h-7 text-xs border-neutral-800 bg-neutral-900 text-neutral-200 hover:text-white gap-1",
+                      className: "h-7 text-xs bg-neutral-900 border border-neutral-800 text-neutral-200 hover:text-white",
                     })}
                   >
-                    <span>Open Slot</span>
-                    <span className="text-[10px]" aria-hidden>↗</span>
+                    Open
                   </a>
                   <a
                     href={healthUrl}
@@ -244,21 +266,11 @@ export function BlueGreenTrafficCard({
                     className={buttonVariants({
                       variant: "ghost",
                       size: "sm",
-                      className: "h-7 text-xs text-neutral-400 hover:text-white gap-1",
+                      className: "h-7 text-xs text-neutral-400 hover:text-white",
                     })}
                   >
-                    <span>Health Check</span>
-                    <span className="text-[10px]" aria-hidden>↗</span>
+                    Health
                   </a>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 text-xs text-neutral-400 hover:text-white"
-                    onClick={() => onCopy(url, "App URL")}
-                  >
-                    Copy URL
-                  </Button>
                 </div>
               </div>
             );
@@ -267,12 +279,12 @@ export function BlueGreenTrafficCard({
       </div>
 
       {liveUrl && active && (
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-t border-neutral-800 bg-black/40 px-6 py-3 text-xs text-neutral-400 font-sans">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-t border-neutral-800 bg-black px-6 py-3 text-xs text-neutral-400">
           <div className="flex items-center gap-2">
             <span className="size-1.5 rounded-full bg-emerald-500 shrink-0" />
             <span>
               Live traffic routed to slot <SlotBadge color={active.color} /> on host port{" "}
-              <span className="font-mono text-white">:{liveHostPort}</span>
+              <span className="font-mono text-white">{liveHostPort}</span>
             </span>
           </div>
           <a
@@ -281,8 +293,7 @@ export function BlueGreenTrafficCard({
             rel="noreferrer"
             className="font-mono text-emerald-400 hover:underline inline-flex items-center gap-1"
           >
-            <span>{liveUrl}</span>
-            <span className="text-[10px]" aria-hidden>↗</span>
+            {liveUrl} ↗
           </a>
         </div>
       )}
