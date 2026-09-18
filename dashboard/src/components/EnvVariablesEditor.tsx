@@ -74,7 +74,7 @@ export function EnvVariablesEditor({
       return;
     }
     void navigator.clipboard.writeText(text).then(
-      () => toast.success("[ COPIED ] .env configuration to clipboard"),
+      () => toast.success("Environment configuration copied to clipboard"),
       () => toast.error("Failed to copy .env")
     );
   };
@@ -103,7 +103,7 @@ export function EnvVariablesEditor({
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
-              [ Key-Value ]
+              Key-Value
             </button>
             <button
               type="button"
@@ -115,7 +115,7 @@ export function EnvVariablesEditor({
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
-              [ Raw .env ]
+              Raw .env
             </button>
           </div>
 
@@ -130,7 +130,7 @@ export function EnvVariablesEditor({
             )}
             onClick={() => setMaskSecrets(!maskSecrets)}
           >
-            {maskSecrets ? "[ Mask: ON ]" : "[ Mask: OFF ]"}
+            {maskSecrets ? "Masked" : "Revealed"}
           </Button>
 
           {/* Copy .env Button */}
@@ -141,7 +141,7 @@ export function EnvVariablesEditor({
             className="h-6 px-2 text-[10px] text-muted-foreground hover:text-foreground"
             onClick={copyDotEnv}
           >
-            [ Copy .env ]
+            Copy .env
           </Button>
 
           {/* Attach Database Dropdown if supplied */}

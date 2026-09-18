@@ -196,8 +196,9 @@ export function Overview() {
           <CardContent className="p-5">
             <div className="flex items-center justify-between">
               <span className="font-sans text-xs font-medium text-neutral-400">Active Containers</span>
-              <span className="border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0.5 font-mono text-[10px] text-emerald-400">
-                [ LIVE ]
+              <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 font-sans text-[10px] font-medium text-emerald-400">
+                <span className="size-1.5 rounded-full bg-emerald-500" />
+                Live
               </span>
             </div>
             <div className="mt-3 font-mono text-3xl font-bold text-white tracking-tight">
@@ -355,9 +356,10 @@ export function Overview() {
                     <CardContent className="space-y-3.5 pb-4 flex-1 flex flex-col justify-between">
                       {st === "DEPLOYING" && (
                         <div className="space-y-1 rounded border border-sky-500/20 bg-sky-500/5 p-2">
-                          <p className="font-mono text-[10px] uppercase text-sky-400">
-                            [ PIPELINE ACTIVE ] Warm-swapping container...
-                          </p>
+                          <div className="flex items-center gap-1.5 text-xs text-sky-400 font-sans font-medium">
+                            <span className="size-1.5 rounded-full bg-sky-400 animate-pulse" />
+                            <span>Warm-swapping deployment container...</span>
+                          </div>
                           <div className="h-1 w-full overflow-hidden rounded-full bg-neutral-900">
                             <div className="h-full w-2/5 animate-pulse rounded-full bg-sky-500" />
                           </div>
@@ -377,7 +379,7 @@ export function Overview() {
                               rel="noreferrer"
                               className="font-mono text-[10px] text-emerald-400 hover:underline"
                             >
-                              [ VISIT APP ]
+                              Visit ↗
                             </a>
                           ) : (
                             <span className="font-mono text-[10px] text-neutral-600">Pending deploy</span>
@@ -410,15 +412,17 @@ export function Overview() {
                                   {c === "BLUE" ? "Slot Blue" : "Slot Green"}
                                 </span>
                                 {isLive ? (
-                                  <span className="border border-emerald-500/40 bg-emerald-500/10 px-1 py-0.2 text-[8px] font-bold text-emerald-400">
-                                    LIVE
+                                  <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0.2 text-[8px] font-medium text-emerald-400">
+                                    <span className="size-1 rounded-full bg-emerald-400" />
+                                    Active
                                   </span>
                                 ) : isDeploy ? (
-                                  <span className="border border-amber-500/40 bg-amber-500/10 px-1 py-0.2 text-[8px] text-amber-400">
-                                    BUILD
+                                  <span className="inline-flex items-center gap-1 rounded-full border border-blue-500/30 bg-blue-500/10 px-1.5 py-0.2 text-[8px] font-medium text-blue-400">
+                                    <span className="size-1 rounded-full bg-blue-400 animate-pulse" />
+                                    Deploying
                                   </span>
                                 ) : (
-                                  <span className="text-neutral-600">idle</span>
+                                  <span className="text-neutral-600 text-[9px]">Standby</span>
                                 )}
                               </div>
                               <a
@@ -497,7 +501,7 @@ export function Overview() {
 
           {/* Recent Activity Stream */}
           {recentJobs.length > 0 && (
-            <Card className="border-border bg-card">
+            <Card className="overflow-hidden rounded-xl border border-neutral-800 bg-[#0a0a0a]">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
                 <div>
                   <CardTitle className="font-mono text-sm font-semibold">Recent Pipeline Executions</CardTitle>
@@ -513,7 +517,7 @@ export function Overview() {
                 </Link>
               </CardHeader>
               <CardContent className="px-0 pb-2">
-                <div className="divide-y divide-border/40 font-mono text-xs">
+                <div className="divide-y divide-neutral-800/60 font-sans text-xs">
                   {recentJobs.map((job) => {
                     const badgeVar =
                       job.status === "COMPLETE"
@@ -526,22 +530,21 @@ export function Overview() {
                       <Link
                         key={job.id}
                         to={`/projects/${job.projectId}/deploy/${job.id}`}
-                        className="flex items-center justify-between gap-4 px-4 py-3 transition-colors hover:bg-muted/40"
+                        className="flex items-center justify-between gap-4 px-4 py-3 transition-colors hover:bg-neutral-900/40"
                       >
                         <div className="flex min-w-0 items-center gap-3">
                           <span
-                            className={`px-1 py-0.5 font-mono text-[10px] font-semibold ${
+                            className={cn(
+                              "size-2 rounded-full shrink-0",
                               job.status === "COMPLETE"
-                                ? "border border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
+                                ? "bg-emerald-500"
                                 : job.status === "FAILED"
-                                  ? "border border-red-500/30 bg-red-500/10 text-red-400"
+                                  ? "bg-red-500"
                                   : job.status === "RUNNING"
-                                    ? "border border-cyan-500/30 bg-cyan-500/10 text-cyan-400"
-                                    : "border border-amber-500/30 bg-amber-500/10 text-amber-400"
-                            }`}
-                          >
-                            [{job.status === "COMPLETE" ? "OK" : job.status === "FAILED" ? "FAIL" : job.status === "RUNNING" ? "RUN" : "WAIT"}]
-                          </span>
+                                    ? "bg-blue-500 animate-pulse"
+                                    : "bg-neutral-500"
+                            )}
+                          />
                           <div className="min-w-0">
                             <span className="font-semibold text-foreground">
                               {job.project?.name ?? "Unknown Project"}

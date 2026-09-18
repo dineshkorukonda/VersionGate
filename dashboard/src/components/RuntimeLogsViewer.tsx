@@ -47,7 +47,7 @@ export function RuntimeLogsViewer({
   const copyLogs = () => {
     if (!logs.length) return;
     void navigator.clipboard.writeText(logs.join("\n")).then(
-      () => toast.success(`[ COPIED ] ${logs.length} log lines to clipboard`),
+      () => toast.success(`Copied ${logs.length} log lines to clipboard`),
       () => toast.error("Could not copy logs")
     );
   };
@@ -61,42 +61,44 @@ export function RuntimeLogsViewer({
     a.download = `${containerName || "runtime"}-logs.txt`;
     a.click();
     URL.revokeObjectURL(url);
-    toast.success("[ DOWNLOADED ] Log file saved");
+    toast.success("Log file saved");
   };
 
   return (
     <div className="overflow-hidden rounded-xl border border-neutral-800 bg-[#050505] shadow-sm font-mono text-xs">
       {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-neutral-800 bg-[#0a0a0a] px-3.5 py-2.5">
-        <div className="flex items-center gap-2">
-          <span className="font-semibold text-neutral-200">{title}</span>
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-neutral-800 bg-[#0a0a0a] px-4 py-2.5">
+        <div className="flex items-center gap-2.5">
+          <span className="font-semibold text-neutral-200 font-sans">{title}</span>
           {containerName ? (
-            <span className="border border-neutral-700 bg-neutral-900 px-1.5 py-0.5 text-[10px] text-neutral-300">
-              [{containerName}]
+            <span className="rounded border border-neutral-800 bg-neutral-900 px-2 py-0.5 font-mono text-[11px] text-neutral-400">
+              {containerName}
             </span>
           ) : null}
           {loading ? (
-            <span className="border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[10px] text-amber-400">
-              [ LOADING ]
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] text-amber-400 font-sans">
+              <span className="size-1.5 rounded-full bg-amber-400 animate-pulse" />
+              Loading...
             </span>
           ) : (
-            <span className="border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] text-emerald-400">
-              [ LIVE: {filteredLogs.length} lines ]
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] text-emerald-400 font-sans">
+              <span className="size-1.5 rounded-full bg-emerald-500" />
+              Live: {filteredLogs.length} lines
             </span>
           )}
         </div>
 
-        <div className="flex flex-wrap items-center gap-1.5">
+        <div className="flex flex-wrap items-center gap-1.5 font-sans">
           {/* Tail selector */}
           {onTailChange ? (
-            <div className="flex items-center gap-1 border border-neutral-800 bg-neutral-900/60 p-0.5">
+            <div className="flex items-center rounded-lg border border-neutral-800 bg-neutral-900/60 p-0.5">
               {[50, 100, 200, 500].map((t) => (
                 <button
                   key={t}
                   type="button"
                   onClick={() => onTailChange(t)}
                   className={cn(
-                    "px-1.5 py-0.5 text-[10px] font-mono transition-colors",
+                    "rounded px-2 py-0.5 text-[10px] font-mono transition-colors",
                     tail === t
                       ? "bg-neutral-800 text-white font-bold"
                       : "text-neutral-400 hover:text-neutral-200"
@@ -115,12 +117,13 @@ export function RuntimeLogsViewer({
               variant="outline"
               size="sm"
               className={cn(
-                "h-6 px-2 text-[10px] border-neutral-800",
-                autoRefresh ? "text-emerald-400 bg-emerald-950/30 border-emerald-800/50" : "text-neutral-400"
+                "h-7 px-2.5 text-xs border-neutral-800 gap-1.5",
+                autoRefresh ? "text-emerald-400 bg-emerald-950/30 border-emerald-800/50" : "text-neutral-400 hover:text-white"
               )}
               onClick={() => onToggleAutoRefresh(!autoRefresh)}
             >
-              {autoRefresh ? "[ Auto: ON ]" : "[ Auto: OFF ]"}
+              <span className={cn("size-1.5 rounded-full", autoRefresh ? "bg-emerald-400" : "bg-neutral-500")} />
+              <span>Auto-refresh</span>
             </Button>
           ) : null}
 
@@ -130,11 +133,11 @@ export function RuntimeLogsViewer({
               type="button"
               variant="outline"
               size="sm"
-              className="h-6 px-2 text-[10px] border-neutral-800 text-neutral-300 hover:text-white"
+              className="h-7 px-2.5 text-xs border-neutral-800 text-neutral-300 hover:text-white"
               disabled={loading}
               onClick={onRefresh}
             >
-              [ Refresh ]
+              Refresh
             </Button>
           ) : null}
 
@@ -143,11 +146,11 @@ export function RuntimeLogsViewer({
             type="button"
             variant="outline"
             size="sm"
-            className="h-6 px-2 text-[10px] border-neutral-800 text-neutral-300 hover:text-white"
+            className="h-7 px-2.5 text-xs border-neutral-800 text-neutral-300 hover:text-white"
             disabled={!logs.length}
             onClick={copyLogs}
           >
-            [ Copy ]
+            Copy
           </Button>
 
           {/* Download button */}
@@ -155,33 +158,39 @@ export function RuntimeLogsViewer({
             type="button"
             variant="outline"
             size="sm"
-            className="h-6 px-2 text-[10px] border-neutral-800 text-neutral-300 hover:text-white"
+            className="h-7 px-2.5 text-xs border-neutral-800 text-neutral-300 hover:text-white"
             disabled={!logs.length}
             onClick={downloadLogs}
           >
-            [ Export ]
+            Export
           </Button>
         </div>
       </div>
 
       {/* Filter / Search Bar */}
-      <div className="flex items-center justify-between border-b border-neutral-800/60 bg-neutral-950 px-3 py-1.5">
-        <input
-          type="text"
-          placeholder="Filter log lines..."
-          value={filter}
-          onChange={(e) => setFilter(e.target.value)}
-          className="w-full max-w-sm bg-transparent font-mono text-[11px] text-neutral-300 placeholder:text-neutral-600 focus:outline-none"
-        />
+      <div className="flex items-center justify-between border-b border-neutral-800/60 bg-neutral-950 px-4 py-2 font-sans">
+        <div className="flex items-center gap-2 flex-1 max-w-sm">
+          <svg viewBox="0 0 16 16" fill="currentColor" className="size-3.5 text-neutral-500 shrink-0">
+            <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z" />
+          </svg>
+          <input
+            type="text"
+            placeholder="Filter log output..."
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            className="w-full bg-transparent font-mono text-xs text-neutral-300 placeholder:text-neutral-600 focus:outline-none"
+          />
+        </div>
         <button
           type="button"
           onClick={() => setAutoScroll(!autoScroll)}
           className={cn(
-            "text-[10px] transition-colors",
+            "inline-flex items-center gap-1.5 text-xs transition-colors",
             autoScroll ? "text-emerald-400" : "text-neutral-500 hover:text-neutral-300"
           )}
         >
-          {autoScroll ? "[ Stick to Bottom: ON ]" : "[ Stick to Bottom: OFF ]"}
+          <span className={cn("size-1.5 rounded-full", autoScroll ? "bg-emerald-500" : "bg-neutral-600")} />
+          <span>Follow Log Stream</span>
         </button>
       </div>
 
@@ -189,13 +198,13 @@ export function RuntimeLogsViewer({
       <div
         ref={scrollRef}
         className={cn(
-          "overflow-auto p-3 font-mono text-[11px] leading-relaxed select-text",
+          "overflow-auto p-4 font-mono text-[11px] leading-relaxed select-text",
           maxHeightClass
         )}
       >
         {filteredLogs.length === 0 ? (
-          <div className="py-8 text-center text-neutral-500">
-            {filter ? `[ No log lines match "${filter}" ]` : `[ ${emptyMessage} ]`}
+          <div className="py-12 text-center text-neutral-500 font-sans text-xs">
+            {filter ? `No log lines match "${filter}"` : emptyMessage}
           </div>
         ) : (
           filteredLogs.map((line, idx) => (
