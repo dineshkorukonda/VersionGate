@@ -27,7 +27,6 @@ import { EnvironmentChain } from "@/components/badges/EnvironmentChain";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { StatusBadge } from "@/components/badges/StatusBadge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { BlueGreenTrafficCard } from "@/components/BlueGreenTrafficCard";
@@ -327,7 +326,32 @@ export function ProjectDetail() {
             <h1 className="text-2xl font-bold tracking-tight text-white md:text-3xl">
               {project.name}
             </h1>
-            <StatusBadge status={displayStatus} />
+            <span
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium",
+                displayStatus === "ACTIVE"
+                  ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
+                  : displayStatus === "DEPLOYING"
+                    ? "border-blue-500/30 bg-blue-500/10 text-blue-400"
+                    : displayStatus === "FAILED"
+                      ? "border-red-500/30 bg-red-500/10 text-red-400"
+                      : "border-neutral-800 bg-neutral-900 text-neutral-400"
+              )}
+            >
+              <span
+                className={cn(
+                  "size-1.5 rounded-full shrink-0",
+                  displayStatus === "ACTIVE"
+                    ? "bg-emerald-500"
+                    : displayStatus === "DEPLOYING"
+                      ? "bg-blue-500 animate-pulse"
+                      : displayStatus === "FAILED"
+                        ? "bg-red-500"
+                        : "bg-neutral-500"
+                )}
+              />
+              <span>{displayStatus === "ACTIVE" ? "Ready" : displayStatus === "DEPLOYING" ? "Building" : displayStatus === "FAILED" ? "Failed" : "Queued"}</span>
+            </span>
             {active ? (
               <span className="rounded border border-neutral-800 bg-neutral-900 px-2 py-0.5 font-mono text-[11px] text-neutral-300">
                 v{active.version}
@@ -459,18 +483,72 @@ export function ProjectDetail() {
           {/* Production Deployment Hero Card */}
           <div className="overflow-hidden rounded-xl border border-neutral-800 bg-[#0a0a0a]">
             <div className="p-6">
-              <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+              <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+                {/* Visual Preview Canvas Frame */}
+                <div className="w-full lg:w-72 xl:w-80 shrink-0">
+                  <div className="rounded-lg border border-neutral-800 bg-black/60 overflow-hidden shadow-md">
+                    <div className="flex items-center gap-1.5 border-b border-neutral-800/80 bg-neutral-900/60 px-3 py-2">
+                      <span className="size-2 rounded-full bg-neutral-700" />
+                      <span className="size-2 rounded-full bg-neutral-700" />
+                      <span className="size-2 rounded-full bg-neutral-700" />
+                      <div className="ml-2 flex-1 truncate rounded bg-neutral-950 px-2 py-0.5 text-[10px] font-mono text-neutral-400">
+                        {liveUrl ? liveUrl.replace(/^https?:\/\//, "") : "awaiting deployment"}
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-center justify-center p-6 text-center min-h-[120px] bg-gradient-to-b from-neutral-950 to-[#0a0a0a]">
+                      <div className="size-9 rounded-lg bg-neutral-900 border border-neutral-800 flex items-center justify-center text-white font-bold text-sm mb-2 shadow-inner">
+                        {project.name.charAt(0).toUpperCase()}
+                      </div>
+                      <p className="font-semibold text-xs text-white truncate max-w-full">{project.name}</p>
+                      {liveUrl ? (
+                        <a
+                          href={liveUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="mt-2 inline-flex items-center gap-1 text-[11px] text-emerald-400 hover:underline"
+                        >
+                          <span>Visit Production</span>
+                          <span className="text-[9px]">↗</span>
+                        </a>
+                      ) : (
+                        <span className="mt-1 text-[11px] text-neutral-500">Pending deployment</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
                 {/* Deployment Metadata */}
                 <div className="space-y-4 flex-1">
                   <div>
-                    <span className="text-xs font-semibold uppercase tracking-wider text-neutral-500">
+                    <span className="text-xs font-medium uppercase tracking-wider text-neutral-500">
                       Production Deployment
                     </span>
-                    <div className="mt-1 flex flex-wrap items-center gap-2">
+                    <div className="mt-1 flex flex-wrap items-center gap-2.5">
                       <h2 className="text-lg font-semibold text-white">
                         {active ? `Deployment v${active.version}` : "No Active Deployment"}
                       </h2>
-                      <StatusBadge status={active ? active.status : "PENDING"} />
+                      <span
+                        className={cn(
+                          "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium border",
+                          active && active.status === "ACTIVE"
+                            ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
+                            : active && active.status === "DEPLOYING"
+                              ? "border-blue-500/30 bg-blue-500/10 text-blue-400"
+                              : "border-neutral-800 bg-neutral-900 text-neutral-400"
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            "size-1.5 rounded-full shrink-0",
+                            active && active.status === "ACTIVE"
+                              ? "bg-emerald-500"
+                              : active && active.status === "DEPLOYING"
+                                ? "bg-blue-500 animate-pulse"
+                                : "bg-neutral-500"
+                          )}
+                        />
+                        {active ? (active.status === "ACTIVE" ? "Ready" : active.status === "DEPLOYING" ? "Building" : active.status) : "Pending"}
+                      </span>
                     </div>
                   </div>
 
@@ -494,30 +572,38 @@ export function ProjectDetail() {
                       </dd>
                     </div>
                     <div>
-                      <dt className="text-neutral-500">Status</dt>
-                      <dd className="mt-0.5 text-neutral-300">
-                        {active ? `Ready (Port :${liveHostPort})` : "Pending first deployment"}
+                      <dt className="text-neutral-500">Active Upstream</dt>
+                      <dd className="mt-0.5 text-neutral-300 font-mono">
+                        {active ? `Slot ${active.color} (Port :${liveHostPort})` : "Pending initial deployment"}
                       </dd>
                     </div>
                     <div>
                       <dt className="text-neutral-500">Git Source</dt>
                       <dd className="mt-0.5 font-mono text-neutral-300 flex items-center gap-1.5">
+                        <svg viewBox="0 0 16 16" fill="currentColor" className="size-3 text-neutral-500 shrink-0">
+                          <path d="M9.5 3.25a2.25 2.25 0 1 1 3 2.122V6A2.5 2.5 0 0 1 10 8.5H6a1 1 0 0 0-1 1v1.128a2.251 2.251 0 1 1-1.5 0V5.372a2.25 2.25 0 1 1 1.5 0v1.836A2.493 2.493 0 0 1 6 7h4a1 1 0 0 0 1-1v-.628A2.25 2.25 0 0 1 9.5 3.25Zm-6 0a.75.75 0 1 0 1.5 0 .75.75 0 0 0-1.5 0Zm8.25.75a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5ZM4.25 12a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5Z" />
+                        </svg>
                         <span>{project.branch}</span>
                         {active?.commitSha ? (
-                          <span className="text-neutral-500">({active.commitSha.slice(0, 7)})</span>
+                          <span className="text-neutral-500 flex items-center gap-1">
+                            <svg viewBox="0 0 16 16" fill="currentColor" className="size-3 text-neutral-500 shrink-0">
+                              <path d="M11.93 8.5a4.002 4.002 0 0 1-7.86 0H.75a.75.75 0 0 1 0-1.5h3.32a4.002 4.002 0 0 1 7.86 0h3.32a.75.75 0 0 1 0 1.5h-3.32zM8 10.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z" />
+                            </svg>
+                            {active.commitSha.slice(0, 7)}
+                          </span>
                         ) : null}
                       </dd>
                     </div>
                     <div>
                       <dt className="text-neutral-500">Runtime Type</dt>
-                      <dd className="mt-0.5 font-mono text-neutral-300 uppercase">
-                        {project.deploymentType === "pm2" ? "Host PM2" : "Docker Container"}
+                      <dd className="mt-0.5 font-mono text-neutral-300">
+                        {project.deploymentType === "pm2" ? "Node.js (PM2)" : "Docker Container"}
                       </dd>
                     </div>
                   </dl>
                 </div>
 
-                {/* Quick Action Preview Box */}
+                {/* Quick Action Buttons */}
                 <div className="flex flex-col sm:flex-row lg:flex-col gap-2 shrink-0">
                   {liveUrl ? (
                     <a
@@ -526,10 +612,11 @@ export function ProjectDetail() {
                       rel="noreferrer"
                       className={buttonVariants({
                         size: "sm",
-                        className: "bg-white text-black font-semibold hover:bg-neutral-200 text-xs h-8",
+                        className: "bg-white text-black font-semibold hover:bg-neutral-200 text-xs h-8 gap-1.5",
                       })}
                     >
-                      Visit Deployment ↗
+                      <span>Visit</span>
+                      <span className="text-[10px]" aria-hidden>↗</span>
                     </a>
                   ) : null}
                   {active?.jobId ? (
@@ -546,9 +633,9 @@ export function ProjectDetail() {
               </div>
             </div>
 
-            <div className="flex items-center justify-between border-t border-neutral-800 bg-black px-6 py-3 text-xs text-neutral-500">
-              <span>Automatic deployments trigger on push to <code className="font-mono text-neutral-400">{project.branch}</code></span>
-              <span className="font-mono">{totalDeploys} deployments total</span>
+            <div className="flex items-center justify-between border-t border-neutral-800 bg-black/40 px-6 py-3 text-xs text-neutral-500">
+              <span>Automatic zero-downtime deployment triggers on push to <code className="font-mono text-neutral-400">{project.branch}</code></span>
+              <span className="font-mono">{totalDeploys} {totalDeploys === 1 ? "deployment" : "deployments"}</span>
             </div>
           </div>
 
@@ -563,6 +650,30 @@ export function ProjectDetail() {
                 liveUrl={liveUrl}
                 onCopy={copyText}
               />
+
+              {/* Recent Deployments Feed */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-base font-semibold text-white">Recent Deployments</h3>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-xs text-neutral-400 hover:text-white"
+                    onClick={() => {
+                      if (!id) return;
+                      navigate(projectTabPath(id, "deployments"));
+                    }}
+                  >
+                    View All ({productionDeployments.length}) →
+                  </Button>
+                </div>
+                <DeploymentList
+                  deployments={productionDeployments.slice(0, 5)}
+                  showProject={false}
+                  emptyMessage="No deployments recorded for this project yet."
+                />
+              </div>
 
               {/* Environments Chain */}
               <div className="overflow-hidden rounded-xl border border-neutral-800 bg-[#0a0a0a]">
