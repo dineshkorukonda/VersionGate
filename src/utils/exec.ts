@@ -13,10 +13,18 @@ export interface ExecResult {
  * Promisified child_process.exec (shell=true).
  * Prefer execFileAsync for external commands to avoid shell injection.
  */
-export async function execAsync(command: string): Promise<ExecResult> {
+export async function execAsync(
+  command: string,
+  options?: { cwd?: string; env?: NodeJS.ProcessEnv; timeout?: number }
+): Promise<ExecResult> {
   try {
-    const { stdout, stderr } = await execPromise(command);
-    return { stdout, stderr };
+    const { stdout, stderr } = await execPromise(command, {
+      cwd: options?.cwd,
+      env: options?.env ? { ...process.env, ...options.env } : process.env,
+      timeout: options?.timeout,
+      maxBuffer: 50 * 1024 * 1024,
+    });
+    return { stdout: stdout.toString(), stderr: stderr.toString() };
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     throw new Error(`Command failed: ${command}\n${message}`);

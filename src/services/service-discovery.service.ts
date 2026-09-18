@@ -428,6 +428,7 @@ export class ServiceDiscoveryService {
       deploymentType: input.serviceType,
       healthPath: "/health",
       buildContext: ".",
+      isAdopted: true,
     });
 
     // 2. Find production environment created by projectRepo

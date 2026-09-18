@@ -242,21 +242,34 @@ export async function buildAndStartPm2Deployment(options: Pm2DeployOptions): Pro
     if (pm === "bun") installCmd = "bun install";
     else if (pm === "pnpm") installCmd = "pnpm install";
     else if (pm === "yarn") installCmd = "yarn install";
-    else installCmd = "npm install";
+    else installCmd = "npm install --include=dev";
   }
+
+  const pathModule = await import("path");
+  const nodeBinPath = pathModule.join(buildContextPath, "node_modules", ".bin");
+  const currentPath = process.env.PATH || "";
+  const enhancedPath = currentPath.includes(nodeBinPath)
+    ? currentPath
+    : `${nodeBinPath}${pathModule.delimiter}${currentPath}`;
+
+  const buildEnv: NodeJS.ProcessEnv = {
+    ...process.env,
+    ...env,
+    NODE_ENV: "development",
+    PATH: enhancedPath,
+  };
 
   if (log) await log(`[PM2] Installing dependencies via: ${installCmd}`);
   logger.info({ buildContextPath, installCmd }, "PM2: Installing dependencies");
   const { execAsync } = await import("./exec");
-  await execAsync(`cd "${buildContextPath}" && ${installCmd}`);
+  await execAsync(installCmd, { cwd: buildContextPath, env: buildEnv });
 
   // 3. Build step (if specified or if scripts.build exists)
   let buildCmd = project.buildCommand?.trim();
   if (!buildCmd) {
     try {
       const fs = await import("fs/promises");
-      const path = await import("path");
-      const pkgPath = path.join(buildContextPath, "package.json");
+      const pkgPath = pathModule.join(buildContextPath, "package.json");
       const rawPkg = await fs.readFile(pkgPath, "utf-8");
       const pkg = JSON.parse(rawPkg);
       if (pkg.scripts?.build) {
@@ -270,8 +283,7 @@ export async function buildAndStartPm2Deployment(options: Pm2DeployOptions): Pro
   if (buildCmd) {
     if (log) await log(`[PM2] Running build command: ${buildCmd}`);
     logger.info({ buildContextPath, buildCmd }, "PM2: Running build");
-    const { execAsync } = await import("./exec");
-    await execAsync(`cd "${buildContextPath}" && ${buildCmd}`);
+    await execAsync(buildCmd, { cwd: buildContextPath, env: buildEnv });
   }
 
   // 4. Start via PM2
