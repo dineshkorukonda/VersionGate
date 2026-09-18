@@ -311,10 +311,18 @@ export async function buildAndStartPm2Deployment(options: Pm2DeployOptions): Pro
     ? currentPath
     : `${nodeBinPath}${pathModule.delimiter}${currentPath}`;
 
-  const buildEnv: NodeJS.ProcessEnv = {
+  const installEnv: NodeJS.ProcessEnv = {
     ...process.env,
     ...env,
     NODE_ENV: "development",
+    PATH: enhancedPath,
+  };
+
+  const buildEnv: NodeJS.ProcessEnv = {
+    ...process.env,
+    ...env,
+    NODE_ENV: env.NODE_ENV || "production",
+    PORT: String(hostPort),
     PATH: enhancedPath,
   };
 
@@ -322,13 +330,13 @@ export async function buildAndStartPm2Deployment(options: Pm2DeployOptions): Pro
   logger.info({ buildContextPath, installCmd }, "PM2: Installing dependencies");
   const { execAsync } = await import("./exec");
   try {
-    await execAsync(installCmd, { cwd: buildContextPath, env: buildEnv });
+    await execAsync(installCmd, { cwd: buildContextPath, env: installEnv });
   } catch (err: any) {
     if (installCmd.startsWith("bun install")) {
       const fallbackCmd = "npm install --include=dev";
       if (log) await log(`[PM2] "bun install" encountered an issue with native build addons (${err?.message || "lifecycle error"}). Falling back to "${fallbackCmd}"...`);
       logger.warn({ err }, "PM2: bun install failed — falling back to npm install --include=dev");
-      await execAsync(fallbackCmd, { cwd: buildContextPath, env: buildEnv });
+      await execAsync(fallbackCmd, { cwd: buildContextPath, env: installEnv });
       if (log) await log(`[PM2] "${fallbackCmd}" completed successfully.`);
     } else {
       throw err;

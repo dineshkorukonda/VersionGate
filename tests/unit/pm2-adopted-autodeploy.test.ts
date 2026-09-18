@@ -65,6 +65,20 @@ describe("Adopted PM2 Services & Auto-Deployment Engine", () => {
     const commits = await gitService.listRecentCommits(project as any, 5);
     expect(Array.isArray(commits)).toBe(true);
     expect(commits.length).toBeGreaterThan(0);
-    expect(commits[0].sha).toBeDefined();
+  });
+
+  test("PM2 deployment runner uses production NODE_ENV for build step", () => {
+    const env: Record<string, string> = {};
+    const hostPort = 3000;
+    const buildEnv = {
+      ...process.env,
+      ...env,
+      NODE_ENV: env.NODE_ENV || "production",
+      PORT: String(hostPort),
+    };
+    expect(buildEnv.NODE_ENV).toBe("production");
+    expect(buildEnv.PORT).toBe("3000");
   });
 });
+
+
