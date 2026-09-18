@@ -44,9 +44,57 @@ interface ProcessedRelease {
 
 const FALLBACK_RELEASES: ProcessedRelease[] = [
   {
+    version: "v2.9.8",
+    date: "September 18, 2026",
+    isLatest: true,
+    summary:
+      "Automated deployment and commit tracking for adopted PM2 services, GitHub webhook secret generation on service import, automatic SSH Git URL normalization, ecosystem configuration detection, and multi-home PM2 daemon support.",
+    categories: [
+      {
+        title: "Adopted PM2 Auto-Deployments & Commits",
+        badge: "NEW",
+        items: [
+          {
+            title: "Automatic Webhook Secret Generation & Backfill",
+            description:
+              "Adopted PM2 and Docker services automatically receive cryptographic webhook authentication secrets, enabling instant GitHub push auto-deployments without manual configuration.",
+            command: "POST /api/webhooks/:secret",
+          },
+          {
+            title: "Git SSH to HTTPS Remote Normalization",
+            description:
+              "Origin remote URLs detected in local repositories (git@github.com:...) are automatically normalized to HTTPS, preventing clone/fetch failures during CI/CD deployments.",
+          },
+          {
+            title: "Preserved Commit History & Local Commit Resolution",
+            description:
+              "Local adopted service directories now preserve .git history and fallback to local repository roots for commit log extraction, capturing SHA, author, and commit messages across deployments.",
+            command: "GET /api/v1/projects/:id/commits",
+          },
+        ],
+      },
+      {
+        title: "PM2 Runtime & Health Diagnostics",
+        badge: "IMPROVEMENT",
+        items: [
+          {
+            title: "Ecosystem Config & PATH Enhancement",
+            description:
+              "PM2 deployments now detect ecosystem configuration files (ecosystem.config.js, pm2.config.js), package.json entrypoints, and automatically inject node_modules/.bin into the process PATH for runtime CLI tools.",
+          },
+          {
+            title: "PM2 Multi-Home Daemon Resolution & Log Diagnostic Output",
+            description:
+              "Cross-user PM2 daemon homes are automatically scanned during discovery and restarts, and PM2 logs are piped directly into deployment health check failure logs.",
+          },
+        ],
+      },
+    ],
+  },
+  {
     version: "v2.9.7",
     date: "September 17, 2026",
-    isLatest: true,
+    isLatest: false,
     summary:
       "Vercel-style deployment and commit log views across the dashboard, redesigned marketing site with Poppins typography and dark-only theme, and global deployments activity page.",
     categories: [
