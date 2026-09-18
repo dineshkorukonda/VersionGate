@@ -117,12 +117,26 @@ export async function getSelfUpdateStatus(branch: string): Promise<SelfUpdateSta
     await execFileAsync("git", ["fetch", "origin", branch], { cwd: projectRoot });
     const remoteOut = await execFileAsync("git", ["rev-parse", `origin/${branch}`], { cwd: projectRoot });
     const remote = remoteOut.stdout.trim();
+    const behind = head !== remote;
+
+    // If local commit is behind origin/branch and we are not actively running an update,
+    // clear any stale "complete" status so clients see an update is pending.
+    if (behind && updateProgress.status === "complete") {
+      updateProgress = {
+        status: "idle",
+        startedAt: null,
+        finishedAt: null,
+        currentStep: null,
+        steps: [],
+      };
+    }
+
     return {
       branch,
       isGitRepo: true,
       currentCommit: head,
       remoteCommit: remote,
-      behind: head !== remote,
+      behind,
     };
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
@@ -140,6 +154,18 @@ export async function getSelfUpdateStatus(branch: string): Promise<SelfUpdateSta
 
 export function getSelfUpdateProgress(): SelfUpdateProgress {
   return updateProgress;
+}
+
+export function resetSelfUpdateProgress(): void {
+  if (updateProgress.status !== "running") {
+    updateProgress = {
+      status: "idle",
+      startedAt: null,
+      finishedAt: null,
+      currentStep: null,
+      steps: [],
+    };
+  }
 }
 
 async function runUpdatePipeline(branch: string): Promise<void> {
