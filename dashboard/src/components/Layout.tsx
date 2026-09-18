@@ -122,7 +122,7 @@ export function Layout() {
             onNewProject={() => navigate("/projects/new")}
           />
 
-          <SidebarInset className="flex min-h-svh flex-col bg-black">
+          <SidebarInset className="flex min-h-svh flex-col bg-black overflow-x-hidden min-w-0">
             <header className="sticky top-0 z-30 flex h-12 shrink-0 items-center gap-3 border-b border-neutral-800 bg-black/95 px-4 backdrop-blur-md">
               <SidebarTrigger />
               <SidebarBreadcrumbs projects={projects} />
@@ -143,7 +143,7 @@ export function Layout() {
                 </span>
               </div>
             ) : null}
-            <div className="flex flex-1 flex-col bg-black px-4 py-6 md:px-8 md:py-8">
+            <div className="flex flex-1 flex-col bg-black px-4 py-6 md:px-8 md:py-8 min-w-0 overflow-x-hidden">
               {setupGate === "loading" ? (
                 <div className="flex flex-1 items-center justify-center">
                   <span className="text-sm text-neutral-400 font-sans">Loading workspace...</span>
