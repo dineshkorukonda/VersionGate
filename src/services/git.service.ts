@@ -37,16 +37,16 @@ export class GitService {
     const repoDir = this.projectPath(project);
     const isExisting = await this.isGitRepo(repoDir);
 
-    if (isExisting) {
-      logger.debug({ projectId: project.id }, "Repo exists — fetching latest");
-      await this.pullLatest(project, repoDir, branch);
-    } else if (
+    if (
       project.repoUrl.includes("github.com/local/") &&
       project.localPath &&
       (await this.dirExists(project.localPath))
     ) {
       logger.info({ projectId: project.id, localPath: project.localPath }, "Preparing source from local adopted directory");
       await this.copyLocalDirectory(project.localPath, repoDir);
+    } else if (isExisting) {
+      logger.debug({ projectId: project.id }, "Repo exists — fetching latest");
+      await this.pullLatest(project, repoDir, branch);
     } else {
       logger.debug({ projectId: project.id }, "Cloning repository");
       await this.cloneRepo(project, repoDir, branch);
@@ -67,7 +67,7 @@ export class GitService {
   private async copyLocalDirectory(source: string, destination: string): Promise<void> {
     await fs.cp(source, destination, {
       recursive: true,
-      filter: (src) => !src.includes("node_modules") && !src.includes(".git") && !src.includes("dist"),
+      filter: (src) => !src.includes("node_modules") && !src.includes("dist"),
     });
   }
 
@@ -106,21 +106,29 @@ export class GitService {
   }
 
   private buildAuthUrl(repoUrl: string): string {
-    if (!/^https?:\/\//i.test(repoUrl)) {
+    const trimmed = repoUrl.trim();
+    const sshMatch = /^git@github\.com:([^/]+)\/([^/]+?)(\.git)?$/i.exec(trimmed);
+    if (sshMatch) {
+      return `https://github.com/${sshMatch[1]}/${sshMatch[2]}.git`;
+    }
+    if (!/^https?:\/\//i.test(trimmed)) {
       throw new DeploymentError(
         "Only HTTPS repository URLs are supported. SSH URLs are not allowed."
       );
     }
-    return repoUrl;
+    return trimmed;
   }
 
-  async getLatestCommit(project: Pick<ProjectSelect, "id">): Promise<{
+  async getLatestCommit(project: Pick<ProjectSelect, "id"> & { localPath?: string | null }): Promise<{
     sha: string;
     message: string;
     author: string;
     date: string;
   } | null> {
-    const repoDir = this.projectPath(project);
+    let repoDir = this.projectPath(project);
+    if (!(await this.isGitRepo(repoDir)) && project.localPath && (await this.isGitRepo(project.localPath))) {
+      repoDir = project.localPath;
+    }
     try {
       const { stdout } = await execFileAsync("git", [
         "-C", repoDir,
@@ -136,7 +144,7 @@ export class GitService {
   }
 
   async listRecentCommits(
-    project: Pick<ProjectSelect, "id">,
+    project: Pick<ProjectSelect, "id"> & { localPath?: string | null },
     limit = 30
   ): Promise<Array<{
     sha: string;
@@ -144,7 +152,10 @@ export class GitService {
     author: string;
     date: string;
   }>> {
-    const repoDir = this.projectPath(project);
+    let repoDir = this.projectPath(project);
+    if (!(await this.isGitRepo(repoDir)) && project.localPath && (await this.isGitRepo(project.localPath))) {
+      repoDir = project.localPath;
+    }
     try {
       const { stdout } = await execFileAsync("git", [
         "-C", repoDir,

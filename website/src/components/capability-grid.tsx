@@ -14,6 +14,17 @@ export interface Capability {
 
 const CAPABILITIES: Capability[] = [
   {
+    id: "cap-pm2-autodeploy-commits",
+    category: "Deployment",
+    title: "Adopted PM2 Auto-Deployments & Commit Restarts",
+    command: "POST /api/webhooks/:secret  |  POST /api/projects/adopt",
+    description:
+      "Seamless commit-triggered auto-deployments, SSH Git remote normalization, and intelligent PM2 process restarts for adopted host services.",
+    details:
+      "Automatically registers cryptographic webhook secrets during PM2 service adoption, normalizes GitHub SSH remotes to HTTPS, tracks local commit histories, injects node_modules/.bin into process PATH, and detects ecosystem configuration files for zero-friction PM2 rollouts.",
+    badge: "NEW",
+  },
+  {
     id: "cap-deployment-logs-ui",
     category: "Monitoring",
     title: "Vercel-Style Deployment & Commit Logs",

@@ -10,6 +10,7 @@ import { EnvironmentRepository } from "../repositories/environment.repository";
 import { ProjectDomainRepository } from "../repositories/project-domain.repository";
 import { ProjectDomainService } from "./project-domain.service";
 import { isValidHostname } from "../utils/domain-validation";
+import { normalizeGithubRepoUrl } from "../utils/github/github-repo-url";
 import { reloadNginxBestEffort } from "../utils/nginx-reload";
 import { TrafficService } from "./traffic.service";
 import { ProjectSelect, DeploymentSelect } from "../db/schema";
@@ -62,7 +63,9 @@ export class ServiceDiscoveryService {
         const urlMatch = content.match(/url\s*=\s*(.+)/i);
         let repoUrl: string | undefined;
         if (urlMatch) {
-          repoUrl = urlMatch[1].trim();
+          const rawUrl = urlMatch[1].trim();
+          const normalized = normalizeGithubRepoUrl(rawUrl);
+          repoUrl = normalized || rawUrl;
         }
 
         let branch: string | undefined;
@@ -412,7 +415,10 @@ export class ServiceDiscoveryService {
     }
 
     const basePort = await this.projectRepo.getNextBasePort();
-    const repoUrl = input.repoUrl?.trim() || `https://github.com/local/${cleanName}`;
+    const rawRepoUrl = input.repoUrl?.trim();
+    const repoUrl = rawRepoUrl
+      ? normalizeGithubRepoUrl(rawRepoUrl) || rawRepoUrl
+      : `https://github.com/local/${cleanName}`;
     const localPath = input.localPath || path.join(config.projectsRootPath, cleanName);
 
     logger.info({ name: cleanName, serviceType: input.serviceType, port: input.port }, "Adopting service into VersionGate");
