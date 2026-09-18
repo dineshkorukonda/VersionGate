@@ -84,17 +84,20 @@ export async function runDeployJob(
     await checkCancelled(undefined, log);
 
     const repoRoot = git.projectPath(project);
-    const buildContextPath = await ensureDockerfile(
-      git.buildContextPath(project),
-      environment.appPort,
-      repoRoot,
-      {
-        packageManager: project.packageManager,
-        installCommand: project.installCommand,
-        buildCommand: project.buildCommand,
-        startCommand: project.startCommand,
-      }
-    );
+    let buildContextPath = git.buildContextPath(project);
+    if (project.deploymentType !== "pm2") {
+      buildContextPath = await ensureDockerfile(
+        buildContextPath,
+        environment.appPort,
+        repoRoot,
+        {
+          packageManager: project.packageManager,
+          installCommand: project.installCommand,
+          buildCommand: project.buildCommand,
+          startCommand: project.startCommand,
+        }
+      );
+    }
 
     await log(`Step 2: Determining blue/green target`);
     const activeDeployment = await repo.findActiveForEnvironment(environmentId);

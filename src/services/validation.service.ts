@@ -134,7 +134,9 @@ export class ValidationService {
       }
     }
 
-    const logs = await getContainerLogs(containerName, 40);
+    const containerLogs = await getContainerLogs(containerName, 40).catch(() => []);
+    const pm2Raw = await getPm2Logs(containerName, 40).catch(() => "");
+    const logs: string[] = containerLogs.length > 0 ? containerLogs : pm2Raw.split("\n").filter(Boolean);
     const error = `Health check failed after ${maxRetries} attempts`;
     logger.error({ healthUrl: configuredUrl, containerName, logs }, error);
     return { success: false, latency: 0, error: this.formatError(error, logs) };

@@ -23,6 +23,35 @@ export interface Pm2ProcessInfo {
   uptime: number;
 }
 
+const PM2_HOME_CANDIDATES: (string | undefined)[] = [
+  undefined,
+  process.env.PM2_HOME,
+  "/root/.pm2",
+  "/home/ubuntu/.pm2",
+  "/home/admin/.pm2",
+  "/home/debian/.pm2",
+];
+
+async function execPm2(args: string[], options?: { cwd?: string; env?: NodeJS.ProcessEnv }): Promise<{ stdout: string; stderr: string }> {
+  let lastError: any;
+  for (const home of PM2_HOME_CANDIDATES) {
+    try {
+      const mergedEnv = {
+        ...process.env,
+        ...(options?.env || {}),
+        ...(home ? { PM2_HOME: home } : {}),
+      };
+      return await execFileAsync("pm2", args, {
+        cwd: options?.cwd,
+        env: mergedEnv,
+      });
+    } catch (err) {
+      lastError = err;
+    }
+  }
+  throw lastError;
+}
+
 /**
  * Checks if the PM2 CLI binary is accessible on the host machine.
  */
@@ -36,26 +65,41 @@ export async function isPm2Available(): Promise<boolean> {
 }
 
 /**
- * Returns JSON list of all PM2 managed processes on the host.
+ * Returns JSON list of all PM2 managed processes on the host across all user environments.
  */
 export async function listPm2Processes(): Promise<Pm2ProcessInfo[]> {
-  try {
-    const { stdout } = await execFileAsync("pm2", ["jlist"]);
-    const raw = JSON.parse(stdout || "[]");
-    if (!Array.isArray(raw)) return [];
-    return raw.map((item: any) => ({
-      name: String(item.name || ""),
-      pm_id: Number(item.pm_id ?? -1),
-      pid: Number(item.pid ?? 0),
-      status: (item.pm2_env?.status ?? "stopped") as Pm2ProcessInfo["status"],
-      memory: Number(item.monit?.memory ?? 0),
-      cpu: Number(item.monit?.cpu ?? 0),
-      uptime: Number(item.pm2_env?.pm_uptime ?? 0),
-    }));
-  } catch (err) {
-    logger.debug({ err }, "listPm2Processes failed (PM2 may not be running or installed)");
-    return [];
+  const seenKeys = new Set<string>();
+  const results: Pm2ProcessInfo[] = [];
+
+  for (const home of PM2_HOME_CANDIDATES) {
+    try {
+      const execOptions = home ? { env: { ...process.env, PM2_HOME: home } } : undefined;
+      const { stdout } = await execFileAsync("pm2", ["jlist"], execOptions);
+      const raw = JSON.parse(String(stdout || "[]"));
+      if (!Array.isArray(raw)) continue;
+      for (const item of raw) {
+        const name = String(item.name || "");
+        const pm_id = Number(item.pm_id ?? -1);
+        const pid = Number(item.pid ?? 0);
+        const uniqueKey = `${name}-${pm_id}-${pid}`;
+        if (seenKeys.has(uniqueKey)) continue;
+        seenKeys.add(uniqueKey);
+
+        results.push({
+          name,
+          pm_id,
+          pid,
+          status: (item.pm2_env?.status ?? "stopped") as Pm2ProcessInfo["status"],
+          memory: Number(item.monit?.memory ?? 0),
+          cpu: Number(item.monit?.cpu ?? 0),
+          uptime: Number(item.pm2_env?.pm_uptime ?? 0),
+        });
+      }
+    } catch {
+      // ignore
+    }
   }
+  return results;
 }
 
 /**
@@ -76,7 +120,7 @@ export async function isPm2Running(name: string): Promise<boolean> {
 
 /**
  * Starts or reloads an application under PM2 supervision.
- * Automatically injects PORT, NODE_ENV, and customer environment variables.
+ * Automatically injects PORT, NODE_ENV, enhanced PATH, and customer environment variables.
  */
 export async function startPm2App(options: Pm2StartOptions): Promise<void> {
   const { name, cwd, script, args = [], port, env = {} } = options;
@@ -92,11 +136,19 @@ export async function startPm2App(options: Pm2StartOptions): Promise<void> {
   // Delete any existing PM2 process with the same name before starting cleanly
   await deletePm2App(name).catch(() => null);
 
+  const pathModule = await import("path");
+  const nodeBinPath = pathModule.join(cwd, "node_modules", ".bin");
+  const currentPath = process.env.PATH || "";
+  const enhancedPath = currentPath.includes(nodeBinPath)
+    ? currentPath
+    : `${nodeBinPath}${pathModule.delimiter}${currentPath}`;
+
   const mergedEnv: NodeJS.ProcessEnv = {
     ...process.env,
     ...env,
     PORT: String(port),
     NODE_ENV: env.NODE_ENV || "production",
+    PATH: enhancedPath,
   };
 
   const pm2Args: string[] = [
@@ -116,7 +168,7 @@ export async function startPm2App(options: Pm2StartOptions): Promise<void> {
   logger.info({ name, cwd, script, port }, "Starting application via PM2");
 
   try {
-    await execFileAsync("pm2", pm2Args, {
+    await execPm2(pm2Args, {
       cwd,
       env: mergedEnv,
     });
@@ -133,7 +185,7 @@ export async function startPm2App(options: Pm2StartOptions): Promise<void> {
  */
 export async function stopPm2App(name: string): Promise<void> {
   try {
-    await execFileAsync("pm2", ["stop", name]);
+    await execPm2(["stop", name]);
     logger.info({ name }, "Stopped PM2 application");
   } catch (err: any) {
     logger.debug({ name, err: err?.message }, "PM2 stop encountered an error (process may already be stopped)");
@@ -145,7 +197,7 @@ export async function stopPm2App(name: string): Promise<void> {
  */
 export async function deletePm2App(name: string): Promise<void> {
   try {
-    await execFileAsync("pm2", ["delete", name]);
+    await execPm2(["delete", name]);
     logger.info({ name }, "Deleted PM2 application");
   } catch (err: any) {
     logger.debug({ name, err: err?.message }, "PM2 delete encountered an error (process may not exist)");
@@ -163,7 +215,7 @@ export async function restartPm2App(name: string, port?: number, env?: Record<st
   };
 
   try {
-    await execFileAsync("pm2", ["restart", name, "--update-env"], {
+    await execPm2(["restart", name, "--update-env"], {
       env: mergedEnv,
     });
     logger.info({ name, port }, "Restarted PM2 application");
@@ -178,18 +230,23 @@ export async function restartPm2App(name: string, port?: number, env?: Record<st
  * Retrieves the most recent log lines from PM2 for a specific application.
  */
 export async function getPm2Logs(name: string, lines = 40): Promise<string> {
-  try {
-    const { stdout, stderr } = await execFileAsync("pm2", [
-      "logs",
-      name,
-      "--lines",
-      String(lines),
-      "--nostream",
-    ]);
-    return (stdout || stderr || "").trim();
-  } catch (err: any) {
-    return `[ PM2 LOGS UNAVAILABLE ]: ${err?.message || String(err)}`;
+  for (const home of PM2_HOME_CANDIDATES) {
+    try {
+      const execOptions = home ? { env: { ...process.env, PM2_HOME: home } } : undefined;
+      const { stdout, stderr } = await execFileAsync("pm2", [
+        "logs",
+        name,
+        "--lines",
+        String(lines),
+        "--nostream",
+      ], execOptions);
+      const res = String(stdout || stderr || "").trim();
+      if (res && !res.includes("No log available")) return res;
+    } catch {
+      // try next home
+    }
   }
+  return "";
 }
 
 export interface Pm2DeployOptions {
@@ -289,21 +346,90 @@ export async function buildAndStartPm2Deployment(options: Pm2DeployOptions): Pro
   // 4. Start via PM2
   let startScript = project.startCommand?.trim();
   let startArgs: string[] = [];
+
   if (!startScript) {
-    if (pm === "bun") {
-      startScript = "bun";
-      startArgs = ["run", "start"];
+    const fs = await import("fs/promises");
+
+    // Check for ecosystem file first
+    const ecosystemFiles = [
+      "ecosystem.config.js",
+      "ecosystem.config.cjs",
+      "pm2.config.js",
+      "pm2.config.cjs",
+      "ecosystem.json",
+    ];
+    let foundEcosystem: string | undefined;
+    for (const eco of ecosystemFiles) {
+      if (await fs.access(pathModule.join(buildContextPath, eco)).then(() => true).catch(() => false)) {
+        foundEcosystem = eco;
+        break;
+      }
+    }
+
+    if (foundEcosystem) {
+      startScript = foundEcosystem;
+      startArgs = [];
     } else {
-      startScript = "npm";
-      startArgs = ["start"];
+      let hasStartScript = false;
+      let pkgMain: string | undefined;
+      try {
+        const pkgContent = await fs.readFile(pathModule.join(buildContextPath, "package.json"), "utf-8");
+        const pkg = JSON.parse(pkgContent);
+        hasStartScript = Boolean(pkg.scripts?.start);
+        pkgMain = pkg.main;
+      } catch {
+        // ignore
+      }
+
+      if (hasStartScript) {
+        if (pm === "bun") {
+          startScript = "bun";
+          startArgs = ["run", "start"];
+        } else if (pm === "pnpm") {
+          startScript = "pnpm";
+          startArgs = ["start"];
+        } else if (pm === "yarn") {
+          startScript = "yarn";
+          startArgs = ["start"];
+        } else {
+          startScript = "npm";
+          startArgs = ["start"];
+        }
+      } else if (pkgMain && (await fs.access(pathModule.join(buildContextPath, pkgMain)).then(() => true).catch(() => false))) {
+        startScript = pkgMain;
+      } else if (await fs.access(pathModule.join(buildContextPath, "dist/index.js")).then(() => true).catch(() => false)) {
+        startScript = "dist/index.js";
+      } else if (await fs.access(pathModule.join(buildContextPath, "dist/server.js")).then(() => true).catch(() => false)) {
+        startScript = "dist/server.js";
+      } else if (await fs.access(pathModule.join(buildContextPath, "dist/main.js")).then(() => true).catch(() => false)) {
+        startScript = "dist/main.js";
+      } else if (await fs.access(pathModule.join(buildContextPath, "server.js")).then(() => true).catch(() => false)) {
+        startScript = "server.js";
+      } else if (await fs.access(pathModule.join(buildContextPath, "index.js")).then(() => true).catch(() => false)) {
+        startScript = "index.js";
+      } else if (await fs.access(pathModule.join(buildContextPath, "app.js")).then(() => true).catch(() => false)) {
+        startScript = "app.js";
+      } else {
+        startScript = pm === "bun" ? "bun" : "npm";
+        startArgs = pm === "bun" ? ["run", "start"] : ["start"];
+      }
     }
   } else {
-    const parts = startScript.split(/\s+/);
-    startScript = parts[0];
-    startArgs = parts.slice(1);
+    // If start command is specified like "node dist/index.js", extract script path
+    const trimmed = startScript.trim();
+    if (trimmed.startsWith("node ") && trimmed.length > 5) {
+      const rest = trimmed.slice(5).trim();
+      const parts = rest.split(/\s+/);
+      startScript = parts[0];
+      startArgs = parts.slice(1);
+    } else {
+      const parts = trimmed.split(/\s+/);
+      startScript = parts[0];
+      startArgs = parts.slice(1);
+    }
   }
 
-  if (log) await log(`[PM2] Launching process "${containerName}" on port ${hostPort}`);
+  if (log) await log(`[PM2] Launching process "${containerName}" on port ${hostPort} (script: ${startScript}${startArgs.length > 0 ? " " + startArgs.join(" ") : ""})`);
   await startPm2App({
     name: containerName,
     cwd: buildContextPath,

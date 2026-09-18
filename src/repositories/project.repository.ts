@@ -1,4 +1,5 @@
 import { eq, desc } from "drizzle-orm";
+import { randomBytes } from "crypto";
 import { getDb } from "../db/client";
 import { projects, environments, projectDomains, jobs, ProjectSelect, ProjectInsert, JobSelect } from "../db/schema";
 import { encrypt } from "../utils/crypto";
@@ -60,7 +61,13 @@ export class ProjectRepository {
   async findById(id: string): Promise<ProjectSelect | null> {
     const db = getDb();
     const [project] = await db.select().from(projects).where(eq(projects.id, id)).limit(1);
-    return project ? this.hydrateProject(project) : null;
+    if (!project) return null;
+    if (!project.webhookSecret) {
+      const secret = randomBytes(24).toString("hex");
+      await db.update(projects).set({ webhookSecret: secret }).where(eq(projects.id, id));
+      project.webhookSecret = secret;
+    }
+    return this.hydrateProject(project);
   }
 
   async findByName(name: string): Promise<ProjectSelect | null> {
@@ -150,8 +157,10 @@ export class ProjectRepository {
   private prepareCreateData(data: Partial<ProjectInsert>): ProjectInsert {
     const rawEnv = data.env;
     const now = new Date();
+    const webhookSecret = data.webhookSecret || randomBytes(24).toString("hex");
     return {
       ...(data as ProjectInsert),
+      webhookSecret,
       env: rawEnv !== undefined ? (this.encryptEnvValue(rawEnv) as any) : ({} as any),
       createdAt: now,
       updatedAt: now,

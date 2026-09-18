@@ -66,17 +66,20 @@ export class DeploymentService {
       await this.git.prepareSource(project, envRow.branch);
       this.checkCancelled(environmentId);
       const repoRoot = this.git.projectPath(project);
-      const buildContextPath = await ensureDockerfile(
-        this.git.buildContextPath(project),
-        envRow.appPort,
-        repoRoot,
-        {
-          packageManager: project.packageManager,
-          installCommand: project.installCommand,
-          buildCommand: project.buildCommand,
-          startCommand: project.startCommand,
-        }
-      );
+      let buildContextPath = this.git.buildContextPath(project);
+      if (project.deploymentType !== "pm2") {
+        buildContextPath = await ensureDockerfile(
+          buildContextPath,
+          envRow.appPort,
+          repoRoot,
+          {
+            packageManager: project.packageManager,
+            installCommand: project.installCommand,
+            buildCommand: project.buildCommand,
+            startCommand: project.startCommand,
+          }
+        );
+      }
 
       const activeDeployment = await this.repo.findActiveForEnvironment(environmentId);
       const newColor = activeDeployment?.color === "BLUE" ? "GREEN" : "BLUE";
