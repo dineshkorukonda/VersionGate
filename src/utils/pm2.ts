@@ -147,6 +147,10 @@ export async function startPm2App(options: Pm2StartOptions): Promise<void> {
     ...process.env,
     ...env,
     PORT: String(port),
+    APP_PORT: String(port),
+    HTTP_PORT: String(port),
+    SERVER_PORT: String(port),
+    HOST: env.HOST || "0.0.0.0",
     NODE_ENV: env.NODE_ENV || "production",
     PATH: enhancedPath,
   };
@@ -540,17 +544,23 @@ export async function buildAndStartPm2Deployment(options: Pm2DeployOptions): Pro
     } else {
       let hasStartScript = false;
       let pkgMain: string | undefined;
+      let rawStartScript = "";
       try {
         const pkgContent = await fs.readFile(pathModule.join(buildContextPath, "package.json"), "utf-8");
         const pkg = JSON.parse(pkgContent);
         hasStartScript = Boolean(pkg.scripts?.start);
+        rawStartScript = String(pkg.scripts?.start || "").trim();
         pkgMain = pkg.main;
       } catch {
         // ignore
       }
 
       if (hasStartScript) {
-        if (pm === "bun") {
+        if (rawStartScript.startsWith("node ") && !rawStartScript.includes("&&") && !rawStartScript.includes("|")) {
+          const parts = rawStartScript.slice(5).trim().split(/\s+/);
+          startScript = parts[0];
+          startArgs = parts.slice(1);
+        } else if (pm === "bun") {
           startScript = "bun";
           startArgs = ["run", "start"];
         } else if (pm === "pnpm") {
