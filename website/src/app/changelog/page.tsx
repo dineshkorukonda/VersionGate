@@ -44,9 +44,47 @@ interface ProcessedRelease {
 
 const FALLBACK_RELEASES: ProcessedRelease[] = [
   {
-    version: "v3.1.0",
+    version: "v3.2.0",
     date: "September 19, 2026",
     isLatest: true,
+    summary:
+      "Full cloud relay webhook rawBody preservation for cryptographic HMAC validation, automated GitHub App token injection for private repository git operations, and rich inline card-based project settings replacing modal dialogs.",
+    categories: [
+      {
+        title: "Automated Deployments & Webhook Stream",
+        badge: "NEW",
+        items: [
+          {
+            title: "Relay Webhook Raw Body Pre-Parsing",
+            description:
+              "Updated server preParsing hooks to preserve unparsed payload bytes across all /api/webhooks routes, enabling flawless HMAC-SHA256 signature verification on relayed push events.",
+            command: "POST /api/webhooks/github/relay",
+          },
+          {
+            title: "Authenticated Git Token Injection",
+            description:
+              "Integrated automatic GitHub App installation access token resolution into GitService clone and pull routines, enabling private repository auto-deployments without plaintext credentials in logs.",
+            command: "git clone --branch <branch> https://x-access-token:***@github.com/...",
+          },
+        ],
+      },
+      {
+        title: "Dashboard & Settings UX",
+        badge: "IMPROVEMENT",
+        items: [
+          {
+            title: "Inline Project Settings & Build Configuration Cards",
+            description:
+              "Converted modal-based project configuration editing into native inline cards with direct save actions for Build & Output Settings, Root Directory Paths, Container Runtime Ports, and Git Tracking.",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    version: "v3.1.0",
+    date: "September 19, 2026",
+    isLatest: false,
     summary:
       "Universal GitHub repository URL normalization, multi-payload push auto-deployment dispatching, branch fallback routing, in-dashboard Git Webhook management, deep monorepo build context resolution, and multi-candidate PM2 log streaming.",
     categories: [
