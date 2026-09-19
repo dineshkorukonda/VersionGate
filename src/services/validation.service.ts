@@ -3,22 +3,34 @@ import { isPm2Running, getPm2Logs } from "../utils/pm2";
 import { config } from "../config/env";
 import { logger } from "../utils/logger";
 
-/** Ordered URLs: configured path first, then / and /index.html when the app has no dedicated health route (e.g. static nginx). */
-function buildHealthCheckUrls(baseUrl: string, healthPath: string): string[] {
+/** Ordered URLs: configured path first, then IPv4/IPv6 variants, and standard fallback paths. */
+export function buildHealthCheckUrls(baseUrl: string, healthPath: string): string[] {
   const base = baseUrl.replace(/\/$/, "");
   const p = healthPath.startsWith("/") ? healthPath : `/${healthPath}`;
-  const primary = `${base}${p}`;
-  const extras: string[] = [];
-  if (p !== "/") extras.push(`${base}/`);
-  if (p !== "/index.html") extras.push(`${base}/index.html`);
-  const seen = new Set<string>([primary]);
-  const ordered = [primary];
-  for (const u of extras) {
-    if (!seen.has(u)) {
-      seen.add(u);
-      ordered.push(u);
+
+  const alternativeBases: string[] = [];
+  if (base.includes("localhost")) {
+    alternativeBases.push(base.replace("localhost", "127.0.0.1"));
+  } else if (base.includes("127.0.0.1")) {
+    alternativeBases.push(base.replace("127.0.0.1", "localhost"));
+  }
+
+  const allBases = [base, ...alternativeBases];
+  const paths = [p, "/", "/api", "/api/health", "/healthz", "/status", "/api/status", "/index.html"];
+
+  const ordered: string[] = [];
+  const seen = new Set<string>();
+
+  for (const b of allBases) {
+    for (const pathItem of paths) {
+      const url = `${b}${pathItem === "/" && b.endsWith("/") ? "" : pathItem}`;
+      if (!seen.has(url)) {
+        seen.add(url);
+        ordered.push(url);
+      }
     }
   }
+
   return ordered;
 }
 
@@ -73,7 +85,6 @@ export class ValidationService {
         }
       }
 
-      let primaryProbeFailed = false;
       for (let i = 0; i < urls.length; i++) {
         const url = urls[i];
         const start = Date.now();
@@ -84,11 +95,12 @@ export class ValidationService {
           });
           const latency = Date.now() - start;
 
-          if (response.status >= 200 && response.status < 300) {
+          // Accept 2xx, 3xx redirects, or 401/403 (service is alive and responding)
+          if ((response.status >= 200 && response.status < 400) || response.status === 401 || response.status === 403) {
             if (i > 0) {
               logger.info(
-                { url, configuredPath: healthPath, attempt, latency },
-                "Validation passed via fallback URL; set project health path to match your app (e.g. / for static/nginx)"
+                { url, configuredPath: healthPath, attempt, status: response.status, latency },
+                "Validation passed via fallback URL; set project health path to match your app"
               );
             } else if (latency > maxLatencyMs) {
               logger.warn({ healthUrl: url, attempt, latency }, `Latency ${latency}ms exceeded threshold (still passing)`);
@@ -97,36 +109,9 @@ export class ValidationService {
             }
             return { success: true, latency };
           }
-
-          if (i === 0) {
-            const missingRoute = response.status === 404 || response.status === 405;
-            if (missingRoute && urls.length > 1) {
-              logger.warn(
-                { healthUrl: url, attempt, status: response.status },
-                "Primary health path missing — trying / and /index.html"
-              );
-            } else {
-              logger.warn(
-                { healthUrl: url, attempt, status: response.status },
-                response.status === 404
-                  ? "Health URL returned 404 — add this route in your app or set health path to an existing URL (e.g. /)"
-                  : "Health URL returned non-2xx status"
-              );
-              if (!missingRoute) break;
-            }
-          } else {
-            logger.debug({ healthUrl: url, attempt, status: response.status }, "Fallback URL not OK");
-          }
-        } catch (err) {
-          const message = err instanceof Error ? err.message : String(err);
-          if (i === 0) {
-            logger.warn({ healthUrl: url, attempt, err: message }, "Validation attempt failed");
-            primaryProbeFailed = true;
-          } else {
-            logger.debug({ healthUrl: url, attempt, err: message }, "Fallback validation attempt failed");
-          }
+        } catch {
+          // Continue trying next candidate url / fallback on this attempt
         }
-        if (primaryProbeFailed) break;
       }
 
       if (attempt < maxRetries) {

@@ -147,6 +147,10 @@ export async function startPm2App(options: Pm2StartOptions): Promise<void> {
     ...process.env,
     ...env,
     PORT: String(port),
+    APP_PORT: String(port),
+    SERVER_PORT: String(port),
+    HOST_PORT: String(port),
+    HTTP_PORT: String(port),
     NODE_ENV: env.NODE_ENV || "production",
     PATH: enhancedPath,
   };
