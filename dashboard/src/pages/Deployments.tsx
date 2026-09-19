@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getAllDeployments, getProjects, type Deployment, type Project } from "@/lib/api";
+import { checkAutoDeploy, getAllDeployments, getProjects, type Deployment, type Project } from "@/lib/api";
 import { DeploymentList } from "@/components/DeploymentList";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -15,6 +15,7 @@ export function Deployments() {
   const [deployments, setDeployments] = useState<Deployment[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
+  const [syncingAll, setSyncingAll] = useState(false);
   const [projectFilter, setProjectFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [envFilter, setEnvFilter] = useState<EnvFilter>("all");
@@ -30,6 +31,23 @@ export function Deployments() {
       setLoading(false);
     }
   }, []);
+
+  const handleSyncAll = async () => {
+    setSyncingAll(true);
+    try {
+      const res = await checkAutoDeploy();
+      if (res.triggeredCount > 0) {
+        toast.success(`[ LIVE ] Auto-Deploy triggered for ${res.triggeredCount} project(s)!`);
+      } else {
+        toast.success(`[ OK ] Checked ${res.checkedCount} project(s) — all up to date with latest commits.`);
+      }
+      void load();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to sync auto-deploy");
+    } finally {
+      setSyncingAll(false);
+    }
+  };
 
   useEffect(() => {
     void load();
@@ -70,13 +88,24 @@ export function Deployments() {
             All deployment records across your workspace
           </p>
         </div>
-        <Button
-          size="sm"
-          className="bg-white text-xs font-semibold text-black hover:bg-neutral-200 h-8"
-          onClick={() => navigate("/projects/new")}
-        >
-          + New Project
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={syncingAll}
+            className="border-neutral-800 bg-[#0a0a0a] text-xs font-medium text-neutral-300 hover:bg-neutral-800 hover:text-white h-8"
+            onClick={() => void handleSyncAll()}
+          >
+            {syncingAll ? "Checking Commits..." : "Sync & Auto-Deploy All"}
+          </Button>
+          <Button
+            size="sm"
+            className="bg-white text-xs font-semibold text-black hover:bg-neutral-200 h-8"
+            onClick={() => navigate("/projects/new")}
+          >
+            + New Project
+          </Button>
+        </div>
       </div>
 
       {/* Vercel-style Filters Toolbar */}

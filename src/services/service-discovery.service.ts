@@ -59,6 +59,9 @@ export class ServiceDiscoveryService {
    */
   extractGitMetadata(dirPath: string): { repoUrl?: string; branch?: string; buildContext?: string } {
     try {
+      if (!dirPath || !fs.existsSync(dirPath)) {
+        return {};
+      }
       let currentDir = path.resolve(dirPath);
       let gitRoot: string | undefined;
 
