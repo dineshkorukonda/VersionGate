@@ -1,5 +1,6 @@
 import { describe, test, expect } from "bun:test";
 import { GitService } from "../../src/services/git.service";
+import { execFileAsync } from "../../src/utils/exec";
 import fs from "fs/promises";
 import path from "path";
 import os from "os";
@@ -10,26 +11,23 @@ describe("GitService Source Preparation & Clean Destination Handling", () => {
   test("cloneRepo cleans non-empty destination directory before invoking clone", async () => {
     const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "vg-git-test-"));
     const targetProjectDir = path.join(tmpDir, "test-project-123");
-
-    // Pre-create the directory with dummy dirty files (mimicking an unmanaged or aborted run)
     await fs.mkdir(targetProjectDir, { recursive: true });
     await fs.writeFile(path.join(targetProjectDir, "stale-file.txt"), "some dirty content");
     expect(await fs.exists(path.join(targetProjectDir, "stale-file.txt"))).toBe(true);
 
     const project = {
       id: "test-project-123",
-      repoUrl: "https://github.com/dineshkorukonda/VersionGate.git",
+      repoUrl: "https://127.0.0.1:1/dummy.git",
       branch: "main",
       localPath: null,
     };
 
     const gitAny = gitService as any;
 
-    // Use dummy/local non-blocking git URL to verify directory is wiped
     try {
       await gitAny.cloneRepo(project as any, targetProjectDir, "main");
     } catch {
-      // Git clone may fail or timeout on remote network in unit test environment
+      // Expected to fail on git clone after wiping dirty directory
     }
 
     // stale-file.txt should be completely wiped by the clean destination step
