@@ -228,24 +228,113 @@ export async function restartPm2App(name: string, port?: number, env?: Record<st
 
 /**
  * Retrieves the most recent log lines from PM2 for a specific application.
+ * Checks pm2 jlist log paths, disk log files, and CLI fallback across all candidate PM2 homes.
  */
-export async function getPm2Logs(name: string, lines = 40): Promise<string> {
+export async function getPm2Logs(name: string | string[], lines = 40): Promise<string> {
+  const names = (Array.isArray(name) ? name : [name]).filter(Boolean);
+  if (names.length === 0) return "";
+
+  const fs = await import("fs/promises");
+  const pathModule = await import("path");
+
+  // 1. Inspect pm2 jlist to find exact output and error log paths
   for (const home of PM2_HOME_CANDIDATES) {
     try {
       const execOptions = home ? { env: { ...process.env, PM2_HOME: home } } : undefined;
-      const { stdout, stderr } = await execFileAsync("pm2", [
-        "logs",
-        name,
-        "--lines",
-        String(lines),
-        "--nostream",
-      ], execOptions);
-      const res = String(stdout || stderr || "").trim();
-      if (res && !res.includes("No log available")) return res;
+      const { stdout } = await execFileAsync("pm2", ["jlist"], execOptions);
+      const items = JSON.parse(String(stdout || "[]"));
+      if (Array.isArray(items)) {
+        for (const item of items) {
+          const itemName = String(item.name || "").toLowerCase();
+          const matches = names.some(
+            (n) => itemName === n.toLowerCase() || itemName.includes(n.toLowerCase()) || n.toLowerCase().includes(itemName)
+          );
+          if (matches) {
+            const outPath = item.pm2_env?.pm_out_log_path;
+            const errPath = item.pm2_env?.pm_err_log_path;
+            const chunks: string[] = [];
+
+            if (outPath) {
+              const outContent = await fs.readFile(outPath, "utf-8").catch(() => "");
+              if (outContent) chunks.push(outContent);
+            }
+            if (errPath) {
+              const errContent = await fs.readFile(errPath, "utf-8").catch(() => "");
+              if (errContent) chunks.push(errContent);
+            }
+
+            if (chunks.length > 0) {
+              const allLines = chunks
+                .join("\n")
+                .split("\n")
+                .map((l) => l.trimEnd())
+                .filter(Boolean);
+              if (allLines.length > 0) {
+                return allLines.slice(-lines).join("\n");
+              }
+            }
+          }
+        }
+      }
     } catch {
       // try next home
     }
   }
+
+  // 2. Direct check in PM2 standard log directories
+  const candidateHomes = [
+    process.env.PM2_HOME,
+    pathModule.join(process.env.HOME || "/root", ".pm2"),
+    "/root/.pm2",
+    "/home/ubuntu/.pm2",
+    "/home/admin/.pm2",
+    "/home/debian/.pm2",
+  ].filter(Boolean) as string[];
+
+  for (const home of candidateHomes) {
+    for (const n of names) {
+      const logDir = pathModule.join(home, "logs");
+      const filesToTry = [
+        pathModule.join(logDir, `${n}-out.log`),
+        pathModule.join(logDir, `${n}-error.log`),
+        pathModule.join(logDir, `${n}-err.log`),
+      ];
+      const chunks: string[] = [];
+      for (const f of filesToTry) {
+        const content = await fs.readFile(f, "utf-8").catch(() => "");
+        if (content) chunks.push(content);
+      }
+      if (chunks.length > 0) {
+        const allLines = chunks
+          .join("\n")
+          .split("\n")
+          .map((l) => l.trimEnd())
+          .filter(Boolean);
+        if (allLines.length > 0) {
+          return allLines.slice(-lines).join("\n");
+        }
+      }
+    }
+  }
+
+  // 3. Fallback to CLI command pm2 logs
+  for (const n of names) {
+    for (const home of PM2_HOME_CANDIDATES) {
+      try {
+        const execOptions = home ? { env: { ...process.env, PM2_HOME: home } } : undefined;
+        const { stdout, stderr } = await execFileAsync(
+          "pm2",
+          ["logs", n, "--lines", String(lines), "--nostream"],
+          execOptions
+        );
+        const res = String(stdout || stderr || "").trim();
+        if (res && !res.includes("No log available")) return res;
+      } catch {
+        // try next home
+      }
+    }
+  }
+
   return "";
 }
 
@@ -344,6 +433,29 @@ export async function buildAndStartPm2Deployment(options: Pm2DeployOptions): Pro
   };
 
   if (installCmd) {
+    if (
+      (installCmd.includes("npm install") ||
+        installCmd.includes("bun install") ||
+        installCmd.includes("pnpm install") ||
+        installCmd.includes("yarn install")) &&
+      !hasPkgJson
+    ) {
+      const parentDir = pathModule.dirname(buildContextPath);
+      const parentHasPkg = await fs.access(pathModule.join(parentDir, "package.json")).then(() => true).catch(() => false);
+      if (parentHasPkg) {
+        if (log) await log(`[PM2] Running workspace dependency install at monorepo root: ${parentDir}`);
+        logger.info({ parentDir, installCmd }, "PM2: Running workspace install at parent");
+        const { execAsync } = await import("./exec");
+        await execAsync(installCmd, { cwd: parentDir, env: installEnv });
+        installCmd = undefined;
+      } else {
+        if (log) await log(`[PM2] Warning: No package.json found in ${buildContextPath} — skipping install step`);
+        installCmd = undefined;
+      }
+    }
+  }
+
+  if (installCmd) {
     if (log) await log(`[PM2] Installing dependencies via: ${installCmd}`);
     logger.info({ buildContextPath, installCmd }, "PM2: Installing dependencies");
     const { execAsync } = await import("./exec");
@@ -360,7 +472,7 @@ export async function buildAndStartPm2Deployment(options: Pm2DeployOptions): Pro
         throw err;
       }
     }
-  } else {
+  } else if (!hasPkgJson && !hasReqTxt && !hasPyproject && !hasCargo && !hasGoMod) {
     if (log) await log(`[PM2] No package manifest found in ${buildContextPath} — skipping install step`);
     logger.info({ buildContextPath }, "PM2: No package manifest — skipping install step");
   }

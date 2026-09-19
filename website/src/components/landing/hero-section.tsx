@@ -39,10 +39,16 @@ export function HeroSection() {
                 Install on your server
               </Link>
               <Link
-                href="/docs/quick-start"
-                className="inline-flex h-11 items-center rounded-lg border border-neutral-700 bg-neutral-900 px-5 text-sm font-medium text-white transition hover:border-neutral-600"
+                href="#demo-video"
+                className="inline-flex h-11 items-center rounded-lg border border-neutral-700 bg-neutral-900 px-5 text-sm font-mono text-neutral-200 transition hover:border-neutral-500 hover:text-white"
               >
-                Read the docs
+                [ WATCH REEL // 20s ]
+              </Link>
+              <Link
+                href="/docs/quick-start"
+                className="inline-flex h-11 items-center rounded-lg border border-neutral-800 bg-neutral-950 px-4 text-sm font-medium text-neutral-400 transition hover:border-neutral-700 hover:text-white"
+              >
+                Docs
               </Link>
             </div>
 

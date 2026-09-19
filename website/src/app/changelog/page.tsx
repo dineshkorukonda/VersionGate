@@ -44,9 +44,83 @@ interface ProcessedRelease {
 
 const FALLBACK_RELEASES: ProcessedRelease[] = [
   {
+    version: "v3.1.0",
+    date: "September 19, 2026",
+    isLatest: true,
+    summary:
+      "Deep monorepo build context resolution, hierarchical Git root and subfolder detection for adopted host applications, workspace package installation safeguards, and multi-candidate real-time PM2 log streaming.",
+    categories: [
+      {
+        title: "Deployment Engine & Monorepos",
+        badge: "IMPROVEMENT",
+        items: [
+          {
+            title: "Hierarchical Git Discovery & Subpath Resolution",
+            description:
+              "Host service discovery traverses directory parents to locate repository root and automatically detects relative buildContext for nested monorepo packages during service adoption.",
+            command: "POST /api/projects/adopt",
+          },
+          {
+            title: "Deep Monorepo Subfolder Manifest Matcher",
+            description:
+              "Scans directory hierarchies up to 3 levels deep to find application manifests (package.json, Dockerfile, requirements.txt) and matches folder names against project identifier tokens, prioritizing sub-packages over root workspace manifests.",
+            command: "src/services/git.service.ts",
+          },
+          {
+            title: "Safe Dependency Installation & Fallback",
+            description:
+              "Protects PM2 pipeline against missing package.json errors by inspecting parent directories for workspace manifests, falling back to root installs, and syncing from local path when remote Git pulls are restricted.",
+            command: "src/utils/pm2.ts",
+          },
+        ],
+      },
+      {
+        title: "Observability & Process Logging",
+        badge: "NEW",
+        items: [
+          {
+            title: "Multi-Candidate Real-Time PM2 Log Streaming",
+            description:
+              "Enhanced PM2 log retriever to inspect pm2 jlist log paths and physical disk log files across multiple candidate process names, ensuring runtime logs for adopted services are immediately streamable from the dashboard.",
+            command: "GET /api/v1/projects/:id/logs",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    version: "v3.0.0",
+    date: "September 19, 2026",
+    isLatest: false,
+    summary:
+      "Interactive Launch Video Showcase component on website landing page, automated codebase-to-video release workflow with /brag and Hyperframes, and custom technical video player controls.",
+    categories: [
+      {
+        title: "Landing Page & Marketing Media",
+        badge: "NEW",
+        items: [
+          {
+            title: "Interactive Technical Launch Video Showcase",
+            description:
+              "Engineered a dedicated Launch Video showcase on the VersionGate website landing page with custom video playback controls, audio mute/unmute toggle, timeline scrubber, and technical feature callout chips.",
+            command: "website/src/components/landing/launch-video-section.tsx",
+            prNumber: 248,
+          },
+          {
+            title: "Automated Codebase Release Video Pipeline (/brag)",
+            description:
+              "Configured local /brag skill integration powered by Hyperframes to enable instant generation of 20-second product launch and milestone teaser videos directly from repository code.",
+            command: "npx skills add https://github.com/latent-spaces/brag --skill brag",
+            prNumber: 248,
+          },
+        ],
+      },
+    ],
+  },
+  {
     version: "v2.9.9",
     date: "September 18, 2026",
-    isLatest: true,
+    isLatest: false,
     summary:
       "Comprehensive Subsystems & Applications Status page, commit-driven auto-deployment synchronization checker, non-empty Git clone destination cleanup, and production NODE_ENV environment handling for PM2 builds.",
     categories: [

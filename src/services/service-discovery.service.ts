@@ -25,6 +25,7 @@ export interface DiscoveredDeployment {
   imageTag?: string;
   pm2Name?: string;
   localPath?: string;
+  buildContext?: string;
   repoUrl?: string;
   branch?: string;
   detectedDomains?: string[];
@@ -38,6 +39,7 @@ export interface AdoptDeploymentInput {
   repoUrl?: string;
   branch?: string;
   localPath?: string;
+  buildContext?: string;
   containerName?: string;
   pm2Name?: string;
   imageTag?: string;
@@ -53,23 +55,43 @@ export class ServiceDiscoveryService {
   private trafficService = new TrafficService();
 
   /**
-   * Attempts to parse git remote origin URL and current branch from a directory.
+   * Attempts to parse git remote origin URL, current branch, and relative buildContext from a directory.
    */
-  extractGitMetadata(dirPath: string): { repoUrl?: string; branch?: string } {
+  extractGitMetadata(dirPath: string): { repoUrl?: string; branch?: string; buildContext?: string } {
     try {
-      const gitConfigPath = path.join(dirPath, ".git", "config");
-      if (fs.existsSync(gitConfigPath)) {
-        const content = fs.readFileSync(gitConfigPath, "utf-8");
-        const urlMatch = content.match(/url\s*=\s*(.+)/i);
+      let currentDir = path.resolve(dirPath);
+      let gitRoot: string | undefined;
+
+      while (true) {
+        const gitDir = path.join(currentDir, ".git");
+        if (fs.existsSync(gitDir)) {
+          gitRoot = currentDir;
+          break;
+        }
+        const parent = path.dirname(currentDir);
+        if (parent === currentDir) break;
+        currentDir = parent;
+      }
+
+      if (gitRoot) {
         let repoUrl: string | undefined;
-        if (urlMatch) {
-          const rawUrl = urlMatch[1].trim();
-          const normalized = normalizeGithubRepoUrl(rawUrl);
-          repoUrl = normalized || rawUrl;
+        let branch: string | undefined;
+
+        const rel = path.relative(gitRoot, dirPath).replace(/\\/g, "/");
+        const buildContext = rel ? rel : ".";
+
+        const gitConfigPath = path.join(gitRoot, ".git", "config");
+        if (fs.existsSync(gitConfigPath)) {
+          const content = fs.readFileSync(gitConfigPath, "utf-8");
+          const urlMatch = content.match(/url\s*=\s*(.+)/i);
+          if (urlMatch) {
+            const rawUrl = urlMatch[1].trim();
+            const normalized = normalizeGithubRepoUrl(rawUrl);
+            repoUrl = normalized || rawUrl;
+          }
         }
 
-        let branch: string | undefined;
-        const headPath = path.join(dirPath, ".git", "HEAD");
+        const headPath = path.join(gitRoot, ".git", "HEAD");
         if (fs.existsSync(headPath)) {
           const headContent = fs.readFileSync(headPath, "utf-8").trim();
           const refMatch = headContent.match(/ref:\s*refs\/heads\/(.+)/i);
@@ -78,7 +100,7 @@ export class ServiceDiscoveryService {
           }
         }
 
-        return { repoUrl, branch };
+        return { repoUrl, branch, buildContext };
       }
     } catch {
       // Ignored
@@ -317,6 +339,7 @@ export class ServiceDiscoveryService {
                   port: parsedPort,
                   pm2Name: name,
                   localPath: cwd || undefined,
+                  buildContext: git.buildContext || ".",
                   repoUrl: git.repoUrl,
                   branch: git.branch || "main",
                   detectedDomains: detectedDomains.length > 0 ? detectedDomains : undefined,
@@ -423,6 +446,8 @@ export class ServiceDiscoveryService {
 
     logger.info({ name: cleanName, serviceType: input.serviceType, port: input.port }, "Adopting service into VersionGate");
 
+    const buildContext = (input.buildContext ?? ".").trim() || ".";
+
     // 1. Create project
     const project = await this.projectRepo.create({
       name: cleanName,
@@ -433,7 +458,7 @@ export class ServiceDiscoveryService {
       basePort,
       deploymentType: input.serviceType,
       healthPath: "/health",
-      buildContext: ".",
+      buildContext,
       isAdopted: true,
     });
 

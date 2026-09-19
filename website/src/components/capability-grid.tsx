@@ -14,6 +14,28 @@ export interface Capability {
 
 const CAPABILITIES: Capability[] = [
   {
+    id: "cap-adopted-monorepo-autodeploy-logs",
+    category: "Deployment",
+    title: "Adopted Monorepo Auto-Deployments & Real-Time Logs",
+    command: "GET /api/v1/projects/:id/logs  |  POST /api/projects/adopt",
+    description:
+      "Deep monorepo subfolder resolution, hierarchical Git root traversal during service adoption, and multi-candidate PM2 log file streaming.",
+    details:
+      "Recursively scans monorepo directories to locate application build contexts and manifests, automatically discovers Git roots and relative subpaths during host adoption, protects dependency installation with workspace fallbacks, and streams live PM2 runtime logs directly from disk log paths.",
+    badge: "NEW",
+  },
+  {
+    id: "cap-launch-video-showcase",
+    category: "Monitoring",
+    title: "Interactive Launch Video & Brag Showcase",
+    command: "npx skills add https://github.com/latent-spaces/brag --skill brag  |  /brag",
+    description:
+      "Interactive technical video showcase player on landing page paired with automated Hyperframes release video generation.",
+    details:
+      "Integrated product launch teaser player with audio mute/unmute, timeline scrubbing, and sub-second chapter cues. Supported by the local /brag skill pipeline to render high-energy 20s launch videos directly from codebase updates.",
+    badge: "NEW",
+  },
+  {
     id: "cap-system-status-autodeploy",
     category: "Monitoring",
     title: "System Status & Commit Auto-Deploy Validator",

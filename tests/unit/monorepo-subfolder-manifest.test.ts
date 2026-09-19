@@ -59,4 +59,31 @@ describe("Monorepo Subfolder Resolution & Manifest Verification", () => {
     await fs.rm(tmpDir, { recursive: true, force: true });
     gitService.projectPath = origPath;
   });
+
+  test("resolveEffectiveBuildContext finds subfolder matching adopted localPath", async () => {
+    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "vg-localpath-test-"));
+    const projectDir = path.join(tmpDir, "adopted-proj-id");
+    const subfolder = path.join(projectDir, "apps", "carf-dashboard");
+
+    await fs.mkdir(subfolder, { recursive: true });
+    await fs.writeFile(path.join(subfolder, "package.json"), JSON.stringify({ name: "carf-dashboard", version: "1.0.0" }));
+
+    const project = {
+      id: "adopted-proj-id",
+      name: "custom-dashboard-name",
+      localPath: "/var/www/my-repo/apps/carf-dashboard",
+      buildContext: ".",
+    };
+
+    const origPath = gitService.projectPath;
+    (gitService as any).projectPath = () => projectDir;
+    (gitService as any).buildContextPath = () => projectDir;
+
+    const resolved = await gitService.resolveEffectiveBuildContext(project as any);
+    expect(resolved).toBe(subfolder);
+
+    // Clean up
+    await fs.rm(tmpDir, { recursive: true, force: true });
+    gitService.projectPath = origPath;
+  });
 });

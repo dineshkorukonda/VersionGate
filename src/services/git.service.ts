@@ -29,7 +29,7 @@ export class GitService {
   }
 
   async resolveEffectiveBuildContext(
-    project: Pick<ProjectSelect, "id" | "name" | "buildContext">
+    project: Pick<ProjectSelect, "id" | "name" | "buildContext"> & { localPath?: string | null }
   ): Promise<string> {
     const rawContext = this.buildContextPath(project);
     const repoRoot = path.resolve(this.projectPath(project));
@@ -53,12 +53,34 @@ export class GitService {
       "go.mod",
     ];
 
-    for (const m of manifests) {
-      if (await fs.access(path.join(rawContext, m)).then(() => true).catch(() => false)) {
-        return rawContext;
+    const hasManifest = async (dir: string): Promise<boolean> => {
+      for (const m of manifests) {
+        if (await fs.access(path.join(dir, m)).then(() => true).catch(() => false)) {
+          return true;
+        }
+      }
+      return false;
+    };
+
+    // 1. If project has localPath from adoption, check if its folder name matches a directory in repo
+    if (project.localPath) {
+      const normalizedLocal = project.localPath.replace(/\\/g, "/").trim();
+      const localBase = path.basename(normalizedLocal);
+      const candidatesFromLocal = [
+        path.resolve(repoRoot, localBase),
+        path.resolve(repoRoot, "apps", localBase),
+        path.resolve(repoRoot, "packages", localBase),
+        path.resolve(repoRoot, "services", localBase),
+      ];
+      for (const cand of candidatesFromLocal) {
+        if (cand.startsWith(repoRoot) && (await hasManifest(cand))) {
+          logger.info({ projectId: project.id, cand }, "Resolved buildContext matching adopted localPath folder");
+          return cand;
+        }
       }
     }
 
+    // 2. Compute candidate paths based on project name tokens
     const nameLower = project.name.toLowerCase().replace(/[^a-z0-9_-]/g, "-");
     const nameTokens = nameLower.split(/[-_]+/).filter(Boolean);
 
@@ -67,6 +89,7 @@ export class GitService {
       `apps/${nameLower}`,
       `packages/${nameLower}`,
       `services/${nameLower}`,
+      `src/${nameLower}`,
     ];
 
     if (nameTokens.length > 1) {
@@ -75,66 +98,68 @@ export class GitService {
         subTokens,
         `apps/${subTokens}`,
         `packages/${subTokens}`,
-        `services/${subTokens}`
+        `services/${subTokens}`,
+        `src/${subTokens}`
       );
       const lastToken = nameTokens[nameTokens.length - 1];
       candidates.push(
         lastToken,
         `apps/${lastToken}`,
         `packages/${lastToken}`,
-        `services/${lastToken}`
+        `services/${lastToken}`,
+        `src/${lastToken}`
       );
     }
 
     for (const candidate of candidates) {
       const candidatePath = path.resolve(repoRoot, candidate);
-      if (candidatePath.startsWith(repoRoot)) {
-        for (const m of manifests) {
-          if (await fs.access(path.join(candidatePath, m)).then(() => true).catch(() => false)) {
-            logger.info(
-              { projectId: project.id, projectName: project.name, detectedPath: candidate },
-              "Resolved monorepo subfolder from project name"
-            );
-            return candidatePath;
-          }
+      if (candidatePath.startsWith(repoRoot) && candidatePath !== repoRoot) {
+        if (await hasManifest(candidatePath)) {
+          logger.info(
+            { projectId: project.id, projectName: project.name, detectedPath: candidate },
+            "Resolved monorepo subfolder from project name"
+          );
+          return candidatePath;
         }
       }
     }
 
+    // 3. Deep directory scan (up to depth 2-3) searching for folders with manifests matching tokens
     try {
-      const entries = await fs.readdir(repoRoot, { withFileTypes: true });
-      for (const entry of entries) {
-        if (!entry.isDirectory() || entry.name.startsWith(".") || entry.name === "node_modules" || entry.name === "dist") {
-          continue;
-        }
-        const dirPath = path.join(repoRoot, entry.name);
-        for (const m of manifests) {
-          if (await fs.access(path.join(dirPath, m)).then(() => true).catch(() => false)) {
-            if (nameTokens.some((t) => entry.name.toLowerCase().includes(t))) {
-              logger.info({ projectId: project.id, dir: entry.name }, "Resolved matching subfolder from directory scan");
-              return dirPath;
+      const scanDir = async (currentDir: string, currentDepth: number, maxDepth: number): Promise<string | null> => {
+        if (currentDepth > maxDepth) return null;
+        const entries = await fs.readdir(currentDir, { withFileTypes: true }).catch(() => []);
+        for (const entry of entries) {
+          if (!entry.isDirectory() || entry.name.startsWith(".") || entry.name === "node_modules" || entry.name === "dist") {
+            continue;
+          }
+          const subPath = path.join(currentDir, entry.name);
+          if (await hasManifest(subPath)) {
+            const entryNameLower = entry.name.toLowerCase();
+            if (nameTokens.some((t) => t.length > 2 && (entryNameLower.includes(t) || t.includes(entryNameLower)))) {
+              return subPath;
             }
           }
+          if (["apps", "packages", "services", "projects", "modules", "src"].includes(entry.name) || currentDepth < maxDepth) {
+            const nested = await scanDir(subPath, currentDepth + 1, maxDepth);
+            if (nested) return nested;
+          }
         }
+        return null;
+      };
 
-        if (["apps", "packages", "services"].includes(entry.name)) {
-          const nestedEntries = await fs.readdir(dirPath, { withFileTypes: true }).catch(() => []);
-          for (const nested of nestedEntries) {
-            if (!nested.isDirectory() || nested.name.startsWith(".")) continue;
-            const nestedPath = path.join(dirPath, nested.name);
-            for (const m of manifests) {
-              if (await fs.access(path.join(nestedPath, m)).then(() => true).catch(() => false)) {
-                if (nameTokens.some((t) => nested.name.toLowerCase().includes(t))) {
-                  logger.info({ projectId: project.id, dir: `${entry.name}/${nested.name}` }, "Resolved matching nested subfolder");
-                  return nestedPath;
-                }
-              }
-            }
-          }
-        }
+      const matchedSubDir = await scanDir(repoRoot, 1, 2);
+      if (matchedSubDir) {
+        logger.info({ projectId: project.id, dir: path.relative(repoRoot, matchedSubDir) }, "Resolved matching subfolder from deep directory scan");
+        return matchedSubDir;
       }
     } catch {
       // ignore
+    }
+
+    // 4. If no specific subfolder matches, check if root context has manifest
+    if (await hasManifest(rawContext)) {
+      return rawContext;
     }
 
     return rawContext;
@@ -159,10 +184,29 @@ export class GitService {
       await this.copyLocalDirectory(project.localPath, repoDir);
     } else if (isExisting) {
       logger.debug({ projectId: project.id }, "Repo exists — fetching latest");
-      await this.pullLatest(project, repoDir, branch);
+      try {
+        await this.pullLatest(project, repoDir, branch);
+      } catch (err) {
+        if (project.localPath && (await this.dirExists(project.localPath))) {
+          logger.warn({ projectId: project.id, err }, "Git pull failed — falling back to syncing from local path");
+          await this.copyLocalDirectory(project.localPath, repoDir);
+        } else {
+          throw err;
+        }
+      }
     } else {
       logger.debug({ projectId: project.id }, "Cloning repository");
-      await this.cloneRepo(project, repoDir, branch);
+      try {
+        await this.cloneRepo(project, repoDir, branch);
+      } catch (err) {
+        if (project.localPath && (await this.dirExists(project.localPath))) {
+          logger.warn({ projectId: project.id, err }, "Git clone failed — falling back to syncing from local path");
+          await fs.mkdir(repoDir, { recursive: true });
+          await this.copyLocalDirectory(project.localPath, repoDir);
+        } else {
+          throw err;
+        }
+      }
     }
 
     logger.info({ projectId: project.id, branch }, "Source ready");
