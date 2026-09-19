@@ -3,28 +3,60 @@ import { isPm2Running, getPm2Logs } from "../utils/pm2";
 import { config } from "../config/env";
 import { logger } from "../utils/logger";
 
-/** Ordered URLs: configured path first, then / and /index.html when the app has no dedicated health route (e.g. static nginx). */
-function buildHealthCheckUrls(baseUrl: string, healthPath: string): string[] {
-  const base = baseUrl.replace(/\/$/, "");
-  const p = healthPath.startsWith("/") ? healthPath : `/${healthPath}`;
-  const primary = `${base}${p}`;
-  const extras: string[] = [];
-  if (p !== "/") extras.push(`${base}/`);
-  if (p !== "/index.html") extras.push(`${base}/index.html`);
-  const seen = new Set<string>([primary]);
-  const ordered = [primary];
-  for (const u of extras) {
-    if (!seen.has(u)) {
-      seen.add(u);
-      ordered.push(u);
+/** Ordered URLs: configured path first, then common API health routes and dual IPv4/localhost bindings. */
+export function buildHealthCheckUrls(baseUrl: string, healthPath: string): string[] {
+  const cleanBase = baseUrl.replace(/\/+$/, "");
+  const p = (healthPath || "/").trim();
+  const normalizedPath = p.startsWith("/") ? p : `/${p}`;
+
+  const bases: string[] = [cleanBase];
+  try {
+    const parsed = new URL(cleanBase);
+    if (parsed.hostname === "localhost") {
+      bases.push(`${parsed.protocol}//127.0.0.1${parsed.port ? `:${parsed.port}` : ""}`);
+    } else if (parsed.hostname === "127.0.0.1") {
+      bases.push(`${parsed.protocol}//localhost${parsed.port ? `:${parsed.port}` : ""}`);
+    }
+  } catch {
+    // ignore parse error
+  }
+
+  const pathCandidates = [
+    normalizedPath,
+    "/",
+    "/health",
+    "/api/health",
+    "/api/v1/health",
+    "/healthz",
+    "/live",
+    "/ready",
+    "/ping",
+    "/status",
+    "/api/status",
+    "/api",
+    "/index.html",
+  ];
+
+  const seen = new Set<string>();
+  const ordered: string[] = [];
+
+  for (const b of bases) {
+    for (const cand of pathCandidates) {
+      const fullUrl = `${b}${cand === "/" ? "/" : cand.startsWith("/") ? cand : `/${cand}`}`;
+      if (!seen.has(fullUrl)) {
+        seen.add(fullUrl);
+        ordered.push(fullUrl);
+      }
     }
   }
+
   return ordered;
 }
 
 export interface ValidationResult {
   success: boolean;
   latency: number;
+  detectedHealthPath?: string;
   error?: string;
 }
 
@@ -38,7 +70,7 @@ export class ValidationService {
     const configuredUrl = urls[0];
     const { maxRetries, retryDelayMs, healthTimeoutMs, maxLatencyMs } = config.validation;
 
-    logger.info({ healthUrl: configuredUrl, fallbacks: urls.slice(1), containerName }, "Starting validation");
+    logger.info({ healthUrl: configuredUrl, candidateCount: urls.length, containerName }, "Starting validation");
 
     let running = true;
     try {
@@ -73,7 +105,6 @@ export class ValidationService {
         }
       }
 
-      let primaryProbeFailed = false;
       for (let i = 0; i < urls.length; i++) {
         const url = urls[i];
         const start = Date.now();
@@ -84,49 +115,39 @@ export class ValidationService {
           });
           const latency = Date.now() - start;
 
-          if (response.status >= 200 && response.status < 300) {
+          // 2xx/3xx or 401/403/405 confirm the HTTP server is alive and responding on this port
+          const isAlive = (response.status >= 200 && response.status < 400) ||
+            response.status === 401 ||
+            response.status === 403 ||
+            response.status === 405;
+
+          if (isAlive) {
+            let detectedPath = healthPath;
+            try {
+              const parsed = new URL(url);
+              detectedPath = parsed.pathname || "/";
+            } catch {
+              // ignore
+            }
+
             if (i > 0) {
               logger.info(
-                { url, configuredPath: healthPath, attempt, latency },
-                "Validation passed via fallback URL; set project health path to match your app (e.g. / for static/nginx)"
+                { url, configuredPath: healthPath, detectedPath, attempt, latency, status: response.status },
+                "Validation passed via candidate health URL"
               );
             } else if (latency > maxLatencyMs) {
               logger.warn({ healthUrl: url, attempt, latency }, `Latency ${latency}ms exceeded threshold (still passing)`);
             } else {
               logger.debug({ healthUrl: url, attempt, latency }, "Validation passed");
             }
-            return { success: true, latency };
+            return { success: true, latency, detectedHealthPath: detectedPath };
           }
 
-          if (i === 0) {
-            const missingRoute = response.status === 404 || response.status === 405;
-            if (missingRoute && urls.length > 1) {
-              logger.warn(
-                { healthUrl: url, attempt, status: response.status },
-                "Primary health path missing — trying / and /index.html"
-              );
-            } else {
-              logger.warn(
-                { healthUrl: url, attempt, status: response.status },
-                response.status === 404
-                  ? "Health URL returned 404 — add this route in your app or set health path to an existing URL (e.g. /)"
-                  : "Health URL returned non-2xx status"
-              );
-              if (!missingRoute) break;
-            }
-          } else {
-            logger.debug({ healthUrl: url, attempt, status: response.status }, "Fallback URL not OK");
-          }
+          logger.debug({ healthUrl: url, attempt, status: response.status }, "Candidate health URL returned non-live status");
         } catch (err) {
           const message = err instanceof Error ? err.message : String(err);
-          if (i === 0) {
-            logger.warn({ healthUrl: url, attempt, err: message }, "Validation attempt failed");
-            primaryProbeFailed = true;
-          } else {
-            logger.debug({ healthUrl: url, attempt, err: message }, "Fallback validation attempt failed");
-          }
+          logger.debug({ healthUrl: url, attempt, err: message }, "Candidate health check probe failed");
         }
-        if (primaryProbeFailed) break;
       }
 
       if (attempt < maxRetries) {

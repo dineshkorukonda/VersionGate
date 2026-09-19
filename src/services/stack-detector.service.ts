@@ -4,6 +4,7 @@ import { Octokit } from "@octokit/rest";
 import { getInstallationAccessToken } from "../utils/github/github-installation-token";
 import { config } from "../config/env";
 import { logger } from "../utils/logger";
+import { detectHealthPathFromDir } from "../utils/health-detector";
 
 function githubAppReady(): boolean {
   return Boolean(config.githubAppId && config.githubAppPrivateKey);
@@ -501,7 +502,17 @@ export class StackDetectorService {
       // directory read failure
     }
 
-    return this.detectFromFiles(items);
+    const res = this.detectFromFiles(items);
+    try {
+      const detectedHealth = await detectHealthPathFromDir(repoDir);
+      if (detectedHealth) {
+        res.recommendedHealthPath = detectedHealth;
+      }
+    } catch {
+      // ignore
+    }
+
+    return res;
   }
 }
 

@@ -12,6 +12,7 @@ import { ProjectDomainService } from "./project-domain.service";
 import { isValidHostname } from "../utils/domain-validation";
 import { normalizeGithubRepoUrl } from "../utils/github/github-repo-url";
 import { reloadNginxBestEffort } from "../utils/nginx-reload";
+import { detectHealthPathFromDir } from "../utils/health-detector";
 import { TrafficService } from "./traffic.service";
 import { ProjectSelect, DeploymentSelect } from "../db/schema";
 
@@ -43,6 +44,7 @@ export interface AdoptDeploymentInput {
   containerName?: string;
   pm2Name?: string;
   imageTag?: string;
+  healthPath?: string;
   customDomains?: string[];
 }
 
@@ -451,6 +453,17 @@ export class ServiceDiscoveryService {
 
     const buildContext = (input.buildContext ?? ".").trim() || ".";
 
+    let healthPath = input.healthPath?.trim();
+    if (!healthPath && localPath) {
+      try {
+        const detected = await detectHealthPathFromDir(localPath);
+        if (detected) healthPath = detected;
+      } catch {
+        // ignore
+      }
+    }
+    healthPath = healthPath || "/";
+
     // 1. Create project
     const project = await this.projectRepo.create({
       name: cleanName,
@@ -460,7 +473,7 @@ export class ServiceDiscoveryService {
       appPort: input.port,
       basePort,
       deploymentType: input.serviceType,
-      healthPath: "/health",
+      healthPath,
       buildContext,
       isAdopted: true,
     });
