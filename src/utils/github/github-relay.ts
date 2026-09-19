@@ -60,6 +60,40 @@ function resolveRelayTimeout(explicit?: number): number {
   return explicit ?? config.githubRelayTimeoutMs ?? 15_000;
 }
 
+async function relayFetch(url: string, init?: RequestInit): Promise<Response> {
+  try {
+    return await fetch(url, init);
+  } catch (err: any) {
+    const errMsg = (err?.message || "").toLowerCase();
+    const errCode = (err?.code || "").toLowerCase();
+    const causeMsg = (err?.cause?.message || "").toLowerCase();
+    const causeCode = (err?.cause?.code || "").toLowerCase();
+
+    const isTlsError =
+      errMsg.includes("tls") ||
+      errMsg.includes("cert") ||
+      errMsg.includes("altname") ||
+      errCode.includes("tls") ||
+      errCode.includes("cert") ||
+      causeMsg.includes("tls") ||
+      causeMsg.includes("cert") ||
+      causeCode.includes("tls") ||
+      causeCode.includes("cert");
+
+    if (isTlsError) {
+      try {
+        return await fetch(url, {
+          ...init,
+          tls: { rejectUnauthorized: false },
+        } as any);
+      } catch {
+        throw err;
+      }
+    }
+    throw err;
+  }
+}
+
 /** Notify the central relay of installation → this instance mapping. */
 export async function registerInstallationWithRelay(opts: {
   installationId: string;
@@ -80,7 +114,7 @@ export async function registerInstallationWithRelay(opts: {
   );
   const origin = resolveRelayOrigin(opts.relayOrigin);
   const timeoutMs = resolveRelayTimeout(opts.timeoutMs);
-  const res = await fetch(`${origin}/api/github/register`, {
+  const res = await relayFetch(`${origin}/api/github/register`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ token }),
@@ -118,7 +152,7 @@ export async function fetchReposFromRelay(opts: {
     .update(`repos:${opts.installationId}`, "utf8")
     .digest("hex");
 
-  const res = await fetch(
+  const res = await relayFetch(
     `${origin}/api/github/repos?installation_id=${opts.installationId}&sig=${sig}`,
     {
       method: "GET",
@@ -150,7 +184,7 @@ export async function fetchBranchesFromRelay(opts: {
     .update(`branches:${opts.installationId}:${opts.owner}/${opts.repo}`, "utf8")
     .digest("hex");
 
-  const res = await fetch(
+  const res = await relayFetch(
     `${origin}/api/github/repos/${encodeURIComponent(opts.owner)}/${encodeURIComponent(opts.repo)}/branches?installation_id=${opts.installationId}&sig=${sig}`,
     {
       method: "GET",
@@ -191,7 +225,7 @@ export async function probeRelayReachability(opts?: {
 
   try {
     // Try health probe first
-    const healthRes = await fetch(`${origin}/api/github/health`, {
+    const healthRes = await relayFetch(`${origin}/api/github/health`, {
       method: "GET",
       headers: { "Content-Type": "application/json" },
       signal: AbortSignal.timeout(Math.min(timeoutMs, 6000)),
@@ -213,7 +247,7 @@ export async function probeRelayReachability(opts?: {
   // Fallback probe: GET /api/github/repos (returns 400 Bad Request when healthy without params)
   const probeStart = Date.now();
   try {
-    const res = await fetch(`${origin}/api/github/repos`, {
+    const res = await relayFetch(`${origin}/api/github/repos`, {
       method: "GET",
       headers: { "Content-Type": "application/json" },
       signal: AbortSignal.timeout(timeoutMs),
@@ -240,4 +274,5 @@ export async function probeRelayReachability(opts?: {
     };
   }
 }
+
 
