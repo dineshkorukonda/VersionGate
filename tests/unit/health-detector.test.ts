@@ -66,6 +66,21 @@ func main() {
     expect(detected).toBe("/ping");
   });
 
+  test("detects versioned /v1/health endpoint", async () => {
+    const testSubdir = path.join(tmpDir, "v1-app");
+    await fs.mkdir(testSubdir, { recursive: true });
+    await fs.writeFile(
+      path.join(testSubdir, "routes.ts"),
+      `import { Router } from "express";
+const router = Router();
+router.get("/v1/health", (req, res) => res.json({ ok: true }));
+export default router;`
+    );
+
+    const detected = await detectHealthPathFromDir(testSubdir);
+    expect(detected).toBe("/v1/health");
+  });
+
   test("returns undefined for empty directories or non-existent folders", async () => {
     const emptySubdir = path.join(tmpDir, "empty-app");
     await fs.mkdir(emptySubdir, { recursive: true });
