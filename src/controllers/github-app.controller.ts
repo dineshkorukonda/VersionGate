@@ -644,20 +644,32 @@ async function handleGithubPushDeploy(
   logPrefix: string
 ): Promise<{ triggered: boolean; projects: string[]; skipped?: string }> {
   const ref = payload.ref ?? "";
-  const pushedBranch = ref.replace("refs/heads/", "");
-  const cloneUrl = payload.repository?.clone_url ?? "";
-  const htmlUrl = payload.repository?.html_url ?? "";
-  const normalized = normalizeGithubRepoUrl(cloneUrl || htmlUrl);
+  const pushedBranch = ref.replace(/^refs\/heads\//, "").trim();
+  const repoObj = payload.repository as Record<string, any> | undefined;
+  const rawRepoUrl =
+    repoObj?.clone_url ||
+    repoObj?.html_url ||
+    repoObj?.ssh_url ||
+    repoObj?.git_url ||
+    repoObj?.url ||
+    repoObj?.full_name ||
+    (repoObj?.owner?.login && repoObj?.name ? `${repoObj.owner.login}/${repoObj.name}` : "") ||
+    "";
+  const normalized = normalizeGithubRepoUrl(rawRepoUrl);
 
   if (!normalized) {
+    logger.warn({ rawRepoUrl, payloadRepo: repoObj }, `${logPrefix}: could not determine repository URL from push payload`);
     return { triggered: false, projects: [], skipped: "Could not determine repository URL" };
   }
 
   const projectsList = await projectRepo.findAll();
-  const matches = projectsList.filter((p) => normalizeGithubRepoUrl(p.repoUrl) === normalized);
+  const matches = projectsList.filter((p) => {
+    const pNorm = normalizeGithubRepoUrl(p.repoUrl);
+    return Boolean(pNorm && pNorm === normalized);
+  });
 
   if (matches.length === 0) {
-    logger.info({ normalized }, `${logPrefix}: no VersionGate project matches repository`);
+    logger.info({ normalized, totalProjects: projectsList.length }, `${logPrefix}: no VersionGate project matches repository`);
     return { triggered: false, projects: [], skipped: "No matching project for repository" };
   }
 
@@ -665,12 +677,12 @@ async function handleGithubPushDeploy(
   for (const project of matches) {
     const environments = await envRepo.findAllForProject(project.id);
     let matchingEnvs = pushedBranch
-      ? environments.filter((e) => e.branch === pushedBranch)
+      ? environments.filter((e) => e.branch === pushedBranch || (!e.branch && project.branch === pushedBranch))
       : environments.filter((e) => e.name === "production");
 
     if (matchingEnvs.length === 0) {
       const defaultEnv = await envRepo.findDefaultForProject(project.id);
-      if (defaultEnv && (!pushedBranch || defaultEnv.branch === pushedBranch)) {
+      if (defaultEnv && (!pushedBranch || defaultEnv.branch === pushedBranch || !defaultEnv.branch || project.branch === pushedBranch)) {
         matchingEnvs.push(defaultEnv);
       }
     }
@@ -685,7 +697,7 @@ async function handleGithubPushDeploy(
 
     if (matchingEnvs.length === 0) {
       logger.info(
-        { projectId: project.id, pushedBranch },
+        { projectId: project.id, pushedBranch, projectBranch: project.branch },
         `${logPrefix}: no matching environment branch for push — skipping`
       );
       continue;
@@ -693,7 +705,7 @@ async function handleGithubPushDeploy(
 
     for (const targetEnv of matchingEnvs) {
       logger.info(
-        { projectId: project.id, projectName: project.name, environmentId: targetEnv.id, envName: targetEnv.name, ref },
+        { projectId: project.id, projectName: project.name, environmentId: targetEnv.id, envName: targetEnv.name, ref, pushedBranch },
         `${logPrefix}: triggering auto-deploy`
       );
 

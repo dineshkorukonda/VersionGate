@@ -268,17 +268,42 @@ export class GitService {
   }
 
   private buildAuthUrl(repoUrl: string): string {
-    const trimmed = repoUrl.trim();
-    const sshMatch = /^git@github\.com:([^/]+)\/([^/]+?)(\.git)?$/i.exec(trimmed);
+    const trimmed = (repoUrl || "").trim();
+    const sshMatch = /^(?:ssh:\/\/|git\+ssh:\/\/)?git@github\.com[:/]([^/]+)\/([^/]+?)(\.git)?$/i.exec(trimmed);
     if (sshMatch) {
       return `https://github.com/${sshMatch[1]}/${sshMatch[2]}.git`;
+    }
+    const gitProtoMatch = /^git:\/\/github\.com\/([^/]+)\/([^/]+?)(\.git)?$/i.exec(trimmed);
+    if (gitProtoMatch) {
+      return `https://github.com/${gitProtoMatch[1]}/${gitProtoMatch[2]}.git`;
+    }
+    const ownerRepoMatch = /^([a-zA-Z0-9_.-]+)\/([a-zA-Z0-9_.-]+?)(\.git)?$/i.exec(trimmed);
+    if (ownerRepoMatch && !trimmed.includes("://") && !trimmed.includes("@") && !trimmed.includes(".")) {
+      return `https://github.com/${ownerRepoMatch[1]}/${ownerRepoMatch[2]}.git`;
     }
     if (!/^https?:\/\//i.test(trimmed)) {
       throw new DeploymentError(
         "Only HTTPS repository URLs are supported. SSH URLs are not allowed."
       );
     }
-    return trimmed;
+    return trimmed.endsWith(".git") ? trimmed : `${trimmed}.git`;
+  }
+
+  async findGitDirectory(startDir: string): Promise<string | null> {
+    try {
+      let current = path.resolve(startDir);
+      while (true) {
+        if (await this.isGitRepo(current)) {
+          return current;
+        }
+        const parent = path.dirname(current);
+        if (!parent || parent === current) break;
+        current = parent;
+      }
+      return null;
+    } catch {
+      return null;
+    }
   }
 
   async getLatestCommit(project: Pick<ProjectSelect, "id"> & { localPath?: string | null }): Promise<{
@@ -288,8 +313,11 @@ export class GitService {
     date: string;
   } | null> {
     let repoDir = this.projectPath(project);
-    if (!(await this.isGitRepo(repoDir)) && project.localPath && (await this.isGitRepo(project.localPath))) {
-      repoDir = project.localPath;
+    if (!(await this.isGitRepo(repoDir)) && project.localPath) {
+      const gitRoot = await this.findGitDirectory(project.localPath);
+      if (gitRoot) {
+        repoDir = gitRoot;
+      }
     }
     try {
       const { stdout } = await execFileAsync("git", [
@@ -315,8 +343,11 @@ export class GitService {
     date: string;
   }>> {
     let repoDir = this.projectPath(project);
-    if (!(await this.isGitRepo(repoDir)) && project.localPath && (await this.isGitRepo(project.localPath))) {
-      repoDir = project.localPath;
+    if (!(await this.isGitRepo(repoDir)) && project.localPath) {
+      const gitRoot = await this.findGitDirectory(project.localPath);
+      if (gitRoot) {
+        repoDir = gitRoot;
+      }
     }
     try {
       const { stdout } = await execFileAsync("git", [
@@ -338,7 +369,7 @@ export class GitService {
     }
   }
 
-  private async isGitRepo(dir: string): Promise<boolean> {
+  async isGitRepo(dir: string): Promise<boolean> {
     try {
       await fs.access(path.join(dir, ".git"));
       return true;
