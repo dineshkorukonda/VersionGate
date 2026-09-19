@@ -39,15 +39,15 @@ export async function githubWebhookHandler(
 
   // Find all environments matching the pushed branch
   const ref = req.body?.ref ?? "";
-  const pushedBranch = ref.replace("refs/heads/", "");
+  const pushedBranch = ref.replace(/^refs\/heads\//, "").trim();
 
   let matchingEnvs = pushedBranch
-    ? environments.filter((e) => e.branch === pushedBranch)
+    ? environments.filter((e) => e.branch === pushedBranch || (!e.branch && project.branch === pushedBranch))
     : environments.filter((e) => e.name === "production");
 
   if (matchingEnvs.length === 0) {
     const defaultEnv = await envRepo.findDefaultForProject(project.id);
-    if (defaultEnv && (!pushedBranch || defaultEnv.branch === pushedBranch)) {
+    if (defaultEnv && (!pushedBranch || defaultEnv.branch === pushedBranch || !defaultEnv.branch || project.branch === pushedBranch)) {
       matchingEnvs.push(defaultEnv);
     }
   }
@@ -62,12 +62,12 @@ export async function githubWebhookHandler(
 
   if (matchingEnvs.length === 0) {
     logger.info(
-      { projectId: project.id, pushedBranch },
+      { projectId: project.id, pushedBranch, projectBranch: project.branch },
       "Webhook: branch mismatch — skipping"
     );
     return reply.code(200).send({
       skipped: true,
-      reason: `Push to '${pushedBranch}' does not match any configured environment branch`,
+      reason: `Push to '${pushedBranch}' does not match configured branch '${project.branch}' or any environment branch`,
     });
   }
 

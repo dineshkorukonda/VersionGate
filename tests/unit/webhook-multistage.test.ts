@@ -37,19 +37,32 @@ describe("Webhook Multi-Stage Branch Routing Logic", () => {
     expect(matched.length).toBe(0);
   });
 
-  test("prioritizes production when multiple environments share the same branch", () => {
-    const defaultSetupEnvs = [
-      { id: "env-dev", name: "development", branch: "main" },
-      { id: "env-staging", name: "staging", branch: "main" },
-      { id: "env-prod", name: "production", branch: "main" },
+  test("falls back to project branch when environment branch is empty", () => {
+    const projectBranch = "main";
+    const envsWithEmptyBranch = [
+      { id: "env-prod", name: "production", branch: "" },
     ];
-    let matched = defaultSetupEnvs.filter((e) => e.branch === "main");
-    expect(matched.length).toBe(3);
-    if (matched.length > 1) {
-      const prod = matched.find((e) => e.name === "production");
-      if (prod) matched = [prod];
-    }
+    const pushedBranch = "main";
+    const matched = envsWithEmptyBranch.filter(
+      (e) => e.branch === pushedBranch || (!e.branch && projectBranch === pushedBranch)
+    );
     expect(matched.length).toBe(1);
     expect(matched[0].name).toBe("production");
   });
+
+  test("matches repository when payload uses owner/repo or git SSH or HTTPS", () => {
+    const { normalizeGithubRepoUrl } = require("../../src/utils/github/github-repo-url");
+    const projectRepoUrl = "https://github.com/dineshkorukonda/carf";
+    const payloadUrls = [
+      "https://github.com/dineshkorukonda/carf.git",
+      "git@github.com:dineshkorukonda/carf.git",
+      "dineshkorukonda/carf",
+      "https://github.com/dineshkorukonda/carf",
+    ];
+
+    for (const url of payloadUrls) {
+      expect(normalizeGithubRepoUrl(url)).toBe(normalizeGithubRepoUrl(projectRepoUrl));
+    }
+  });
 });
+

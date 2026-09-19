@@ -4,6 +4,7 @@ import { DeleteProjectDialog } from "@/components/modals/DeleteProjectDialog";
 import { EditProjectModal } from "@/components/modals/EditProjectModal";
 import { projectTabFromPath, type ProjectTab } from "@/lib/project-routes";
 import {
+  checkAutoDeploy,
   getDeployments,
   getProject,
   getProjectAnalytics,
@@ -245,6 +246,36 @@ export function ProjectDetail() {
       setSavingEnv(false);
     }
   };
+
+  const [syncingAutoDeploy, setSyncingAutoDeploy] = useState(false);
+
+  const onCheckAutoDeploy = async () => {
+    if (!project?.id) return;
+    setSyncingAutoDeploy(true);
+    try {
+      const res = await checkAutoDeploy({ projectId: project.id });
+      const result = res.results?.[0];
+      if (result) {
+        if (result.deployTriggered) {
+          toast.success(`[ LIVE ] ${result.reason} — Deployment queued!`);
+          void load(true);
+        } else {
+          toast.success(`[ OK ] ${result.reason}`);
+        }
+      } else {
+        toast.success("[ OK ] Auto-deploy sync completed");
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to sync auto-deploy");
+    } finally {
+      setSyncingAutoDeploy(false);
+    }
+  };
+
+  const webhookUrl = useMemo(() => {
+    if (!project?.webhookSecret) return "";
+    return `${window.location.origin}/api/webhooks/${project.webhookSecret}`;
+  }, [project?.webhookSecret]);
 
   if (loading) {
     return (
@@ -1003,7 +1034,65 @@ export function ProjectDetail() {
             </div>
           </VercelCardBox>
 
-          {/* Box 5: Danger Zone */}
+          {/* Box 5: Git Webhooks & Automated Deployments */}
+          <VercelCardBox
+            title="Git Webhooks & Automated Deployments"
+            description="Continuous deployment triggers on push to your repository branch."
+            footerLeft={
+              <span className="text-[11px] text-neutral-400">
+                GitHub App Relay & Direct Webhook endpoints continuously listen for push events on <code className="font-mono text-neutral-200">{project.branch}</code>.
+              </span>
+            }
+            footerAction={
+              <Button
+                size="sm"
+                variant="outline"
+                className="border-neutral-700 bg-neutral-900 text-xs font-medium text-neutral-200 hover:bg-neutral-800"
+                onClick={() => void onCheckAutoDeploy()}
+                disabled={syncingAutoDeploy}
+              >
+                {syncingAutoDeploy ? "Checking commits..." : "Sync Latest Commit"}
+              </Button>
+            }
+          >
+            <div className="space-y-4">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="rounded-lg border border-neutral-800 bg-black/50 p-3.5 space-y-1">
+                  <span className="text-[11px] font-medium text-neutral-500">Repository</span>
+                  <p className="font-mono text-xs text-neutral-200 truncate">{project.repoUrl}</p>
+                </div>
+                <div className="rounded-lg border border-neutral-800 bg-black/50 p-3.5 space-y-1">
+                  <span className="text-[11px] font-medium text-neutral-500">Target Branch</span>
+                  <p className="font-mono text-xs text-neutral-200">{project.branch}</p>
+                </div>
+              </div>
+
+              {webhookUrl && (
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-neutral-400">
+                    Direct Webhook URL
+                  </label>
+                  <div className="flex items-center rounded-md border border-neutral-800 bg-black overflow-hidden">
+                    <span className="flex-1 px-3 py-2 font-mono text-xs text-neutral-300 select-all truncate">
+                      {webhookUrl}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => copyText(webhookUrl, "Webhook URL")}
+                      className="px-3 py-2 text-xs font-medium text-neutral-400 hover:text-white border-l border-neutral-800 transition-colors shrink-0"
+                    >
+                      Copy Webhook URL
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-neutral-500">
+                    Add this payload URL to your GitHub repository under <strong>Settings &rarr; Webhooks</strong> with Content type set to <code>application/json</code>.
+                  </p>
+                </div>
+              )}
+            </div>
+          </VercelCardBox>
+
+          {/* Box 6: Danger Zone */}
           <VercelCardBox
             title="Danger Zone"
             description="Permanently delete this project, destroy its Docker containers, remove blue/green slots, and purge isolated Nginx configurations."
