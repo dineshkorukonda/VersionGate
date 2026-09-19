@@ -96,6 +96,12 @@ const FALLBACK_RELEASES: ProcessedRelease[] = [
               "Protects PM2 pipeline against missing package.json errors by inspecting parent directories for workspace manifests, falling back to root installs, and syncing from local path when remote Git pulls are restricted.",
             command: "src/utils/pm2.ts",
           },
+          {
+            title: "Codebase Health Path Auto-Detection & Resilient Validation Probes",
+            description:
+              "Scans source files across Node, Python, and Go for declared routes (/health, /api/health, /ping, /status) and runs resilient dual-host validation probes over 127.0.0.1 and localhost, auto-updating project database configuration when working endpoints respond.",
+            command: "src/utils/health-detector.ts  |  src/services/validation.service.ts",
+          },
         ],
       },
       {

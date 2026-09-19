@@ -3,12 +3,14 @@ import { config } from "../../config/env";
 import { decryptProjectEnv } from "../../utils/env";
 import { DeploymentRepository } from "../../repositories/deployment.repository";
 import { EnvironmentRepository, DEFAULT_ENVIRONMENT_NAME } from "../../repositories/environment.repository";
+import { ProjectRepository } from "../../repositories/project.repository";
 import { getDb } from "../../db/client";
 import { jobs, JobSelect, ProjectSelect, EnvironmentSelect } from "../../db/schema";
 import { buildImage, runContainer, stopContainer, removeContainer, freeHostPort } from "../../utils/docker";
 import { ensureDockerfile } from "../../utils/dockerfile";
 import { buildAndStartPm2Deployment, stopPm2App } from "../../utils/pm2";
 import { DeploymentError } from "../../utils/errors";
+import { logger } from "../../utils/logger";
 import { TrafficService } from "../../services/traffic.service";
 import { GitService } from "../../services/git.service";
 import { ValidationService } from "../../services/validation.service";
@@ -19,6 +21,7 @@ import { syncCustomDomainUpstream } from "../../services/project-domain.service"
 
 const repo = new DeploymentRepository();
 const envRepo = new EnvironmentRepository();
+const projectRepo = new ProjectRepository();
 const traffic = new TrafficService();
 const git = new GitService();
 const validation = new ValidationService();
@@ -180,6 +183,12 @@ export async function runDeployJob(
     );
     if (!health.success) {
       throw new DeploymentError(health.error ?? "Health check failed");
+    }
+    if (health.detectedHealthPath && health.detectedHealthPath !== project.healthPath) {
+      await log(`[HealthCheck] Auto-detected active health endpoint: ${health.detectedHealthPath} (updated from ${project.healthPath})`);
+      await projectRepo.update(project.id, { healthPath: health.detectedHealthPath }).catch((err) => {
+        logger.warn({ err, projectId: project.id }, "Failed to auto-update project health path in database");
+      });
     }
     await checkCancelled(deploymentId, log);
 

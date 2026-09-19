@@ -14,6 +14,17 @@ export interface Capability {
 
 const CAPABILITIES: Capability[] = [
   {
+    id: "cap-health-autodetect-validation",
+    category: "Deployment",
+    title: "Codebase Health Path Auto-Detection & Resilient Validation",
+    command: "src/utils/health-detector.ts  |  src/services/validation.service.ts",
+    description:
+      "Automated source route scanning across Node, Python, and Go, paired with dual-host candidate probing and database health path auto-sync.",
+    details:
+      "Statically scans codebase routes (/health, /api/health, /healthz, /live, /ready, /ping, /status) upon adoption and deployment. Executes resilient dual-host validation probes testing IPv4 127.0.0.1 alongside localhost and candidate endpoints, automatically updating the project database configuration when active health routes are resolved.",
+    badge: "NEW",
+  },
+  {
     id: "cap-universal-github-autodeploy-webhooks",
     category: "Deployment",
     title: "Universal GitHub Push Auto-Deploy & Webhook Relay",
