@@ -25,6 +25,7 @@ export function AdoptServiceModal({
   const [hostPort, setHostPort] = useState("");
   const [repoUrl, setRepoUrl] = useState("");
   const [branch, setBranch] = useState("main");
+  const [buildContext, setBuildContext] = useState("");
   const [customDomain, setCustomDomain] = useState("");
   const [adopting, setAdopting] = useState(false);
 
@@ -34,6 +35,7 @@ export function AdoptServiceModal({
     setHostPort(c.port ? String(c.port) : "");
     setRepoUrl(c.repoUrl || "");
     setBranch(c.branch || "main");
+    setBuildContext(c.buildContext && c.buildContext !== "." ? c.buildContext : "");
     setCustomDomain(c.detectedDomains && c.detectedDomains.length > 0 ? c.detectedDomains[0] : "");
   };
 
@@ -62,6 +64,7 @@ export function AdoptServiceModal({
         repoUrl: repoUrl.trim() || undefined,
         branch: branch.trim() || "main",
         localPath: selectedCandidate.localPath,
+        buildContext: buildContext.trim() || undefined,
         containerName: selectedCandidate.containerName,
         pm2Name: selectedCandidate.pm2Name,
         imageTag: selectedCandidate.imageTag,
@@ -182,16 +185,30 @@ export function AdoptServiceModal({
               </div>
             </div>
 
-            <div className="space-y-1.5">
-              <label className="block font-mono text-xs text-neutral-300">
-                Custom Domain <span className="text-neutral-500">(Optional / Auto-detected from Nginx)</span>
-              </label>
-              <Input
-                value={customDomain}
-                onChange={(e) => setCustomDomain(e.target.value)}
-                placeholder="e.g. api.example.com"
-                className="border-neutral-800 bg-neutral-900 font-mono text-xs text-white focus-visible:ring-emerald-500"
-              />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <label className="block font-mono text-xs text-neutral-300">
+                  Build Context / Monorepo Subfolder <span className="text-neutral-500">(Optional)</span>
+                </label>
+                <Input
+                  value={buildContext}
+                  onChange={(e) => setBuildContext(e.target.value)}
+                  placeholder="e.g. apps/dashboard or core-api"
+                  className="border-neutral-800 bg-neutral-900 font-mono text-xs text-white focus-visible:ring-emerald-500"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block font-mono text-xs text-neutral-300">
+                  Custom Domain <span className="text-neutral-500">(Optional / Auto-detected)</span>
+                </label>
+                <Input
+                  value={customDomain}
+                  onChange={(e) => setCustomDomain(e.target.value)}
+                  placeholder="e.g. api.example.com"
+                  className="border-neutral-800 bg-neutral-900 font-mono text-xs text-white focus-visible:ring-emerald-500"
+                />
+              </div>
             </div>
 
             <p className="text-[11px] text-neutral-500">

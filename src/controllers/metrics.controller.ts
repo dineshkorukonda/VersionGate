@@ -69,7 +69,17 @@ export async function getProjectMetricsHandler(
 
   // Handle Host PM2 processes
   if (project.deploymentType === "pm2") {
-    const info = await getPm2Process(active.containerName);
+    const candidateNames = [active.containerName, project.name, `vg-adopted-${project.name}`].filter(Boolean);
+    let info: Awaited<ReturnType<typeof getPm2Process>> = null;
+    for (const name of candidateNames) {
+      info = await getPm2Process(name);
+      if (info) break;
+    }
+    if (!info) {
+      const { listPm2Processes } = await import("../utils/pm2");
+      const all = await listPm2Processes();
+      info = all.find((p) => p.name.toLowerCase().includes(project.name.toLowerCase())) ?? null;
+    }
     if (!info) {
       return reply.code(200).send({ ...EMPTY_METRICS, timestamp: new Date().toISOString() });
     }
@@ -141,11 +151,16 @@ export async function getProjectLogsHandler(
 
   // Handle PM2 logs
   if (project.deploymentType === "pm2") {
-    const rawLogs = await getPm2Logs(target.containerName, 200);
+    const candidateNames = [
+      target.containerName,
+      project.name,
+      `vg-adopted-${project.name}`,
+    ].filter(Boolean);
+    const rawLogs = await getPm2Logs(candidateNames, 200);
     const lines = rawLogs
       ? rawLogs.split("\n").map((l) => l.trimEnd()).filter((l) => l.length > 0)
       : [];
-    return reply.code(200).send({ lines, containerName: target.containerName });
+    return reply.code(200).send({ lines, containerName: target.containerName || project.name });
   }
 
   // Handle Docker container logs

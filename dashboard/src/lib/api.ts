@@ -977,6 +977,7 @@ export interface DiscoveredDeployment {
   imageTag?: string;
   pm2Name?: string;
   localPath?: string;
+  buildContext?: string;
   repoUrl?: string;
   branch?: string;
   detectedDomains?: string[];
@@ -990,6 +991,7 @@ export interface AdoptDeploymentInput {
   repoUrl?: string;
   branch?: string;
   localPath?: string;
+  buildContext?: string;
   containerName?: string;
   pm2Name?: string;
   imageTag?: string;
