@@ -97,6 +97,8 @@ export const config = {
   githubAppPrivateKey: optionalEnv("GITHUB_APP_PRIVATE_KEY", "").replace(/\\n/g, "\n"),
   /** Verifies GitHub App webhook signatures (X-Hub-Signature-256). */
   githubWebhookSecret: optionalEnv("GITHUB_WEBHOOK_SECRET", "").trim(),
+  /** Optional personal access token for Git cloning/pulling private repos. */
+  githubToken: optionalEnv("GITHUB_TOKEN", "").trim(),
 
   /**
    * Public base URL of this instance (no trailing slash), e.g. `https://vg.example.com`.

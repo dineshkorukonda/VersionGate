@@ -1,10 +1,13 @@
 import fs from "fs/promises";
 import path from "path";
-import { ProjectSelect } from "../db/schema";
+import { desc } from "drizzle-orm";
+import { ProjectSelect, githubInstallations } from "../db/schema";
+import { getDb } from "../db/client";
 import { execFileAsync } from "../utils/exec";
 import { config } from "../config/env";
 import { logger } from "../utils/logger";
 import { DeploymentError } from "../utils/errors";
+import { getInstallationAccessToken } from "../utils/github/github-installation-token";
 
 export class GitService {
   projectPath(project: Pick<ProjectSelect, "id">): string {
@@ -232,8 +235,46 @@ export class GitService {
     await fs.mkdir(config.projectsRootPath, { recursive: true });
   }
 
+  async resolveAuthToken(project?: Pick<ProjectSelect, "id" | "repoUrl">): Promise<string | null> {
+    if (process.env.GITHUB_TOKEN?.trim()) {
+      return process.env.GITHUB_TOKEN.trim();
+    }
+    if (config.githubToken?.trim()) {
+      return config.githubToken.trim();
+    }
+
+    const appId = Number(config.githubAppId);
+    if (Number.isFinite(appId) && appId > 0 && config.githubAppPrivateKey?.trim()) {
+      try {
+        const db = getDb();
+        const installations = await db
+          .select()
+          .from(githubInstallations)
+          .orderBy(desc(githubInstallations.createdAt))
+          .limit(10);
+
+        if (installations.length > 0) {
+          const repoUrl = project?.repoUrl ?? "";
+          const ownerMatch = repoUrl.match(/github\.com[/:]([^/]+)/i);
+          const owner = ownerMatch ? ownerMatch[1].toLowerCase() : null;
+
+          const matched = owner
+            ? installations.find((i) => i.githubAccountLogin?.toLowerCase() === owner) || installations[0]
+            : installations[0];
+
+          const { token } = await getInstallationAccessToken(matched.installationId);
+          return token;
+        }
+      } catch (err) {
+        logger.debug({ err }, "GitService: failed to resolve GitHub installation access token");
+      }
+    }
+    return null;
+  }
+
   private async cloneRepo(project: ProjectSelect, repoDir: string, branch: string): Promise<void> {
-    const authUrl = this.buildAuthUrl(project.repoUrl);
+    const token = await this.resolveAuthToken(project);
+    const authUrl = this.buildAuthUrl(project.repoUrl, token);
     await fs.rm(repoDir, { recursive: true, force: true });
     try {
       await execFileAsync("git", [
@@ -244,12 +285,14 @@ export class GitService {
       ]);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      throw new DeploymentError(`Git clone failed: ${message}`);
+      const sanitized = message.replace(/x-access-token:[^@]+@/g, "x-access-token:***@");
+      throw new DeploymentError(`Git clone failed: ${sanitized}`);
     }
   }
 
   private async pullLatest(project: ProjectSelect, repoDir: string, branch: string): Promise<void> {
-    const authUrl = this.buildAuthUrl(project.repoUrl);
+    const token = await this.resolveAuthToken(project);
+    const authUrl = this.buildAuthUrl(project.repoUrl, token);
     try {
       await execFileAsync("git", ["-C", repoDir, "remote", "set-url", "origin", authUrl]).catch(() =>
         execFileAsync("git", ["-C", repoDir, "remote", "add", "origin", authUrl])
@@ -267,26 +310,36 @@ export class GitService {
     }
   }
 
-  private buildAuthUrl(repoUrl: string): string {
+  buildAuthUrl(repoUrl: string, token?: string | null): string {
     const trimmed = (repoUrl || "").trim();
+    let url = "";
+
     const sshMatch = /^(?:ssh:\/\/|git\+ssh:\/\/)?git@github\.com[:/]([^/]+)\/([^/]+?)(\.git)?$/i.exec(trimmed);
     if (sshMatch) {
-      return `https://github.com/${sshMatch[1]}/${sshMatch[2]}.git`;
+      url = `https://github.com/${sshMatch[1]}/${sshMatch[2]}.git`;
+    } else {
+      const gitProtoMatch = /^git:\/\/github\.com\/([^/]+)\/([^/]+?)(\.git)?$/i.exec(trimmed);
+      if (gitProtoMatch) {
+        url = `https://github.com/${gitProtoMatch[1]}/${gitProtoMatch[2]}.git`;
+      } else {
+        const ownerRepoMatch = /^([a-zA-Z0-9_.-]+)\/([a-zA-Z0-9_.-]+?)(\.git)?$/i.exec(trimmed);
+        if (ownerRepoMatch && !trimmed.includes("://") && !trimmed.includes("@") && !trimmed.includes(".")) {
+          url = `https://github.com/${ownerRepoMatch[1]}/${ownerRepoMatch[2]}.git`;
+        } else if (!/^https?:\/\//i.test(trimmed)) {
+          throw new DeploymentError(
+            "Only HTTPS repository URLs are supported. SSH URLs are not allowed."
+          );
+        } else {
+          url = trimmed.endsWith(".git") ? trimmed : `${trimmed}.git`;
+        }
+      }
     }
-    const gitProtoMatch = /^git:\/\/github\.com\/([^/]+)\/([^/]+?)(\.git)?$/i.exec(trimmed);
-    if (gitProtoMatch) {
-      return `https://github.com/${gitProtoMatch[1]}/${gitProtoMatch[2]}.git`;
+
+    if (token && url.includes("github.com/")) {
+      return url.replace("https://github.com/", `https://x-access-token:${token}@github.com/`);
     }
-    const ownerRepoMatch = /^([a-zA-Z0-9_.-]+)\/([a-zA-Z0-9_.-]+?)(\.git)?$/i.exec(trimmed);
-    if (ownerRepoMatch && !trimmed.includes("://") && !trimmed.includes("@") && !trimmed.includes(".")) {
-      return `https://github.com/${ownerRepoMatch[1]}/${ownerRepoMatch[2]}.git`;
-    }
-    if (!/^https?:\/\//i.test(trimmed)) {
-      throw new DeploymentError(
-        "Only HTTPS repository URLs are supported. SSH URLs are not allowed."
-      );
-    }
-    return trimmed.endsWith(".git") ? trimmed : `${trimmed}.git`;
+
+    return url;
   }
 
   async findGitDirectory(startDir: string): Promise<string | null> {

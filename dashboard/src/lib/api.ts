@@ -305,6 +305,7 @@ export function updateProject(
     repoUrl?: string;
     branch?: string;
     buildContext?: string;
+    localPath?: string | null;
     appPort?: number;
     healthPath?: string;
     basePort?: number;

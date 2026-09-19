@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { DeleteProjectDialog } from "@/components/modals/DeleteProjectDialog";
-import { EditProjectModal } from "@/components/modals/EditProjectModal";
 import { projectTabFromPath, type ProjectTab } from "@/lib/project-routes";
 import {
   checkAutoDeploy,
@@ -69,12 +68,32 @@ export function ProjectDetail() {
   const [, setEnvironments] = useState<EnvironmentSummary[]>([]);
   const [analytics, setAnalytics] = useState<ProjectAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
-  const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
 
-  // Settings editing draft state
+  // Settings editing draft states
   const [projectNameDraft, setProjectNameDraft] = useState("");
   const [savingName, setSavingName] = useState(false);
+
+  const [buildContextDraft, setBuildContextDraft] = useState(".");
+  const [packageManagerDraft, setPackageManagerDraft] = useState("auto");
+  const [installCommandDraft, setInstallCommandDraft] = useState("");
+  const [buildCommandDraft, setBuildCommandDraft] = useState("");
+  const [startCommandDraft, setStartCommandDraft] = useState("");
+  const [showCustomCommands, setShowCustomCommands] = useState(false);
+  const [savingBuildSettings, setSavingBuildSettings] = useState(false);
+  const [savingBuildAndDeploy, setSavingBuildAndDeploy] = useState(false);
+
+  const [localPathDraft, setLocalPathDraft] = useState("");
+  const [savingPathSettings, setSavingPathSettings] = useState(false);
+
+  const [deploymentTypeDraft, setDeploymentTypeDraft] = useState<"docker" | "pm2">("docker");
+  const [appPortDraft, setAppPortDraft] = useState("3000");
+  const [healthPathDraft, setHealthPathDraft] = useState("/health");
+  const [savingRuntimeSettings, setSavingRuntimeSettings] = useState(false);
+
+  const [repoUrlDraft, setRepoUrlDraft] = useState("");
+  const [branchDraft, setBranchDraft] = useState("main");
+  const [savingGitSettings, setSavingGitSettings] = useState(false);
 
   // Environment variables draft state
   const [envPairs, setEnvPairs] = useState<EnvPair[]>([]);
@@ -140,6 +159,24 @@ export function ProjectDetail() {
 
       setProject(projRes.project);
       setProjectNameDraft(projRes.project.name);
+      setBuildContextDraft(projRes.project.buildContext || ".");
+      setPackageManagerDraft(projRes.project.packageManager || "auto");
+      setInstallCommandDraft(projRes.project.installCommand || "");
+      setBuildCommandDraft(projRes.project.buildCommand || "");
+      setStartCommandDraft(projRes.project.startCommand || "");
+      setShowCustomCommands(
+        Boolean(
+          projRes.project.installCommand ||
+          projRes.project.buildCommand ||
+          projRes.project.startCommand
+        )
+      );
+      setLocalPathDraft(projRes.project.localPath || "");
+      setDeploymentTypeDraft((projRes.project.deploymentType as "docker" | "pm2") || "docker");
+      setAppPortDraft(String(projRes.project.appPort || 3000));
+      setHealthPathDraft(projRes.project.healthPath || "/health");
+      setRepoUrlDraft(projRes.project.repoUrl || "");
+      setBranchDraft(projRes.project.branch || "main");
 
       // Parse env variables into pairs
       if (projRes.project.env && typeof projRes.project.env === "object") {
@@ -220,12 +257,100 @@ export function ProjectDetail() {
     setSavingName(true);
     try {
       await updateProject(id, { name: projectNameDraft.trim() });
-      toast.success("Project name updated");
+      toast.success("[ OK ] Project name updated");
       void load(true);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to update project name");
     } finally {
       setSavingName(false);
+    }
+  };
+
+  const onSaveBuildSettings = async (redeploy = false) => {
+    if (!id) return;
+    if (redeploy) setSavingBuildAndDeploy(true);
+    else setSavingBuildSettings(true);
+    try {
+      await updateProject(id, {
+        buildContext: buildContextDraft.trim() || ".",
+        packageManager: packageManagerDraft,
+        installCommand: installCommandDraft.trim() || null,
+        buildCommand: buildCommandDraft.trim() || null,
+        startCommand: startCommandDraft.trim() || null,
+      });
+      toast.success("[ OK ] Build and development settings saved");
+      if (redeploy) {
+        const r = await triggerDeploy(id);
+        toast.success(`Redeployment queued — job ${r.jobId.slice(0, 8)}…`);
+        navigate(`/projects/${id}/deploy/${r.jobId}`);
+      } else {
+        void load(true);
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to save build settings");
+    } finally {
+      setSavingBuildSettings(false);
+      setSavingBuildAndDeploy(false);
+    }
+  };
+
+  const onSaveRuntimeSettings = async () => {
+    if (!id) return;
+    const port = Number.parseInt(appPortDraft, 10);
+    if (!Number.isFinite(port) || port < 1 || port > 65535) {
+      toast.error("App port must be between 1 and 65535.");
+      return;
+    }
+    setSavingRuntimeSettings(true);
+    try {
+      await updateProject(id, {
+        deploymentType: deploymentTypeDraft,
+        appPort: port,
+        healthPath: healthPathDraft.trim() || "/health",
+      });
+      toast.success("[ OK ] Runtime and health check settings saved");
+      void load(true);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to save runtime settings");
+    } finally {
+      setSavingRuntimeSettings(false);
+    }
+  };
+
+  const onSaveGitSettings = async () => {
+    if (!id) return;
+    if (!repoUrlDraft.trim()) {
+      toast.error("Repository URL cannot be empty.");
+      return;
+    }
+    setSavingGitSettings(true);
+    try {
+      await updateProject(id, {
+        repoUrl: repoUrlDraft.trim(),
+        branch: branchDraft.trim() || "main",
+      });
+      toast.success("[ OK ] Git repository and branch settings saved");
+      void load(true);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to save git settings");
+    } finally {
+      setSavingGitSettings(false);
+    }
+  };
+
+  const onSavePathSettings = async () => {
+    if (!id) return;
+    setSavingPathSettings(true);
+    try {
+      await updateProject(id, {
+        localPath: localPathDraft.trim() || null,
+      });
+      toast.success("[ OK ] Root directory path saved");
+      void load(true);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to save root directory path");
+    } finally {
+      setSavingPathSettings(false);
     }
   };
 
@@ -238,7 +363,7 @@ export function ProjectDetail() {
         if (p.key.trim()) envObj[p.key.trim()] = p.value;
       }
       await updateProjectEnv(id, envObj);
-      toast.success("Environment variables saved");
+      toast.success("[ OK ] Environment variables saved");
       void load(true);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to save environment variables");
@@ -1001,74 +1126,273 @@ export function ProjectDetail() {
             </div>
           </VercelCardBox>
 
-          {/* Box 4: Build & Deployment Settings */}
+          {/* Box 4: Build & Development Settings */}
           <VercelCardBox
-            title="Build and Deployment"
-            description="Docker build context, internal app ports, and zero-downtime healthcheck endpoints."
-            footerLeft={<span>Host ports are allocated automatically to avoid collisions.</span>}
+            title="Build & Development Settings"
+            description="Configure your project build context subdirectory, package manager, and custom build scripts."
+            footerLeft={<span>Build scripts run in isolated container environments before preflight health checks.</span>}
+            footerAction={
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-neutral-700 bg-neutral-900 text-xs font-medium text-neutral-200 hover:bg-neutral-800"
+                  onClick={() => void onSaveBuildSettings(false)}
+                  disabled={savingBuildSettings || savingBuildAndDeploy}
+                >
+                  {savingBuildSettings ? "Saving…" : "Save Settings"}
+                </Button>
+                <Button
+                  size="sm"
+                  className="bg-white text-black font-semibold hover:bg-neutral-200 text-xs"
+                  onClick={() => void onSaveBuildSettings(true)}
+                  disabled={savingBuildSettings || savingBuildAndDeploy}
+                >
+                  {savingBuildAndDeploy ? "Deploying…" : "Save & Redeploy"}
+                </Button>
+              </div>
+            }
+          >
+            <div className="space-y-4">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-neutral-400">
+                    Build Context Subdirectory
+                  </label>
+                  <Input
+                    value={buildContextDraft}
+                    onChange={(e) => setBuildContextDraft(e.target.value)}
+                    placeholder="."
+                    className="h-9 border-neutral-800 bg-black font-mono text-xs text-white"
+                  />
+                  <p className="text-[11px] text-neutral-500">
+                    Subdirectory containing project code (e.g. <code>.</code> or <code>apps/web</code>).
+                  </p>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-neutral-400">
+                    Package Manager
+                  </label>
+                  <select
+                    className="h-9 w-full rounded-md border border-neutral-800 bg-black px-3 text-xs text-white focus:outline-none focus:border-neutral-600"
+                    value={packageManagerDraft}
+                    onChange={(e) => setPackageManagerDraft(e.target.value)}
+                  >
+                    <option value="auto">Auto-detect from repository</option>
+                    <option value="bun">Bun</option>
+                    <option value="pnpm">pnpm</option>
+                    <option value="npm">npm</option>
+                    <option value="yarn">Yarn</option>
+                    <option value="uv">Python (uv)</option>
+                    <option value="poetry">Python (Poetry)</option>
+                    <option value="pip">Python (pip)</option>
+                    <option value="cargo">Rust (Cargo)</option>
+                    <option value="composer">PHP (Composer)</option>
+                  </select>
+                  <p className="text-[11px] text-neutral-500">
+                    Engine used to resolve dependencies and build output artifacts.
+                  </p>
+                </div>
+              </div>
+
+              <div className="pt-2 border-t border-neutral-800/80">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-xs font-medium text-neutral-300">Custom Build &amp; Start Commands</span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-xs font-mono text-neutral-400 hover:text-white"
+                    onClick={() => setShowCustomCommands((prev) => !prev)}
+                  >
+                    {showCustomCommands ? "[ HIDE COMMANDS ]" : "[ CUSTOM COMMANDS ]"}
+                  </Button>
+                </div>
+
+                {showCustomCommands && (
+                  <div className="grid gap-3 rounded-lg border border-neutral-800 bg-neutral-950 p-3.5">
+                    <div className="space-y-1">
+                      <label className="text-xs font-mono text-neutral-400">Install Command (Optional)</label>
+                      <Input
+                        value={installCommandDraft}
+                        onChange={(e) => setInstallCommandDraft(e.target.value)}
+                        placeholder="e.g. pnpm install --frozen-lockfile"
+                        className="h-8 border-neutral-800 bg-black font-mono text-xs text-white"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-mono text-neutral-400">Build Command (Optional)</label>
+                      <Input
+                        value={buildCommandDraft}
+                        onChange={(e) => setBuildCommandDraft(e.target.value)}
+                        placeholder="e.g. npm run build:prod or bun run build"
+                        className="h-8 border-neutral-800 bg-black font-mono text-xs text-white"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-mono text-neutral-400">Start Command (Optional)</label>
+                      <Input
+                        value={startCommandDraft}
+                        onChange={(e) => setStartCommandDraft(e.target.value)}
+                        placeholder="e.g. npm run start or node dist/index.js"
+                        className="h-8 border-neutral-800 bg-black font-mono text-xs text-white"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </VercelCardBox>
+
+          {/* Box 5: Root Directory & Local App Path */}
+          <VercelCardBox
+            title="Root Directory &amp; Host Path"
+            description="Configured directory path on the server for adopted applications and local repositories."
+            footerLeft={<span>Synced automatically during deployment if local fallback is active.</span>}
             footerAction={
               <Button
                 size="sm"
                 className="bg-white text-black font-semibold hover:bg-neutral-200 text-xs"
-                onClick={() => setEditOpen(true)}
+                onClick={() => void onSavePathSettings()}
+                disabled={savingPathSettings}
               >
-                Edit Configuration
+                {savingPathSettings ? "Saving…" : "Save Path"}
+              </Button>
+            }
+          >
+            <div className="space-y-1.5 max-w-xl">
+              <label className="text-xs font-medium text-neutral-400">Host Working Directory (localPath)</label>
+              <Input
+                value={localPathDraft}
+                onChange={(e) => setLocalPathDraft(e.target.value)}
+                placeholder="/var/versiongate/projects/my-app"
+                className="h-9 border-neutral-800 bg-black font-mono text-xs text-white"
+              />
+              <p className="text-[11px] text-neutral-500">
+                Local directory on the host server where this project source or adopted service resides.
+              </p>
+            </div>
+          </VercelCardBox>
+
+          {/* Box 6: Container Runtime & Health Checks */}
+          <VercelCardBox
+            title="Runtime Engine &amp; Health Checks"
+            description="Deployment runner engine, internal container port, and zero-downtime healthcheck endpoint."
+            footerLeft={<span>Blue/Green slots (:basePort and :basePort + 1) route traffic only after health checks pass.</span>}
+            footerAction={
+              <Button
+                size="sm"
+                className="bg-white text-black font-semibold hover:bg-neutral-200 text-xs"
+                onClick={() => void onSaveRuntimeSettings()}
+                disabled={savingRuntimeSettings}
+              >
+                {savingRuntimeSettings ? "Saving…" : "Save Runtime"}
               </Button>
             }
           >
             <div className="grid gap-4 sm:grid-cols-3">
-              <div className="rounded-lg border border-neutral-800 bg-black/50 p-3.5">
-                <span className="text-[11px] font-medium text-neutral-500">Health Check Path</span>
-                <p className="mt-1 font-mono text-xs text-white">{project.healthPath || "/api/health"}</p>
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-neutral-400">Deployment Engine</label>
+                <select
+                  className="h-9 w-full rounded-md border border-neutral-800 bg-black px-3 text-xs text-white focus:outline-none focus:border-neutral-600"
+                  value={deploymentTypeDraft}
+                  onChange={(e) => setDeploymentTypeDraft(e.target.value as "docker" | "pm2")}
+                >
+                  <option value="docker">Docker Container (Default)</option>
+                  <option value="pm2">Host PM2 Supervisor</option>
+                </select>
+                <p className="text-[11px] text-neutral-500">
+                  {deploymentTypeDraft === "pm2" ? "Direct host process execution." : "Isolated Docker container."}
+                </p>
               </div>
-              <div className="rounded-lg border border-neutral-800 bg-black/50 p-3.5">
-                <span className="text-[11px] font-medium text-neutral-500">Build Context</span>
-                <p className="mt-1 font-mono text-xs text-white">{project.buildContext || "."}</p>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-neutral-400">App Internal Port</label>
+                <Input
+                  type="number"
+                  min={1}
+                  max={65535}
+                  value={appPortDraft}
+                  onChange={(e) => setAppPortDraft(e.target.value)}
+                  placeholder="3000"
+                  className="h-9 border-neutral-800 bg-black font-mono text-xs text-white"
+                />
+                <p className="text-[11px] text-neutral-500">
+                  Port the application listens on internally.
+                </p>
               </div>
-              <div className="rounded-lg border border-neutral-800 bg-black/50 p-3.5">
-                <span className="text-[11px] font-medium text-neutral-500">Port Range</span>
-                <p className="mt-1 font-mono text-xs text-white">
-                  :{project.basePort} – :{project.basePort + 1}
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-neutral-400">Health Check Endpoint</label>
+                <Input
+                  value={healthPathDraft}
+                  onChange={(e) => setHealthPathDraft(e.target.value)}
+                  placeholder="/health"
+                  className="h-9 border-neutral-800 bg-black font-mono text-xs text-white"
+                />
+                <p className="text-[11px] text-neutral-500">
+                  HTTP endpoint probed before traffic cutover.
                 </p>
               </div>
             </div>
           </VercelCardBox>
 
-          {/* Box 5: Git Webhooks & Automated Deployments */}
+          {/* Box 7: Git Webhooks & Automated Deployments */}
           <VercelCardBox
-            title="Git Webhooks & Automated Deployments"
+            title="Git Repository &amp; Automated Deployments"
             description="Continuous deployment triggers on push to your repository branch."
             footerLeft={
               <span className="text-[11px] text-neutral-400">
-                GitHub App Relay & Direct Webhook endpoints continuously listen for push events on <code className="font-mono text-neutral-200">{project.branch}</code>.
+                GitHub App Relay &amp; Direct Webhook endpoints continuously listen for push events on <code className="font-mono text-neutral-200">{project.branch}</code>.
               </span>
             }
             footerAction={
-              <Button
-                size="sm"
-                variant="outline"
-                className="border-neutral-700 bg-neutral-900 text-xs font-medium text-neutral-200 hover:bg-neutral-800"
-                onClick={() => void onCheckAutoDeploy()}
-                disabled={syncingAutoDeploy}
-              >
-                {syncingAutoDeploy ? "Checking commits..." : "Sync Latest Commit"}
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-neutral-700 bg-neutral-900 text-xs font-medium text-neutral-200 hover:bg-neutral-800"
+                  onClick={() => void onCheckAutoDeploy()}
+                  disabled={syncingAutoDeploy}
+                >
+                  {syncingAutoDeploy ? "Checking commits…" : "Sync Latest Commit"}
+                </Button>
+                <Button
+                  size="sm"
+                  className="bg-white text-black font-semibold hover:bg-neutral-200 text-xs"
+                  onClick={() => void onSaveGitSettings()}
+                  disabled={savingGitSettings}
+                >
+                  {savingGitSettings ? "Saving…" : "Save Git Settings"}
+                </Button>
+              </div>
             }
           >
             <div className="space-y-4">
               <div className="grid gap-3 sm:grid-cols-2">
-                <div className="rounded-lg border border-neutral-800 bg-black/50 p-3.5 space-y-1">
-                  <span className="text-[11px] font-medium text-neutral-500">Repository</span>
-                  <p className="font-mono text-xs text-neutral-200 truncate">{project.repoUrl}</p>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-neutral-400">Git Repository URL</label>
+                  <Input
+                    value={repoUrlDraft}
+                    onChange={(e) => setRepoUrlDraft(e.target.value)}
+                    placeholder="https://github.com/owner/repo"
+                    className="h-9 border-neutral-800 bg-black font-mono text-xs text-white"
+                  />
                 </div>
-                <div className="rounded-lg border border-neutral-800 bg-black/50 p-3.5 space-y-1">
-                  <span className="text-[11px] font-medium text-neutral-500">Target Branch</span>
-                  <p className="font-mono text-xs text-neutral-200">{project.branch}</p>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-neutral-400">Target Production Branch</label>
+                  <Input
+                    value={branchDraft}
+                    onChange={(e) => setBranchDraft(e.target.value)}
+                    placeholder="main"
+                    className="h-9 border-neutral-800 bg-black font-mono text-xs text-white"
+                  />
                 </div>
               </div>
 
               {webhookUrl && (
-                <div className="space-y-1.5">
+                <div className="space-y-1.5 pt-2 border-t border-neutral-800/80">
                   <label className="text-xs font-medium text-neutral-400">
                     Direct Webhook URL
                   </label>
@@ -1092,7 +1416,7 @@ export function ProjectDetail() {
             </div>
           </VercelCardBox>
 
-          {/* Box 6: Danger Zone */}
+          {/* Box 8: Danger Zone */}
           <VercelCardBox
             title="Danger Zone"
             description="Permanently delete this project, destroy its Docker containers, remove blue/green slots, and purge isolated Nginx configurations."
@@ -1121,14 +1445,6 @@ export function ProjectDetail() {
       )}
 
       {/* Modals */}
-      <EditProjectModal
-        project={project}
-        open={editOpen}
-        onOpenChange={setEditOpen}
-        onUpdated={() => {
-          void load(true);
-        }}
-      />
       <DeleteProjectDialog
         projectId={project.id}
         projectName={project.name}

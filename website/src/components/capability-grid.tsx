@@ -14,6 +14,17 @@ export interface Capability {
 
 const CAPABILITIES: Capability[] = [
   {
+    id: "cap-autodeploy-relay-git-auth",
+    category: "Deployment",
+    title: "Relay Webhook Stream & Authenticated Git Token Deployment",
+    command: "POST /api/webhooks/github/relay  |  git clone x-access-token",
+    description:
+      "Full rawBody preservation for cloud relay HMAC verification, authenticated GitHub App token injection for private repositories, and inline card-based project settings.",
+    details:
+      "Ensures unparsed payload bytes are preserved across all webhook and relay routes for flawless HMAC verification. Automatically generates and injects ephemeral GitHub App installation tokens into git clone and pull commands, allowing both adopted and dashboard-created private repositories to auto-deploy on commit without manual workflow files.",
+    badge: "NEW",
+  },
+  {
     id: "cap-health-autodetect-validation",
     category: "Deployment",
     title: "Codebase Health Path Auto-Detection & Resilient Validation",
