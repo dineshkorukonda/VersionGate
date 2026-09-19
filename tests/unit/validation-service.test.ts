@@ -7,6 +7,7 @@ describe("Health check URL builder", () => {
     expect(urls[0]).toBe("http://localhost:8080/health");
     expect(urls).toContain("http://localhost:8080/");
     expect(urls).toContain("http://localhost:8080/api/health");
+    expect(urls).toContain("http://localhost:8080/v1/health");
     expect(urls).toContain("http://localhost:8080/ping");
     expect(urls).toContain("http://127.0.0.1:8080/health");
     expect(urls).toContain("http://127.0.0.1:8080/");

@@ -11,6 +11,7 @@ import { ensureDockerfile } from "../../utils/dockerfile";
 import { buildAndStartPm2Deployment, stopPm2App } from "../../utils/pm2";
 import { DeploymentError } from "../../utils/errors";
 import { logger } from "../../utils/logger";
+import { detectHealthPathFromDir } from "../../utils/health-detector";
 import { TrafficService } from "../../services/traffic.service";
 import { GitService } from "../../services/git.service";
 import { ValidationService } from "../../services/validation.service";
@@ -175,10 +176,21 @@ export async function runDeployJob(
       await checkCancelled(deploymentId, log);
     }
 
-    await log(`Step 6: Health check http://localhost:${hostPort}${project.healthPath}`);
+    let activeHealthPath = project.healthPath;
+    try {
+      const preDetected = await detectHealthPathFromDir(buildContextPath);
+      if (preDetected && preDetected !== activeHealthPath && (activeHealthPath === "/health" || !activeHealthPath)) {
+        await log(`[HealthCheck] Pre-flight detected route from codebase: ${preDetected}`);
+        activeHealthPath = preDetected;
+      }
+    } catch {
+      // ignore
+    }
+
+    await log(`Step 6: Health check http://localhost:${hostPort}${activeHealthPath}`);
     const health = await validation.validate(
       `http://localhost:${hostPort}`,
-      project.healthPath,
+      activeHealthPath,
       containerName
     );
     if (!health.success) {
