@@ -188,10 +188,16 @@ export async function runDeployJob(
     }
 
     await log(`Step 6: Health check http://localhost:${hostPort}${activeHealthPath}`);
+    const fallbackPorts = project.deploymentType === "pm2" && project.appPort && project.appPort !== hostPort
+      ? [project.appPort]
+      : undefined;
+
     const health = await validation.validate(
       `http://localhost:${hostPort}`,
       activeHealthPath,
-      containerName
+      containerName,
+      log,
+      fallbackPorts
     );
     if (!health.success) {
       throw new DeploymentError(health.error ?? "Health check failed");
