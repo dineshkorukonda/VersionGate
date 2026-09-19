@@ -69,10 +69,10 @@ export const config = {
   geminiApiKey: optionalEnv("GEMINI_API_KEY", ""),
   geminiModel: optionalEnv("GEMINI_MODEL", "gemini-2.5-pro"),
   validation: {
-    healthTimeoutMs: 5000,
-    retryDelayMs: 2000,
-    maxLatencyMs: 2000,
-    maxRetries: 15, // 30 seconds total — accommodates slow-booting apps
+    healthTimeoutMs: Math.max(1000, parseInt(optionalEnv("HEALTH_TIMEOUT_MS", "5000"), 10) || 5000),
+    retryDelayMs: Math.max(500, parseInt(optionalEnv("HEALTH_RETRY_DELAY_MS", "2000"), 10) || 2000),
+    maxLatencyMs: Math.max(500, parseInt(optionalEnv("HEALTH_MAX_LATENCY_MS", "2000"), 10) || 2000),
+    maxRetries: Math.max(5, parseInt(optionalEnv("HEALTH_MAX_RETRIES", "30"), 10) || 30), // 60 seconds total — accommodates slow-booting apps and monorepos
   },
   /** Long random string. Enables GET/POST `/api/v1/system/update/*` (Bearer auth). */
   selfUpdateSecret: optionalEnv("SELF_UPDATE_SECRET", "").trim(),

@@ -3,25 +3,38 @@ import path from "path";
 import { logger } from "./logger";
 
 const ROUTE_REGEXES = [
-  // Express / Fastify / Koa / Hono / NestJS / Router: .get('/health', ...), .route('/api/health')
-  /(?:\b(?:app|router|fastify|server|hono|route)\s*\.(?:get|all|use|route)|@Get)\s*\(\s*['"`]([^'"`]+)['"`]/gi,
-  // Python Flask / FastAPI: @app.get('/health'), @router.get('/health'), path('health/', ...)
+  // Express / Fastify / Koa / Hono / NestJS / Router / Gin / etc.
+  /(?:\b(?:app|router|fastify|server|hono|route|r|api)\s*\.(?:get|all|use|route)|@(?:Get|Route))\s*\(\s*['"`]([^'"`]+)['"`]/gi,
+  // Python Flask / FastAPI: @app.get('/health'), @router.get('/v1/health'), path('health/', ...)
   /@(?:app|router|api)\s*\.(?:get|route)\s*\(\s*['"`]([^'"`]+)['"`]/gi,
   // Go Gin / Chi / Echo / Fiber: .GET("/health", ...), .Handle("/health", ...)
-  /\.(?:GET|Handle|HandleFunc|Route)\s*\(\s*['"`]([^'"`]+)['"`]/g,
+  /\.(?:GET|Get|Handle|HandleFunc|Route)\s*\(\s*['"`]([^'"`]+)['"`]/g,
 ];
 
 const HEALTH_CANDIDATE_ORDER = [
   "/health",
   "/api/health",
+  "/v1/health",
   "/api/v1/health",
+  "/v2/health",
+  "/api/v2/health",
   "/healthz",
   "/live",
+  "/livez",
   "/ready",
+  "/readyz",
+  "/alive",
   "/ping",
   "/status",
   "/api/status",
+  "/v1/status",
+  "/api/v1/status",
+  "/up",
   "/api",
+  "/v1",
+  "/api/v1",
+  "/version",
+  "/info",
   "/",
 ];
 

@@ -4,7 +4,7 @@ import { config } from "../config/env";
 import { logger } from "../utils/logger";
 
 /** Ordered URLs: configured path first, then common API health routes and dual IPv4/localhost bindings. */
-export function buildHealthCheckUrls(baseUrl: string, healthPath: string): string[] {
+export function buildHealthCheckUrls(baseUrl: string, healthPath: string, extraPorts?: number[]): string[] {
   const cleanBase = baseUrl.replace(/\/+$/, "");
   const p = (healthPath || "/").trim();
   const normalizedPath = p.startsWith("/") ? p : `/${p}`;
@@ -17,6 +17,15 @@ export function buildHealthCheckUrls(baseUrl: string, healthPath: string): strin
     } else if (parsed.hostname === "127.0.0.1") {
       bases.push(`${parsed.protocol}//localhost${parsed.port ? `:${parsed.port}` : ""}`);
     }
+
+    if (Array.isArray(extraPorts)) {
+      for (const ep of extraPorts) {
+        if (ep > 0 && ep <= 65535) {
+          bases.push(`${parsed.protocol}//localhost:${ep}`);
+          bases.push(`${parsed.protocol}//127.0.0.1:${ep}`);
+        }
+      }
+    }
   } catch {
     // ignore parse error
   }
@@ -25,15 +34,28 @@ export function buildHealthCheckUrls(baseUrl: string, healthPath: string): strin
     normalizedPath,
     "/",
     "/health",
+    "/v1/health",
     "/api/health",
     "/api/v1/health",
+    "/v2/health",
+    "/api/v2/health",
     "/healthz",
     "/live",
+    "/livez",
     "/ready",
+    "/readyz",
+    "/alive",
     "/ping",
     "/status",
     "/api/status",
+    "/v1/status",
+    "/api/v1/status",
+    "/up",
     "/api",
+    "/v1",
+    "/api/v1",
+    "/version",
+    "/info",
     "/index.html",
   ];
 
@@ -64,13 +86,15 @@ export class ValidationService {
   async validate(
     baseUrl: string,
     healthPath: string,
-    containerName: string
+    containerName: string,
+    log?: (line: string) => void | Promise<void>,
+    fallbackPorts?: number[]
   ): Promise<ValidationResult> {
-    const urls = buildHealthCheckUrls(baseUrl, healthPath);
+    const urls = buildHealthCheckUrls(baseUrl, healthPath, fallbackPorts);
     const configuredUrl = urls[0];
     const { maxRetries, retryDelayMs, healthTimeoutMs, maxLatencyMs } = config.validation;
 
-    logger.info({ healthUrl: configuredUrl, candidateCount: urls.length, containerName }, "Starting validation");
+    logger.info({ healthUrl: configuredUrl, candidateCount: urls.length, containerName, maxRetries }, "Starting validation");
 
     let running = true;
     try {
@@ -105,6 +129,10 @@ export class ValidationService {
         }
       }
 
+      if (log && (attempt === 1 || attempt % 5 === 0)) {
+        await log(`[HealthCheck] Attempt ${attempt}/${maxRetries}: awaiting HTTP response on ${configuredUrl}...`);
+      }
+
       for (let i = 0; i < urls.length; i++) {
         const url = urls[i];
         const start = Date.now();
@@ -131,13 +159,16 @@ export class ValidationService {
             }
 
             if (i > 0) {
+              if (log) await log(`[HealthCheck] Passed via alternative candidate ${url} (${response.status}) in ${latency}ms`);
               logger.info(
                 { url, configuredPath: healthPath, detectedPath, attempt, latency, status: response.status },
                 "Validation passed via candidate health URL"
               );
             } else if (latency > maxLatencyMs) {
+              if (log) await log(`[HealthCheck] Passed on ${url} (${response.status}) in ${latency}ms (high latency)`);
               logger.warn({ healthUrl: url, attempt, latency }, `Latency ${latency}ms exceeded threshold (still passing)`);
             } else {
+              if (log) await log(`[HealthCheck] Passed on ${url} (${response.status}) in ${latency}ms`);
               logger.debug({ healthUrl: url, attempt, latency }, "Validation passed");
             }
             return { success: true, latency, detectedHealthPath: detectedPath };
