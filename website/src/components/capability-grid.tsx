@@ -14,14 +14,14 @@ export interface Capability {
 
 const CAPABILITIES: Capability[] = [
   {
-    id: "cap-adopted-monorepo-autodeploy-logs",
+    id: "cap-universal-github-autodeploy-webhooks",
     category: "Deployment",
-    title: "Adopted Monorepo Auto-Deployments & Real-Time Logs",
-    command: "GET /api/v1/projects/:id/logs  |  POST /api/projects/adopt",
+    title: "Universal GitHub Push Auto-Deploy & Webhook Relay",
+    command: "POST /api/github/app/relay-webhook  |  POST /api/webhooks/:secret",
     description:
-      "Deep monorepo subfolder resolution, hierarchical Git root traversal during service adoption, and multi-candidate PM2 log file streaming.",
+      "Universal GitHub repo URL normalization, multi-payload push dispatching, branch fallback routing, and in-dashboard Webhook & Auto-Deploy management.",
     details:
-      "Recursively scans monorepo directories to locate application build contexts and manifests, automatically discovers Git roots and relative subpaths during host adoption, protects dependency installation with workspace fallbacks, and streams live PM2 runtime logs directly from disk log paths.",
+      "Normalizes SSH, HTTPS, git+ssh, git://, and owner/repo short forms for infallible webhook and GitHub App relay push dispatching. Features multi-environment branch fallback routing, monorepo Git root resolution, and an in-dashboard Git Webhook management card with one-click commit synchronization.",
     badge: "NEW",
   },
   {

@@ -48,8 +48,32 @@ const FALLBACK_RELEASES: ProcessedRelease[] = [
     date: "September 19, 2026",
     isLatest: true,
     summary:
-      "Deep monorepo build context resolution, hierarchical Git root and subfolder detection for adopted host applications, workspace package installation safeguards, and multi-candidate real-time PM2 log streaming.",
+      "Universal GitHub repository URL normalization, multi-payload push auto-deployment dispatching, branch fallback routing, in-dashboard Git Webhook management, deep monorepo build context resolution, and multi-candidate PM2 log streaming.",
     categories: [
+      {
+        title: "Automated Deployments & Webhooks",
+        badge: "NEW",
+        items: [
+          {
+            title: "Universal GitHub Repo Normalizer & Multi-Payload Dispatching",
+            description:
+              "Normalizes SSH, HTTPS, git+ssh, git://, and owner/repo short forms for robust GitHub App relay and direct webhook push handling, extracting repository targets across all payload variants.",
+            command: "POST /api/github/app/relay-webhook  |  POST /api/webhooks/:secret",
+          },
+          {
+            title: "Multi-Environment Branch Matching & Fallback Routing",
+            description:
+              "Matches pushed branches against environment-level branch configurations and falls back automatically to project branch and production environment when branches are unassigned.",
+            command: "src/controllers/github-app.controller.ts",
+          },
+          {
+            title: "In-Dashboard Git Webhooks & Instant Commit Sync Card",
+            description:
+              "Added dedicated Git Webhooks & Automated Deployments card in Project Settings displaying the unique webhook URL, copy actions, GitHub configuration tips, and one-click commit synchronization.",
+            command: "dashboard/src/pages/ProjectDetail.tsx",
+          },
+        ],
+      },
       {
         title: "Deployment Engine & Monorepos",
         badge: "IMPROVEMENT",
