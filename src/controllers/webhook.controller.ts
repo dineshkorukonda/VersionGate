@@ -12,9 +12,54 @@ interface WebhookParams {
 }
 
 // Minimal shape we care about from a GitHub push event
-interface GitHubPushPayload {
+export interface GitHubPushPayload {
   ref?: string;                                // e.g. "refs/heads/main"
   repository?: { clone_url?: string; html_url?: string };
+}
+
+export function parsePushPayload(
+  rawBody: unknown,
+  contentType?: string
+): GitHubPushPayload | null {
+  if (!rawBody) return null;
+  if (typeof rawBody === "object" && !Buffer.isBuffer(rawBody)) {
+    const candidate = rawBody as Record<string, any>;
+    if (typeof candidate.payload === "string") {
+      try {
+        return JSON.parse(candidate.payload) as GitHubPushPayload;
+      } catch {
+        // ignore
+      }
+    }
+    return candidate as GitHubPushPayload;
+  }
+
+  const text =
+    typeof rawBody === "string"
+      ? rawBody.trim()
+      : Buffer.isBuffer(rawBody)
+      ? rawBody.toString("utf8").trim()
+      : "";
+  if (!text) return null;
+
+  const ct = (contentType || "").toLowerCase();
+  if (ct.includes("application/x-www-form-urlencoded") || text.startsWith("payload=")) {
+    try {
+      const parsedUrl = new URLSearchParams(text);
+      const payloadJson = parsedUrl.get("payload");
+      if (payloadJson) {
+        return JSON.parse(payloadJson) as GitHubPushPayload;
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  try {
+    return JSON.parse(text) as GitHubPushPayload;
+  } catch {
+    return null;
+  }
 }
 
 export async function githubWebhookHandler(
@@ -38,7 +83,10 @@ export async function githubWebhookHandler(
   const environments = await envRepo.findAllForProject(project.id);
 
   // Find all environments matching the pushed branch
-  const ref = req.body?.ref ?? "";
+  const rawPayload = (req as FastifyRequest & { rawBody?: Buffer }).rawBody ?? req.body;
+  const contentType = req.headers["content-type"] as string | undefined;
+  const parsedBody = parsePushPayload(req.body, contentType) ?? parsePushPayload(rawPayload, contentType);
+  const ref = parsedBody?.ref ?? "";
   const pushedBranch = ref.replace(/^refs\/heads\//, "").trim();
 
   let matchingEnvs = pushedBranch

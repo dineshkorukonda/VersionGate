@@ -12,6 +12,7 @@ function isPublicApiPath(path: string): boolean {
   if (path.startsWith("/api/v1/auth/")) return true;
   if (path.startsWith("/api/v1/webhooks/")) return true;
   if (path.startsWith("/api/webhooks/")) return true;
+  if (path.startsWith("/webhooks/")) return true;
   if (path.startsWith("/api/auth/github/")) return true;
   if (
     path === "/api/v1/system/update/status" ||

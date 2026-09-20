@@ -35,13 +35,14 @@ export async function buildApp(): Promise<FastifyInstance> {
   // Raw body for GitHub and relay webhooks (signature verification must use unparsed bytes).
   app.addHook("preParsing", async (request, _reply, payload) => {
     const pathOnly = request.url.split("?")[0];
-    if (
-      (!pathOnly.startsWith("/api/webhooks/") &&
-        !pathOnly.startsWith("/api/v1/webhooks/") &&
-        pathOnly !== "/api/webhooks/github" &&
-        pathOnly !== "/api/webhooks/github/relay") ||
-      request.method !== "POST"
-    ) {
+    const isWebhookPath =
+      pathOnly.startsWith("/api/webhooks/") ||
+      pathOnly.startsWith("/api/v1/webhooks/") ||
+      pathOnly.startsWith("/webhooks/") ||
+      pathOnly === "/api/webhooks/github" ||
+      pathOnly === "/api/webhooks/github/relay";
+
+    if (!isWebhookPath || request.method !== "POST") {
       return payload;
     }
     const chunks: Buffer[] = [];
@@ -177,6 +178,10 @@ export async function buildApp(): Promise<FastifyInstance> {
     await instance.register(dbRoutes);
     await webhookRoutes(instance);
   }, { prefix: "/api" });
+  await app.register(async (instance) => {
+    await instance.register(dbRoutes);
+    await webhookRoutes(instance);
+  });
   await app.register(setupRoutes, { prefix: "/api/v1" });
   await app.register(settingsRoutes, { prefix: "/api/v1" });
 
