@@ -44,9 +44,47 @@ interface ProcessedRelease {
 
 const FALLBACK_RELEASES: ProcessedRelease[] = [
   {
+    version: "v3.3.0",
+    date: "September 20, 2026",
+    isLatest: true,
+    summary:
+      "Autonomous background application auto-deploy poller daemon, remote Git ls-remote commit detection eliminating local cache staleness, dual-format GitHub webhook payload ingress, and automatic Git remote URL detection on service adoption.",
+    categories: [
+      {
+        title: "Autonomous Commit Polling & Remote Git Sync",
+        badge: "NEW",
+        items: [
+          {
+            title: "Autonomous Application Auto-Deploy Poller Daemon",
+            description:
+              "Engineered an autonomous background polling service (AUTO_DEPLOY_POLL_MS) running on an active heartbeat to continuously monitor managed projects, detect upstream branch changes, and trigger zero-downtime blue/green deployments without requiring inbound public webhooks.",
+            command: "AUTO_DEPLOY_POLL_MS=60000",
+          },
+          {
+            title: "Remote Git ls-remote Commit Resolution",
+            description:
+              "Enhanced GitService with authenticated git ls-remote resolution using ephemeral installation tokens, accurately identifying upstream repository HEAD commits in milliseconds and fixing false-positive 'already in sync' reports.",
+            command: "git ls-remote <authUrl> refs/heads/<branch>",
+          },
+          {
+            title: "Dual-Format Webhook Parsing & Root Routing Aliases",
+            description:
+              "Added automatic support for GitHub default application/x-www-form-urlencoded push payloads alongside application/json, and registered root /webhooks/:secret aliases for universal webhook receiver compatibility.",
+            command: "POST /webhooks/:secret  |  POST /api/webhooks/:secret",
+          },
+          {
+            title: "Adopted Service Git Remote Ingestion & Baseline Tracking",
+            description:
+              "Automatically queries host repository remotes (git config --get remote.origin.url) during service adoption to link canonical GitHub URLs, while establishing baseline commit SHAs on initial deployment records for immediate synchronization tracking.",
+          },
+        ],
+      },
+    ],
+  },
+  {
     version: "v3.2.0",
     date: "September 19, 2026",
-    isLatest: true,
+    isLatest: false,
     summary:
       "Full cloud relay webhook rawBody preservation for cryptographic HMAC validation, automated GitHub App token injection for private repository git operations, and rich inline card-based project settings replacing modal dialogs.",
     categories: [

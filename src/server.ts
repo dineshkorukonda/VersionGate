@@ -8,6 +8,7 @@ import { ContainerMonitorService } from "./services/container-monitor.service";
 import { registerAfterSetup } from "./services/post-setup-hooks.service";
 import { systemMetrics } from "./controllers/system.controller";
 import { kickSelfUpdatePoll, stopSelfUpdatePoll } from "./services/self-update-poll.service";
+import { startAutoDeployPoll, stopAutoDeployPoll } from "./services/autodeploy-poll.service";
 
 import { engineHealthMonitor } from "./services/engine-monitor.service";
 import { startInProcessWorker, stopInProcessWorker } from "./worker/in-process";
@@ -27,6 +28,7 @@ async function start(): Promise<void> {
     engineHealthMonitor.start();
     startInProcessWorker();
     cronRunnerService.startScheduler();
+    startAutoDeployPoll();
     void (async () => {
       try {
         const reconciliation = new ReconciliationService();
@@ -42,6 +44,7 @@ async function start(): Promise<void> {
   const shutdown = async (signal: string): Promise<void> => {
     logger.info({ signal }, "Shutting down");
     cronRunnerService.stopScheduler();
+    stopAutoDeployPoll();
     stopSelfUpdatePoll();
     stopInProcessWorker();
     systemMetrics.stop();
@@ -109,6 +112,7 @@ async function start(): Promise<void> {
       monitor.start();
       engineHealthMonitor.start();
       cronRunnerService.startScheduler();
+      startAutoDeployPoll();
     } else {
       logger.warn("DATABASE_URL not set — container monitor disabled until database is configured");
     }
