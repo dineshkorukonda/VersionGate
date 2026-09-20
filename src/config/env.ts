@@ -118,6 +118,11 @@ export const config = {
    */
   githubRelayTimeoutMs: Math.max(1000, parseInt(optionalEnv("GITHUB_RELAY_TIMEOUT_MS", "15000"), 10) || 15000),
   /**
+   * Interval in milliseconds to poll managed projects for new Git commits (0 disables background polling).
+   * Default: 60000 (60 seconds).
+   */
+  autoDeployPollMs: Math.max(0, parseInt(optionalEnv("AUTO_DEPLOY_POLL_MS", "60000"), 10) || 60000),
+  /**
    * Ports and port ranges to avoid when assigning deployment slots (e.g. "80,443,3000,5173,5432,6379,9090").
    */
   excludedPorts: optionalEnv("EXCLUDED_PORTS", "80,443,3000,5173,5432,6379,9090").trim(),
@@ -153,4 +158,11 @@ export function inProcessWorkerLive(): boolean {
 export function excludedPortsLive(): string {
   return (process.env.EXCLUDED_PORTS ?? config.excludedPorts).trim();
 }
+
+export function autoDeployPollMsLive(): number {
+  const raw = process.env.AUTO_DEPLOY_POLL_MS;
+  const n = raw !== undefined ? parseInt(raw, 10) : config.autoDeployPollMs;
+  return Number.isFinite(n) && n >= 0 ? n : config.autoDeployPollMs;
+}
+
 
