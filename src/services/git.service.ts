@@ -359,7 +359,46 @@ export class GitService {
     }
   }
 
-  async getLatestCommit(project: Pick<ProjectSelect, "id"> & { localPath?: string | null }): Promise<{
+  static parseLsRemoteSha(stdout: string): string | null {
+    const trimmed = stdout.trim();
+    if (!trimmed) return null;
+    const lines = trimmed.split("\n");
+    for (const line of lines) {
+      const match = /^([0-9a-fA-F]{40})\s+/.exec(line.trim());
+      if (match) return match[1];
+    }
+    return null;
+  }
+
+  async getRemoteLatestCommit(
+    project: Pick<ProjectSelect, "id"> & { repoUrl?: string | null; branch?: string | null }
+  ): Promise<string | null> {
+    const rawRepoUrl = project.repoUrl?.trim();
+    if (!rawRepoUrl || rawRepoUrl.includes("github.com/local/")) {
+      return null;
+    }
+
+    try {
+      const token = await this.resolveAuthToken(project as any);
+      const authUrl = this.buildAuthUrl(rawRepoUrl, token);
+      const branch = (project.branch || "main").trim();
+
+      const { stdout } = await execFileAsync("git", [
+        "ls-remote",
+        authUrl,
+        `refs/heads/${branch}`,
+      ]);
+
+      return GitService.parseLsRemoteSha(stdout);
+    } catch (err) {
+      logger.debug({ projectId: project.id, err }, "GitService: failed to query remote commit via ls-remote");
+      return null;
+    }
+  }
+
+  async getLatestCommit(
+    project: Pick<ProjectSelect, "id"> & { localPath?: string | null; repoUrl?: string | null; branch?: string | null }
+  ): Promise<{
     sha: string;
     message: string;
     author: string;
@@ -372,6 +411,51 @@ export class GitService {
         repoDir = gitRoot;
       }
     }
+
+    const isLocalGit = await this.isGitRepo(repoDir);
+    const branch = (project.branch || "main").trim();
+    const rawRepoUrl = project.repoUrl?.trim();
+
+    // 1. If remote repo exists, check remote SHA via ls-remote
+    if (rawRepoUrl && !rawRepoUrl.includes("github.com/local/")) {
+      try {
+        const remoteSha = await this.getRemoteLatestCommit(project);
+        if (remoteSha) {
+          if (isLocalGit) {
+            try {
+              const token = await this.resolveAuthToken(project as any);
+              const authUrl = this.buildAuthUrl(rawRepoUrl, token);
+              await execFileAsync("git", ["-C", repoDir, "remote", "set-url", "origin", authUrl]).catch(() =>
+                execFileAsync("git", ["-C", repoDir, "remote", "add", "origin", authUrl])
+              );
+              await execFileAsync("git", ["-C", repoDir, "fetch", "origin", branch]);
+              const { stdout } = await execFileAsync("git", [
+                "-C", repoDir,
+                "log", "-1",
+                "--format=%H%x00%s%x00%an%x00%aI",
+                remoteSha,
+              ]);
+              const [sha, message, author, date] = stdout.trim().split("\0");
+              if (sha) {
+                return { sha, message: message || "", author: author || "", date: date || "" };
+              }
+            } catch {
+              // Local fetch failed or non-blocking; return remote SHA
+            }
+          }
+          return {
+            sha: remoteSha,
+            message: "Remote commit (synced via git ls-remote)",
+            author: "GitHub",
+            date: new Date().toISOString(),
+          };
+        }
+      } catch {
+        // Fallback to local git inspection below
+      }
+    }
+
+    // 2. Fall back to local git log
     try {
       const { stdout } = await execFileAsync("git", [
         "-C", repoDir,
