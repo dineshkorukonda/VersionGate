@@ -14,6 +14,7 @@ import { normalizeGithubRepoUrl } from "../utils/github/github-repo-url";
 import { reloadNginxBestEffort } from "../utils/nginx-reload";
 import { detectHealthPathFromDir } from "../utils/health-detector";
 import { TrafficService } from "./traffic.service";
+import { GitService } from "./git.service";
 import { ProjectSelect, DeploymentSelect } from "../db/schema";
 
 export interface DiscoveredDeployment {
@@ -423,6 +424,19 @@ export class ServiceDiscoveryService {
     return results;
   }
 
+  async extractGitRemote(dir: string): Promise<string | null> {
+    try {
+      const gitService = new GitService();
+      const gitRoot = await gitService.findGitDirectory(dir);
+      if (!gitRoot) return null;
+      const { stdout } = await execFileAsync("git", ["-C", gitRoot, "config", "--get", "remote.origin.url"]);
+      const raw = stdout.trim();
+      if (!raw) return null;
+      return normalizeGithubRepoUrl(raw) || raw;
+    } catch {
+      return null;
+    }
+  }
 
   /**
    * Adopts an unmanaged service into VersionGate, registering Project, Environments,
@@ -443,13 +457,17 @@ export class ServiceDiscoveryService {
     }
 
     const basePort = await this.projectRepo.getNextBasePort();
-    const rawRepoUrl = input.repoUrl?.trim();
+    const localPath = input.localPath || path.join(config.projectsRootPath, cleanName);
+
+    let rawRepoUrl = input.repoUrl?.trim();
+    if (!rawRepoUrl && localPath) {
+      rawRepoUrl = (await this.extractGitRemote(localPath)) || undefined;
+    }
     const repoUrl = rawRepoUrl
       ? normalizeGithubRepoUrl(rawRepoUrl) || rawRepoUrl
       : `https://github.com/local/${cleanName}`;
-    const localPath = input.localPath || path.join(config.projectsRootPath, cleanName);
 
-    logger.info({ name: cleanName, serviceType: input.serviceType, port: input.port }, "Adopting service into VersionGate");
+    logger.info({ name: cleanName, serviceType: input.serviceType, port: input.port, repoUrl }, "Adopting service into VersionGate");
 
     const buildContext = (input.buildContext ?? ".").trim() || ".";
 
@@ -486,6 +504,20 @@ export class ServiceDiscoveryService {
     const containerName = input.containerName || input.pm2Name || `vg-adopted-${cleanName}`;
     const imageTag = input.imageTag || `adopted/${cleanName}:latest`;
 
+    let initialCommit: { sha: string; message: string; author: string } | null = null;
+    try {
+      const gitService = new GitService();
+      const latest = await gitService.getLatestCommit({
+        id: project.id,
+        localPath: project.localPath,
+        repoUrl: project.repoUrl,
+        branch: project.branch,
+      });
+      if (latest) initialCommit = latest;
+    } catch {
+      // non-blocking
+    }
+
     const deployment = await this.deploymentRepo.create({
       version: 1,
       imageTag,
@@ -494,6 +526,10 @@ export class ServiceDiscoveryService {
       color: "BLUE",
       status: "ACTIVE",
       environment: { connect: { id: prodEnv.id } },
+      commitSha: initialCommit?.sha ?? null,
+      commitMessage: initialCommit?.message ?? null,
+      commitAuthor: initialCommit?.author ?? null,
+      commitBranch: input.branch || "main",
     });
 
     // 4. Update Nginx upstream for path-based routing
