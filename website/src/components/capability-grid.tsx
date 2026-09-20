@@ -14,6 +14,17 @@ export interface Capability {
 
 const CAPABILITIES: Capability[] = [
   {
+    id: "cap-autonomous-autodeploy-sync-engine",
+    category: "Deployment",
+    title: "Autonomous Commit Polling & Remote Git ls-remote Engine",
+    command: "AUTO_DEPLOY_POLL_MS=60000  |  git ls-remote  |  POST /webhooks/:secret",
+    description:
+      "Autonomous background application polling daemon, remote Git ls-remote commit detection, dual-format urlencoded/json webhook ingress, and automatic Git remote adoption.",
+    details:
+      "Continuous background poller engine automatically queries remote repository HEAD commits via authenticated git ls-remote, eliminating stale local git log checks. Ingests GitHub default application/x-www-form-urlencoded webhook payloads, provides root /webhooks/:secret routing aliases, and automatically extracts Git origin remotes and baseline commits for adopted services.",
+    badge: "NEW",
+  },
+  {
     id: "cap-autodeploy-relay-git-auth",
     category: "Deployment",
     title: "Relay Webhook Stream & Authenticated Git Token Deployment",
