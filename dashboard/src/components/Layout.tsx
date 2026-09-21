@@ -16,6 +16,7 @@ export function Layout() {
   const navigate = useNavigate();
 
   const [setupGate, setSetupGate] = useState<"loading" | "ready">("loading");
+  const [authGate, setAuthGate] = useState<"loading" | "ready" | "error">("loading");
   const [needsRestartBanner, setNeedsRestartBanner] = useState(false);
   const [createProjectOpen, setCreateProjectOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -60,10 +61,14 @@ export function Layout() {
   useEffect(() => {
     if (setupGate !== "ready") return;
     let cancelled = false;
+    setAuthGate("loading");
     void getAuthStatus()
       .then((s) => {
         if (cancelled) return;
-        if (!s.databaseReady) return;
+        if (!s.databaseReady) {
+          setAuthGate("ready");
+          return;
+        }
         if (!s.hasUsers) {
           navigate("/login", { replace: true, state: { register: true } });
           return;
@@ -73,9 +78,10 @@ export function Layout() {
           return;
         }
         if (s.user?.email) setHeaderUserEmail(s.user.email);
+        setAuthGate("ready");
       })
       .catch(() => {
-        /* avoid redirect loop on transient API error */
+        if (!cancelled) setAuthGate("error");
       });
     return () => {
       cancelled = true;
@@ -123,8 +129,8 @@ export function Layout() {
           />
 
           <SidebarInset className="flex min-h-svh flex-col bg-black overflow-x-hidden min-w-0">
-            <header className="sticky top-0 z-30 flex h-12 shrink-0 items-center gap-3 border-b border-neutral-800 bg-black/95 px-4 backdrop-blur-md">
-              <SidebarTrigger />
+            <header className="sticky top-0 z-30 flex h-12 shrink-0 items-center gap-2 border-b border-neutral-800 bg-black/95 px-3 backdrop-blur-md sm:gap-3 sm:px-4">
+              <SidebarTrigger className="shrink-0 focus-visible:ring-2 focus-visible:ring-neutral-600" />
               <SidebarBreadcrumbs projects={projects} />
             </header>
 
@@ -144,9 +150,34 @@ export function Layout() {
               </div>
             ) : null}
             <div className="flex flex-1 flex-col bg-black px-4 py-6 md:px-8 md:py-8 min-w-0 overflow-x-hidden">
-              {setupGate === "loading" ? (
-                <div className="flex flex-1 items-center justify-center">
+              {setupGate === "loading" || authGate === "loading" ? (
+                <div className="flex flex-1 items-center justify-center" role="status" aria-live="polite">
                   <span className="text-sm text-neutral-400 font-sans">Loading workspace...</span>
+                </div>
+              ) : authGate === "error" ? (
+                <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center" role="alert">
+                  <p className="text-sm text-neutral-300 font-sans">
+                    Unable to verify your session. The API may be temporarily unavailable.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAuthGate("loading");
+                      void getAuthStatus()
+                        .then((s) => {
+                          if (!s.authenticated) {
+                            navigate("/login", { replace: true });
+                            return;
+                          }
+                          if (s.user?.email) setHeaderUserEmail(s.user.email);
+                          setAuthGate("ready");
+                        })
+                        .catch(() => setAuthGate("error"));
+                    }}
+                    className="rounded-md border border-neutral-700 bg-neutral-900 px-4 py-2 text-xs font-medium text-white transition-colors hover:bg-neutral-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-600"
+                  >
+                    Retry
+                  </button>
                 </div>
               ) : (
                 <Outlet />

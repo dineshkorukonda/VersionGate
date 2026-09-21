@@ -15,6 +15,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ConfirmDialog } from "@/components/modals/ConfirmDialog";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -48,6 +49,7 @@ export function CronJobsManager({ projectId, projects = [] }: Props) {
   const [command, setCommand] = useState("");
   const [timeoutSeconds, setTimeoutSeconds] = useState(60);
   const [selectedProjectId, setSelectedProjectId] = useState<string>(projectId || "");
+  const [deleteTarget, setDeleteTarget] = useState<CronJob | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   // Logs Drawer State
@@ -129,7 +131,6 @@ export function CronJobsManager({ projectId, projects = [] }: Props) {
   };
 
   const handleDelete = async (job: CronJob) => {
-    if (!confirm(`Delete cron schedule "${job.name}"?`)) return;
     try {
       await deleteCronJob(job.id);
       setJobs((prev) => prev.filter((j) => j.id !== job.id));
@@ -352,7 +353,7 @@ export function CronJobsManager({ projectId, projects = [] }: Props) {
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => handleDelete(job)}
+                          onClick={() => setDeleteTarget(job)}
                           className="h-7 text-xs border-red-900/40 text-red-400 hover:bg-red-950/20"
                         >
                           Delete
@@ -627,6 +628,19 @@ export function CronJobsManager({ projectId, projects = [] }: Props) {
           </div>
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        open={Boolean(deleteTarget)}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTarget(null);
+        }}
+        title={`Delete cron schedule "${deleteTarget?.name}"?`}
+        description="This will permanently remove the scheduled job. Any in-flight executions will finish but no new runs will be queued."
+        confirmLabel="Delete Schedule"
+        onConfirm={() => {
+          if (deleteTarget) void handleDelete(deleteTarget);
+        }}
+      />
     </div>
   );
 }
