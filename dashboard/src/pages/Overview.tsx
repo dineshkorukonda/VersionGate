@@ -586,8 +586,8 @@ export function Overview() {
         </div>
       ) : (
         /* Authentic Vercel Dense Table List View */
-        <div className="overflow-hidden rounded-xl border border-neutral-800 bg-[#0a0a0a]">
-          <table className="w-full text-left text-xs">
+        <div className="overflow-x-auto rounded-xl border border-neutral-800 bg-[#0a0a0a]">
+          <table className="w-full min-w-[720px] text-left text-xs">
             <thead className="border-b border-neutral-800 bg-neutral-950/80 text-[11px] font-medium text-neutral-400 uppercase tracking-wider">
               <tr>
                 <th className="p-3.5 pl-5">Project</th>

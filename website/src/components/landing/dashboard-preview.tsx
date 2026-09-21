@@ -4,6 +4,7 @@ const DEPLOYMENTS = [
     project: "versiongate-api",
     author: "dineshkorukonda",
     status: "Ready",
+    statusBadge: "[ READY ]",
     statusColor: "bg-emerald-500",
     env: "Production",
     envStyle: "border-sky-500/40 bg-sky-500/10 text-sky-300",
@@ -17,6 +18,7 @@ const DEPLOYMENTS = [
     project: "analytics-worker",
     author: "dineshkorukonda",
     status: "Ready",
+    statusBadge: "[ READY ]",
     statusColor: "bg-emerald-500",
     env: "Production",
     envStyle: "border-sky-500/40 bg-sky-500/10 text-sky-300",
@@ -30,7 +32,8 @@ const DEPLOYMENTS = [
     project: "web-portal",
     author: "dineshkorukonda",
     status: "Building",
-    statusColor: "bg-amber-400 animate-pulse",
+    statusBadge: "[ BUILDING ]",
+    statusColor: "bg-amber-400 motion-reduce:animate-none animate-pulse",
     env: "Preview",
     envStyle: "border-neutral-700 bg-neutral-900 text-neutral-400",
     hash: "b3f88ac",
@@ -43,8 +46,8 @@ const DEPLOYMENTS = [
 export function DashboardPreview() {
   return (
     <div className="relative">
-      <div className="pointer-events-none absolute -inset-4 rounded-2xl bg-gradient-to-b from-primary/20 via-transparent to-transparent opacity-60 blur-2xl" />
-      <div className="relative overflow-hidden rounded-xl border border-neutral-800 bg-[#0a0a0a] shadow-2xl shadow-black/50">
+      <div className="pointer-events-none absolute -inset-4 rounded-2xl bg-gradient-to-b from-primary/20 via-transparent to-transparent opacity-60 blur-2xl motion-reduce:opacity-30" />
+      <div className="relative overflow-hidden rounded-xl border border-neutral-800 bg-card shadow-2xl shadow-black/50">
         <div className="flex items-center justify-between border-b border-neutral-800 px-4 py-3">
           <div className="flex items-center gap-2">
             <span className="h-2.5 w-2.5 rounded-full bg-neutral-700" />
@@ -77,7 +80,9 @@ export function DashboardPreview() {
               <div className="flex flex-wrap items-center gap-3 text-xs text-neutral-400">
                 <span className="inline-flex items-center gap-1.5">
                   <span className={`size-2 rounded-full ${row.statusColor}`} />
-                  <span className="text-neutral-300">{row.status}</span>
+                  <span className="rounded border border-neutral-700 px-1.5 py-0.5 font-mono text-[10px] text-neutral-300">
+                    {row.statusBadge}
+                  </span>
                   <span className="text-neutral-600">{row.duration}</span>
                 </span>
                 <span className={`rounded-full border px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide ${row.envStyle}`}>

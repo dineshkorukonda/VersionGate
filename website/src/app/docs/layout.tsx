@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import packageJson from "../../../package.json";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { DocsMobileNav } from "@/components/docs-mobile-nav";
@@ -19,7 +20,7 @@ export default function DocsLayout({ children }: { children: React.ReactNode }) 
           <div className="sticky top-24 pr-6">
             <div className="mb-4">
               <div className="font-mono text-xs uppercase tracking-wider">Documentation</div>
-              <div className="font-mono text-[10px] text-muted-foreground">v1.0-stable</div>
+              <div className="font-mono text-[10px] text-muted-foreground">v{packageJson.version}</div>
             </div>
             <DocsNav />
           </div>

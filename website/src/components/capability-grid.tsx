@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export interface Capability {
   id: string;
@@ -539,6 +539,15 @@ export function CapabilityGrid() {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
+  useEffect(() => {
+    if (!activeModalCap) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setActiveModalCap(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [activeModalCap]);
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center gap-2 border-b border-white/10 pb-4">
@@ -549,7 +558,7 @@ export function CapabilityGrid() {
             onClick={() => setSelectedCategory(cat)}
             className={`px-3 py-1 font-mono text-xs uppercase tracking-[0.12em] transition ${
               selectedCategory === cat
-                ? "bg-[#3effa8] font-semibold text-black"
+                ? "bg-primary font-semibold text-primary-foreground"
                 : "border border-white/15 text-white/55 hover:border-white/30 hover:text-white"
             }`}
           >
@@ -562,19 +571,19 @@ export function CapabilityGrid() {
         {filtered.map((cap) => (
           <div
             key={cap.id}
-            className="group relative flex flex-col justify-between border border-white/10 bg-black p-6 transition-all duration-200 hover:border-[#3effa8]/45"
+            className="group relative flex flex-col justify-between border border-white/10 bg-black p-6 transition-all duration-200 hover:border-primary/45"
           >
             <div className="space-y-3">
               <div className="flex items-center justify-between gap-2">
                 <span className="border border-white/15 px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.12em] text-white/45">
                   {cap.category}
                 </span>
-                <span className="border border-[#3effa8]/35 bg-[#3effa8]/10 px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-[#3effa8]">
+                <span className="border border-primary/35 bg-primary/10 px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-primary">
                   {cap.badge}
                 </span>
               </div>
 
-              <h3 className="font-display text-sm font-semibold uppercase tracking-[-0.02em] text-white">
+              <h3 className="font-sans text-sm font-semibold uppercase tracking-[-0.02em] text-white">
                 {cap.title}
               </h3>
 
@@ -594,7 +603,7 @@ export function CapabilityGrid() {
               </button>
               <button
                 onClick={() => setActiveModalCap(cap)}
-                className="font-semibold text-[#3effa8] hover:underline"
+                className="font-semibold text-primary hover:underline"
               >
                 [ Details ]
               </button>
@@ -604,11 +613,21 @@ export function CapabilityGrid() {
       </div>
 
       {activeModalCap && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-md">
-          <div className="w-full max-w-lg space-y-4 border border-white/15 bg-black p-6">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-md"
+          role="presentation"
+          onClick={() => setActiveModalCap(null)}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="capability-modal-title"
+            className="w-full max-w-lg space-y-4 border border-white/15 bg-black p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between border-b border-white/10 pb-3">
               <div className="flex items-center gap-2">
-                <span className="font-display text-sm font-semibold uppercase tracking-[-0.02em] text-white">
+                <span id="capability-modal-title" className="font-sans text-sm font-semibold uppercase tracking-[-0.02em] text-white">
                   {activeModalCap.title}
                 </span>
                 <span className="border border-white/15 px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.12em] text-white/45">
@@ -640,7 +659,7 @@ export function CapabilityGrid() {
                   handleCopy(activeModalCap.id, activeModalCap.command);
                   setActiveModalCap(null);
                 }}
-                className="bg-[#3effa8] px-4 py-2 text-xs font-semibold text-black transition hover:brightness-110"
+                className="bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground transition hover:brightness-110"
               >
                 Copy
               </button>

@@ -23,7 +23,7 @@ export function VercelCardBox({
   return (
     <div
       className={cn(
-        "overflow-hidden rounded-xl border bg-[#0a0a0a] transition-colors",
+        "overflow-hidden rounded-xl border bg-card transition-colors",
         danger
           ? "border-red-900/40 hover:border-red-800/60"
           : "border-neutral-800 hover:border-neutral-700/80",

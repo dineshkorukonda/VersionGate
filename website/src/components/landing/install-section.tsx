@@ -11,6 +11,7 @@ export function InstallSection() {
   const [copied, setCopied] = useState(false);
 
   const cmd = tab === "script" ? SCRIPT_CMD : DOCKER_CMD;
+  const panelId = tab === "script" ? "install-script-panel" : "install-docker-panel";
 
   const copy = () => {
     navigator.clipboard.writeText(cmd);
@@ -32,11 +33,15 @@ export function InstallSection() {
         </div>
 
         <div className="mt-10 rounded-xl border border-neutral-800 bg-neutral-950 p-6">
-          <div className="flex gap-2 text-sm">
+          <div role="tablist" aria-label="Install method" className="flex gap-2 text-sm">
             <button
               type="button"
+              role="tab"
+              id="install-script-tab"
+              aria-selected={tab === "script"}
+              aria-controls={panelId}
               onClick={() => setTab("script")}
-              className={`rounded-md px-3 py-1.5 transition ${
+              className={`rounded-md px-3 py-1.5 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
                 tab === "script"
                   ? "bg-primary font-medium text-white"
                   : "text-neutral-400 hover:text-white"
@@ -46,8 +51,12 @@ export function InstallSection() {
             </button>
             <button
               type="button"
+              role="tab"
+              id="install-docker-tab"
+              aria-selected={tab === "docker"}
+              aria-controls={panelId}
               onClick={() => setTab("docker")}
-              className={`rounded-md px-3 py-1.5 transition ${
+              className={`rounded-md px-3 py-1.5 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
                 tab === "docker"
                   ? "bg-primary font-medium text-white"
                   : "text-neutral-400 hover:text-white"
@@ -57,15 +66,23 @@ export function InstallSection() {
             </button>
           </div>
 
-          <div className="mt-4 flex items-center justify-between gap-3 rounded-lg border border-neutral-800 bg-[#0a0a0a] p-4">
+          <div
+            id={panelId}
+            role="tabpanel"
+            aria-labelledby={tab === "script" ? "install-script-tab" : "install-docker-tab"}
+            className="mt-4 flex items-center justify-between gap-3 rounded-lg border border-neutral-800 bg-card p-4"
+          >
             <code className="overflow-x-auto font-mono text-xs text-neutral-300">{cmd}</code>
             <button
               type="button"
               onClick={copy}
-              className="shrink-0 rounded-md border border-neutral-700 px-3 py-1.5 text-xs font-medium text-neutral-300 transition hover:text-white"
+              className="shrink-0 rounded-md border border-neutral-700 px-3 py-1.5 text-xs font-medium text-neutral-300 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               {copied ? "Copied" : "Copy"}
             </button>
+            <span aria-live="polite" className="sr-only">
+              {copied ? "Install command copied to clipboard" : ""}
+            </span>
           </div>
         </div>
       </div>

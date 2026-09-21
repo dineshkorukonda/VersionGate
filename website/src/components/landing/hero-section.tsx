@@ -62,6 +62,9 @@ export function HeroSection() {
                 >
                   {copied ? "Copied" : "Copy"}
                 </button>
+                <span aria-live="polite" className="sr-only">
+                  {copied ? "Install command copied to clipboard" : ""}
+                </span>
               </div>
             </div>
 

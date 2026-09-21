@@ -22,8 +22,13 @@
     @apply bg-background text-foreground;
   }
   option {
-    background-color: #0a0a0a;
-    color: #ffffff;
+    background-color: var(--surface);
+    color: var(--foreground);
+  }
+
+  :where(a, button, input, select, textarea, [role="button"], [tabindex="0"]):focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
   }
 }
 

@@ -1,6 +1,6 @@
+import { ChangelogTimeline, type ChangelogRelease } from "@/components/changelog-timeline";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
-import Link from "next/link";
 
 export const revalidate = 3600; // Revalidate dynamic releases every 1 hour (ISR)
 
@@ -33,16 +33,7 @@ interface ReleaseCategory {
   items: ReleaseItem[];
 }
 
-interface ProcessedRelease {
-  version: string;
-  date: string;
-  isLatest?: boolean;
-  summary: string;
-  categories: ReleaseCategory[];
-  url?: string;
-}
-
-const FALLBACK_RELEASES: ProcessedRelease[] = [
+const FALLBACK_RELEASES: ChangelogRelease[] = [
   {
     version: "v3.6.0",
     date: "September 21, 2026",
@@ -1539,7 +1530,7 @@ function parseReleaseBody(body: string): ReleaseCategory[] {
   return categories;
 }
 
-async function fetchGitHubReleases(): Promise<ProcessedRelease[]> {
+async function fetchGitHubReleases(): Promise<ChangelogRelease[]> {
   try {
     const res = await fetch("https://api.github.com/repos/dineshkorukonda/VersionGate/releases", {
       headers: {
@@ -1613,99 +1604,7 @@ export default async function ChangelogPage() {
           </p>
         </div>
 
-        {/* Timeline Entries */}
-        <div className="mt-10 space-y-16">
-          {releases.map((rel) => (
-            <section key={rel.version} className="relative grid gap-8 md:grid-cols-12">
-              {/* Left Column: Version & Date */}
-              <div className="md:col-span-3 space-y-2">
-                <div className="sticky top-20 flex items-center gap-2">
-                  <span className="font-mono text-lg font-bold text-foreground">
-                    {rel.version}
-                  </span>
-                  {rel.isLatest ? (
-                    <span className="rounded bg-primary px-2 py-0.5 font-mono text-[10px] font-semibold text-primary-foreground">
-                      LATEST
-                    </span>
-                  ) : null}
-                </div>
-                <p className="font-mono text-xs text-muted-foreground">
-                  {rel.date}
-                </p>
-                {rel.url ? (
-                  <div className="pt-2">
-                    <Link
-                      href={rel.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="font-mono text-xs text-muted-foreground hover:text-foreground underline underline-offset-2"
-                    >
-                      View GitHub Release
-                    </Link>
-                  </div>
-                ) : null}
-              </div>
-
-              {/* Right Column: Release Content */}
-              <div className="md:col-span-9 space-y-8 rounded-lg border border-border bg-card p-6 sm:p-8">
-                <p className="font-sans text-sm font-medium text-foreground leading-relaxed border-b border-border pb-4">
-                  {rel.summary}
-                </p>
-
-                {rel.categories.map((cat, idx) => (
-                  <div key={idx} className="space-y-4">
-                    <div className="flex items-center gap-2">
-                      <span className="rounded bg-muted text-foreground border border-border px-2 py-0.5 font-mono text-[10px] font-semibold">
-                        [ {cat.badge} ]
-                      </span>
-                      <h2 className="font-sans text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                        {cat.title}
-                      </h2>
-                    </div>
-
-                    <div className="grid gap-4">
-                      {cat.items.map((item, itemIdx) => (
-                        <div
-                          key={itemIdx}
-                          className="rounded-md border border-border bg-muted/40 p-4 space-y-2 transition hover:border-foreground/30"
-                        >
-                          <div className="flex flex-wrap items-center justify-between gap-2">
-                            <h3 className="font-sans text-sm font-semibold text-foreground">
-                              {item.title}
-                            </h3>
-                            {item.prNumber ? (
-                              <Link
-                                href={
-                                  item.prLink ??
-                                  `https://github.com/dineshkorukonda/VersionGate/pull/${item.prNumber}`
-                                }
-                                target="_blank"
-                                rel="noreferrer"
-                                className="font-mono text-xs text-muted-foreground hover:text-foreground underline-offset-2 hover:underline"
-                              >
-                                PR #{item.prNumber}
-                              </Link>
-                            ) : null}
-                          </div>
-
-                          <p className="font-sans text-xs text-muted-foreground leading-relaxed">
-                            {item.description}
-                          </p>
-
-                          {item.command ? (
-                            <div className="mt-2 rounded bg-background border border-border px-3 py-1.5 font-mono text-[11px] text-foreground overflow-x-auto">
-                              <code>{item.command}</code>
-                            </div>
-                          ) : null}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-          ))}
-        </div>
+        <ChangelogTimeline releases={releases} />
       </main>
 
       <SiteFooter />

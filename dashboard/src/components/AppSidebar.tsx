@@ -87,8 +87,8 @@ export function AppSidebar({ projects, userEmail, onOpenSearch, onNewProject }: 
     return () => window.removeEventListener("keydown", onKey);
   }, [onOpenSearch]);
 
-  const username = userEmail ? userEmail.split("@")[0] : "korukonda";
-  const avatarLetter = userEmail?.trim()?.[0]?.toUpperCase() ?? "K";
+  const username = userEmail ? userEmail.split("@")[0] : "Account";
+  const avatarLetter = userEmail?.trim()?.[0]?.toUpperCase() ?? "A";
 
   const signOut = () => {
     void authLogout()
@@ -179,7 +179,7 @@ export function AppSidebar({ projects, userEmail, onOpenSearch, onNewProject }: 
   ];
 
   return (
-    <Sidebar collapsible="icon" className="border-r border-neutral-800 bg-[#0a0a0a]">
+    <Sidebar collapsible="icon" className="border-r border-neutral-800 bg-surface">
       {/* SIDEBAR HEADER */}
       <SidebarHeader className="gap-3 border-b border-neutral-800 px-3 py-3">
         {/* Context Switcher dropdown */}
@@ -342,6 +342,13 @@ export function AppSidebar({ projects, userEmail, onOpenSearch, onNewProject }: 
                       </SidebarMenuItem>
                     );
                   })}
+                  {projects.length > 10 ? (
+                    <SidebarMenuItem>
+                      <Link to="/projects" className={navLinkClass(pathname === "/projects")}>
+                        View all projects ({projects.length})
+                      </Link>
+                    </SidebarMenuItem>
+                  ) : null}
                 </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>

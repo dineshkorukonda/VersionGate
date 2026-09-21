@@ -8,7 +8,6 @@ import { getAuthStatus, getInstanceSettings, getProjects, getSetupStatus, type P
 import { setConfiguredPublicHost } from "@/lib/deployment-display";
 import { SidebarBreadcrumbs } from "@/components/SidebarBreadcrumbs";
 import { GlobalSearchDialog } from "@/components/modals/GlobalSearchDialog";
-import { CreateProjectModal } from "@/components/modals/CreateProjectModal";
 import { CreateProjectLaunchContext } from "@/create-project-launch";
 import { UpdateAvailableBanner } from "@/components/UpdateAvailableBanner";
 import { AppSidebar } from "@/components/AppSidebar";
@@ -19,7 +18,6 @@ export function Layout() {
   const [setupGate, setSetupGate] = useState<"loading" | "ready">("loading");
   const [authGate, setAuthGate] = useState<"loading" | "ready" | "error">("loading");
   const [needsRestartBanner, setNeedsRestartBanner] = useState(false);
-  const [createProjectOpen, setCreateProjectOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
   const [headerUserEmail, setHeaderUserEmail] = useState<string | null>(null);
@@ -187,17 +185,6 @@ export function Layout() {
               )}
             </div>
 
-            <CreateProjectModal
-              open={createProjectOpen}
-              onOpenChange={setCreateProjectOpen}
-              onCreated={() => {
-                void getProjects()
-                  .then((r) => setProjects(r.projects))
-                  .catch(() => {
-                    /* sidebar project list is non-critical */
-                  });
-              }}
-            />
             <GlobalSearchDialog
               open={searchOpen}
               onOpenChange={setSearchOpen}
