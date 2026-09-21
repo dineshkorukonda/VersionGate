@@ -84,7 +84,7 @@ describe("Database Provisioning & Connection URI Generator", () => {
     const mockDbRepo = {
       findById: async (id: string) => {
         if (id === "db-123") {
-          return { id: "db-123", name: "test-db", linkedProjectId: "proj-abc" } as any;
+          return { id: "db-123", name: "test-db", linkedProjectId: "proj-abc", engine: "postgres" } as any;
         }
         return null;
       },
@@ -95,12 +95,73 @@ describe("Database Provisioning & Connection URI Generator", () => {
       },
     } as any;
 
-    const testService = new DatabaseProvisioningService({} as any, mockDbRepo);
+    const mockProjectRepo = {
+      findById: async () => null,
+      update: async () => {},
+    } as any;
+
+    const testService = new DatabaseProvisioningService(mockProjectRepo, mockDbRepo);
     const result = await testService.unlinkFromProject("db-123");
 
     expect(result.success).toBe(true);
     expect(updatedId).toBe("db-123");
     expect(updatePayload).toEqual({ linkedProjectId: null });
+  });
+
+  test("unlinkFromProject removes linked DATABASE_URL from project env", async () => {
+    let projectEnvUpdate: Record<string, string> | null = null;
+
+    const mockDbRepo = {
+      findById: async () =>
+        ({
+          id: "db-456",
+          name: "linked-db",
+          linkedProjectId: "proj-xyz",
+          engine: "postgres",
+        }) as any,
+      update: async (_id: string, data: any) => ({ id: "db-456", ...data }) as any,
+    } as any;
+
+    const mockProjectRepo = {
+      findById: async () =>
+        ({
+          id: "proj-xyz",
+          env: {
+            DATABASE_URL: "postgresql://postgres:secret@127.0.0.1:5433/app",
+            NODE_ENV: "production",
+          },
+        }) as any,
+      update: async (_id: string, data: { env: Record<string, string> }) => {
+        projectEnvUpdate = data.env;
+        return {} as any;
+      },
+    } as any;
+
+    const testService = new DatabaseProvisioningService(mockProjectRepo, mockDbRepo);
+    const result = await testService.unlinkFromProject("db-456");
+
+    expect(result.success).toBe(true);
+    expect(projectEnvUpdate).toEqual({ NODE_ENV: "production" });
+    expect(projectEnvUpdate).not.toHaveProperty("DATABASE_URL");
+  });
+
+  test("getDatabaseSchema throws when container is not running", async () => {
+    const mockDbRepo = {
+      findById: async () =>
+        ({
+          id: "db-offline",
+          containerName: "vg-db-offline",
+          engine: "postgres",
+          username: "postgres",
+          databaseName: "app",
+          passwordEncrypted: null,
+        }) as any,
+    } as any;
+
+    const testService = new DatabaseProvisioningService({} as any, mockDbRepo);
+    await expect(testService.getDatabaseSchema("db-offline")).rejects.toThrow(
+      "Database container vg-db-offline is not running"
+    );
   });
 
   test("unlinkFromProject throws if database not found", async () => {
