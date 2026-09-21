@@ -44,9 +44,52 @@ interface ProcessedRelease {
 
 const FALLBACK_RELEASES: ProcessedRelease[] = [
   {
-    version: "v3.4.0",
+    version: "v3.5.0",
     date: "September 21, 2026",
     isLatest: true,
+    summary:
+      "Dashboard Phase 5: ProjectDetail tab decomposition, TanStack Query hooks for project detail and deployments, and initial dashboard unit tests.",
+    categories: [
+      {
+        title: "Project Detail Tab Decomposition",
+        badge: "IMPROVEMENT",
+        items: [
+          {
+            title: "Extracted Overview, Deployments, Observability, and Settings Tabs",
+            description:
+              "Moved remaining ProjectDetail tab panels into dedicated components with colocated settings form state, reducing the page shell to under 350 lines.",
+          },
+        ],
+      },
+      {
+        title: "TanStack Query Expansion",
+        badge: "IMPROVEMENT",
+        items: [
+          {
+            title: "useProjectDetail and useAllDeployments Hooks",
+            description:
+              "Centralized project detail fetching with shared query keys, automatic 15-second refetch, and invalidation after mutations.",
+            command: "useProjectDetail(projectId)",
+          },
+        ],
+      },
+      {
+        title: "Dashboard Unit Tests",
+        badge: "NEW",
+        items: [
+          {
+            title: "Route Resolution and API Client Tests",
+            description:
+              "Added Bun unit tests for projectTabFromPath routing and ApiError parsing under tests/dashboard/.",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    version: "v3.4.0",
+    date: "September 21, 2026",
+    isLatest: false,
     summary:
       "Phased technical debt remediation: unified deploy pipeline service, resilient job recovery, modular dashboard API client, TanStack Query data layer, and landing page capability grid sync.",
     categories: [
