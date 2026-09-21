@@ -10,7 +10,9 @@ import {
   SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
+  SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import {
   DropdownMenu,
@@ -19,6 +21,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import {
   NavIconArrowLeft,
@@ -59,16 +66,25 @@ interface AppSidebarProps {
   onNewProject: () => void;
 }
 
+function navButtonClass(isActive: boolean) {
+  return cn(
+    "text-[13px] font-medium",
+    isActive
+      ? "bg-neutral-800 text-white font-semibold hover:bg-neutral-800 hover:text-white data-active:bg-neutral-800 data-active:text-white"
+      : "text-neutral-400 hover:bg-neutral-900/90 hover:text-neutral-200"
+  );
+}
+
 export function AppSidebar({ projects, userEmail, onOpenSearch, onNewProject }: AppSidebarProps) {
   const navigate = useNavigate();
   const { pathname, search } = useLocation();
+  const { state, isMobile } = useSidebar();
 
   const projectMatch = pathname.match(/^\/projects\/([^/]+)/);
   const currentProjectId = projectMatch && projectMatch[1] !== "new" ? projectMatch[1] : null;
 
   const isWorkspaceSettings = pathname.startsWith("/settings");
 
-  // Determine active workspace settings tab
   const currentWorkspaceTab = useMemo(() => {
     const sp = new URLSearchParams(search);
     return sp.get("tab") || "general";
@@ -96,15 +112,6 @@ export function AppSidebar({ projects, userEmail, onOpenSearch, onNewProject }: 
       .catch(() => navigate("/login", { replace: true }));
   };
 
-  const navLinkClass = (isActive: boolean) =>
-    cn(
-      "flex w-full items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[13px] font-medium transition-colors",
-      isActive
-        ? "bg-neutral-800 text-white font-semibold"
-        : "text-neutral-400 hover:bg-neutral-900/90 hover:text-neutral-200"
-    );
-
-  // Project navigation items
   const projectNav = useMemo(() => {
     if (!currentProjectId) return [];
     return [
@@ -167,7 +174,6 @@ export function AppSidebar({ projects, userEmail, onOpenSearch, onNewProject }: 
     ];
   }, [currentProjectId, pathname]);
 
-  // Workspace settings sub-navigation items
   const workspaceSettingsNav = [
     { id: "general", label: "General" },
     { id: "build", label: "Build and Deployment" },
@@ -180,20 +186,21 @@ export function AppSidebar({ projects, userEmail, onOpenSearch, onNewProject }: 
 
   return (
     <Sidebar collapsible="icon" className="border-r border-neutral-800 bg-surface">
-      {/* SIDEBAR HEADER */}
-      <SidebarHeader className="gap-3 border-b border-neutral-800 px-3 py-3">
-        {/* Context Switcher dropdown */}
+      <SidebarHeader className="gap-3 overflow-hidden border-b border-neutral-800 px-3 py-3 group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:gap-2 group-data-[collapsible=icon]:px-2">
         <DropdownMenu>
-          <DropdownMenuTrigger className="flex w-full items-center justify-between gap-2 rounded-md px-1 py-1 text-left transition-colors hover:bg-neutral-900 focus:outline-none">
-            <div className="flex items-center gap-2 min-w-0">
-              <span className="flex size-5 shrink-0 items-center justify-center rounded bg-neutral-800 text-[11px] font-semibold text-white">
+          <DropdownMenuTrigger
+            aria-label="Switch workspace or project"
+            className="flex w-full items-center justify-between gap-2 rounded-md px-1 py-1 text-left transition-colors hover:bg-neutral-900 focus:outline-none group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0"
+          >
+            <div className="flex min-w-0 items-center gap-2 group-data-[collapsible=icon]:gap-0">
+              <span className="flex size-5 shrink-0 items-center justify-center rounded bg-neutral-800 text-[11px] font-semibold text-white group-data-[collapsible=icon]:size-8">
                 {avatarLetter}
               </span>
-              <span className="truncate text-xs font-semibold text-white">
+              <span className="truncate text-xs font-semibold text-white group-data-[collapsible=icon]:hidden">
                 {username}
               </span>
             </div>
-            <NavIconChevronsUpDown className="size-3 text-neutral-500 shrink-0" />
+            <NavIconChevronsUpDown className="size-3 shrink-0 text-neutral-500 group-data-[collapsible=icon]:hidden" />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-56 border-neutral-800 bg-[#0a0a0a] text-white">
             <DropdownMenuItem
@@ -206,13 +213,13 @@ export function AppSidebar({ projects, userEmail, onOpenSearch, onNewProject }: 
             {projects.map((p) => (
               <DropdownMenuItem
                 key={p.id}
-                className="flex items-center justify-between cursor-pointer text-xs text-neutral-300 hover:bg-neutral-900"
+                className="flex cursor-pointer items-center justify-between text-xs text-neutral-300 hover:bg-neutral-900"
                 onClick={() => navigate(`/projects/${p.id}`)}
               >
                 <span className="truncate">{p.name}</span>
-                {currentProjectId === p.id && (
-                  <span className="size-1.5 rounded-full bg-blue-500 shrink-0" />
-                )}
+                {currentProjectId === p.id ? (
+                  <span className="size-1.5 shrink-0 rounded-full bg-blue-500" />
+                ) : null}
               </DropdownMenuItem>
             ))}
             <DropdownMenuSeparator className="bg-neutral-800" />
@@ -225,42 +232,52 @@ export function AppSidebar({ projects, userEmail, onOpenSearch, onNewProject }: 
           </DropdownMenuContent>
         </DropdownMenu>
 
-        {/* Search input with 'F' keyboard shortcut */}
-        <button
-          type="button"
-          onClick={onOpenSearch}
-          className="flex w-full items-center justify-between gap-2 rounded-md border border-neutral-800 bg-black px-2.5 py-1.5 text-xs text-neutral-500 transition-colors hover:border-neutral-700 hover:text-neutral-300"
-        >
-          <span className="flex items-center gap-2">
-            <NavIconSearch />
-            <span>Find</span>
-          </span>
-          <span className="flex items-center gap-1">
-            <kbd className="rounded border border-neutral-800 bg-neutral-900 px-1 font-mono text-[10px] text-neutral-500">
-              F
-            </kbd>
-            <kbd className="rounded border border-neutral-800 bg-neutral-900 px-1 font-mono text-[10px] text-neutral-500">
-              Ctrl+K
-            </kbd>
-          </span>
-        </button>
-      </SidebarHeader>
-
-      {/* SIDEBAR CONTENT */}
-      <SidebarContent className="gap-1 px-2 py-2">
-        {isWorkspaceSettings ? (
-          /* WORKSPACE SETTINGS MODE */
-          <SidebarGroup className="p-0">
-            {/* Back button to Workspace Overview */}
-            <div className="px-1 pb-2">
+        <Tooltip>
+          <TooltipTrigger
+            render={
               <button
                 type="button"
-                onClick={() => navigate("/")}
-                className="flex items-center gap-2 text-xs font-semibold text-neutral-400 hover:text-white transition-colors"
-              >
-                <NavIconArrowLeft className="size-3.5" />
-                <span>Settings</span>
-              </button>
+                onClick={onOpenSearch}
+                aria-label="Find in workspace"
+                className="flex w-full items-center justify-between gap-2 rounded-md border border-neutral-800 bg-black px-2.5 py-1.5 text-xs text-neutral-500 transition-colors hover:border-neutral-700 hover:text-neutral-300 group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
+              />
+            }
+          >
+            <span className="flex items-center gap-2 group-data-[collapsible=icon]:gap-0">
+              <NavIconSearch />
+              <span className="group-data-[collapsible=icon]:hidden">Find</span>
+            </span>
+            <span className="flex items-center gap-1 group-data-[collapsible=icon]:hidden">
+              <kbd className="rounded border border-neutral-800 bg-neutral-900 px-1 font-mono text-[10px] text-neutral-500">
+                F
+              </kbd>
+              <kbd className="rounded border border-neutral-800 bg-neutral-900 px-1 font-mono text-[10px] text-neutral-500">
+                Ctrl+K
+              </kbd>
+            </span>
+          </TooltipTrigger>
+          <TooltipContent side="right" align="center" hidden={state !== "collapsed" || isMobile}>
+            Find (F / Ctrl+K)
+          </TooltipContent>
+        </Tooltip>
+      </SidebarHeader>
+
+      <SidebarContent className="gap-1 px-2 py-2 group-data-[collapsible=icon]:px-1">
+        {isWorkspaceSettings ? (
+          <SidebarGroup className="p-0">
+            <div className="px-1 pb-2 group-data-[collapsible=icon]:px-0">
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    onClick={() => navigate("/")}
+                    tooltip="Settings"
+                    className="text-xs font-semibold text-neutral-400 hover:bg-neutral-900/90 hover:text-white"
+                  >
+                    <NavIconArrowLeft className="size-3.5" />
+                    <span>Settings</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
             </div>
             <SidebarGroupContent>
               <SidebarMenu className="gap-0.5">
@@ -268,13 +285,17 @@ export function AppSidebar({ projects, userEmail, onOpenSearch, onNewProject }: 
                   const isActive = currentWorkspaceTab === s.id;
                   return (
                     <SidebarMenuItem key={s.id}>
-                      <button
-                        type="button"
+                      <SidebarMenuButton
                         onClick={() => navigate(`/settings?tab=${s.id}`)}
-                        className={navLinkClass(isActive)}
+                        isActive={isActive}
+                        tooltip={s.label}
+                        className={navButtonClass(isActive)}
                       >
+                        <span className="flex size-4 shrink-0 items-center justify-center rounded bg-neutral-800 text-[10px] font-medium text-neutral-300">
+                          {s.label.charAt(0)}
+                        </span>
                         <span className="truncate">{s.label}</span>
-                      </button>
+                      </SidebarMenuButton>
                     </SidebarMenuItem>
                   );
                 })}
@@ -282,23 +303,26 @@ export function AppSidebar({ projects, userEmail, onOpenSearch, onNewProject }: 
             </SidebarGroupContent>
           </SidebarGroup>
         ) : currentProjectId ? (
-          /* PROJECT NAVIGATION MODE */
           <SidebarGroup className="p-0">
             <SidebarGroupContent>
               <SidebarMenu className="gap-0.5">
                 {projectNav.map((item) => (
                   <SidebarMenuItem key={item.to}>
-                    <Link to={item.to} className={navLinkClass(item.isActive)}>
+                    <SidebarMenuButton
+                      render={<Link to={item.to} />}
+                      isActive={item.isActive}
+                      tooltip={item.label}
+                      className={navButtonClass(item.isActive)}
+                    >
                       <item.icon />
                       <span>{item.label}</span>
-                    </Link>
+                    </SidebarMenuButton>
                   </SidebarMenuItem>
                 ))}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
         ) : (
-          /* GLOBAL WORKSPACE NAVIGATION */
           <>
             <SidebarGroup className="p-0">
               <SidebarGroupContent>
@@ -309,10 +333,15 @@ export function AppSidebar({ projects, userEmail, onOpenSearch, onNewProject }: 
                       : pathname.startsWith(item.to);
                     return (
                       <SidebarMenuItem key={item.to}>
-                        <Link to={item.to} className={navLinkClass(isActive)}>
+                        <SidebarMenuButton
+                          render={<Link to={item.to} />}
+                          isActive={isActive}
+                          tooltip={item.label}
+                          className={navButtonClass(isActive)}
+                        >
                           <item.icon />
                           <span>{item.label}</span>
-                        </Link>
+                        </SidebarMenuButton>
                       </SidebarMenuItem>
                     );
                   })}
@@ -321,7 +350,7 @@ export function AppSidebar({ projects, userEmail, onOpenSearch, onNewProject }: 
             </SidebarGroup>
 
             <SidebarGroup className="mt-4 p-0">
-              <SidebarGroupLabel className="px-2.5 text-[11px] font-semibold text-neutral-500 uppercase tracking-wider">
+              <SidebarGroupLabel className="px-2.5 text-[11px] font-semibold uppercase tracking-wider text-neutral-500">
                 Projects
               </SidebarGroupLabel>
               <SidebarGroupContent className="pt-1">
@@ -330,23 +359,33 @@ export function AppSidebar({ projects, userEmail, onOpenSearch, onNewProject }: 
                     const isActive = pathname.startsWith(`/projects/${project.id}`);
                     return (
                       <SidebarMenuItem key={project.id}>
-                        <Link
-                          to={`/projects/${project.id}`}
-                          className={navLinkClass(isActive)}
+                        <SidebarMenuButton
+                          render={<Link to={`/projects/${project.id}`} />}
+                          isActive={isActive}
+                          tooltip={project.name}
+                          className={navButtonClass(isActive)}
                         >
                           <span className="flex size-4 shrink-0 items-center justify-center rounded bg-neutral-800 text-[10px] font-medium text-neutral-300">
                             {project.name.charAt(0).toUpperCase()}
                           </span>
-                          <span className="truncate" title={project.name}>{project.name}</span>
-                        </Link>
+                          <span className="truncate" title={project.name}>
+                            {project.name}
+                          </span>
+                        </SidebarMenuButton>
                       </SidebarMenuItem>
                     );
                   })}
                   {projects.length > 10 ? (
-                    <SidebarMenuItem>
-                      <Link to="/projects" className={navLinkClass(pathname === "/projects")}>
-                        View all projects ({projects.length})
-                      </Link>
+                    <SidebarMenuItem className="group-data-[collapsible=icon]:hidden">
+                      <SidebarMenuButton
+                        render={<Link to="/projects" />}
+                        isActive={pathname === "/projects"}
+                        tooltip={`View all projects (${projects.length})`}
+                        className={navButtonClass(pathname === "/projects")}
+                      >
+                        <NavIconFolder />
+                        <span>View all projects ({projects.length})</span>
+                      </SidebarMenuButton>
                     </SidebarMenuItem>
                   ) : null}
                 </SidebarMenu>
@@ -356,20 +395,22 @@ export function AppSidebar({ projects, userEmail, onOpenSearch, onNewProject }: 
         )}
       </SidebarContent>
 
-      {/* SIDEBAR FOOTER */}
-      <SidebarFooter className="border-t border-neutral-800 p-2">
+      <SidebarFooter className="overflow-hidden border-t border-neutral-800 p-2 group-data-[collapsible=icon]:px-1">
         <DropdownMenu>
-          <DropdownMenuTrigger className="flex w-full items-center gap-2.5 rounded-md px-2 py-2 text-left text-xs transition-colors hover:bg-neutral-900 focus:outline-none">
-            <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-neutral-800 font-semibold text-white">
+          <DropdownMenuTrigger
+            aria-label="Account menu"
+            className="flex w-full items-center gap-2.5 rounded-md px-2 py-2 text-left text-xs transition-colors hover:bg-neutral-900 focus:outline-none group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0"
+          >
+            <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-neutral-800 font-semibold text-white group-data-[collapsible=icon]:size-8">
               {avatarLetter}
             </span>
-            <div className="flex flex-1 flex-col min-w-0">
+            <div className="flex min-w-0 flex-1 flex-col group-data-[collapsible=icon]:hidden">
               <span className="truncate font-medium text-white">{username}</span>
               <span className="truncate text-[10px] text-neutral-500">
                 {userEmail || "local"}
               </span>
             </div>
-            <NavIconChevron className="size-3 text-neutral-500 shrink-0" />
+            <NavIconChevron className="size-3 shrink-0 text-neutral-500 group-data-[collapsible=icon]:hidden" />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" side="top" className="w-56 border-neutral-800 bg-[#0a0a0a] text-white">
             <DropdownMenuItem
