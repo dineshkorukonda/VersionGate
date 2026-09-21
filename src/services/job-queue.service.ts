@@ -1,4 +1,4 @@
-import { eq, and, asc, sql } from "drizzle-orm";
+import { eq, and, asc, sql, lt, gte } from "drizzle-orm";
 import { getDb } from "../db/client";
 import { jobs, projects, environments, JobSelect, ProjectSelect, EnvironmentSelect } from "../db/schema";
 import redisService from "./redis.service";
@@ -79,23 +79,36 @@ export async function failJob(jobId: string, error: string): Promise<JobSelect> 
   return updated;
 }
 
+/** Cap stored job logs to prevent unbounded JSONB growth on long deploys. */
+export const MAX_JOB_LOG_LINES = 5000;
+
 export async function appendLog(jobId: string, line: string): Promise<void> {
   // 1. Redis pub/sub real-time log broadcast
   if (redisService.isAvailable()) {
     await redisService.publishLog(jobId, line);
   }
 
-  // 2. Atomic PostgreSQL JSONB array append
+  // 2. Atomic PostgreSQL JSONB append with tail retention
   const db = getDb();
   const jsonArrayStr = JSON.stringify([line]);
 
-  await db
-    .update(jobs)
-    .set({
-      logs: sql`${jobs.logs} || ${jsonArrayStr}::jsonb`,
-      updatedAt: new Date(),
-    })
-    .where(eq(jobs.id, jobId));
+  await db.execute(sql`
+    UPDATE "Job"
+    SET logs = (
+      SELECT COALESCE(jsonb_agg(trimmed.line ORDER BY trimmed.idx), '[]'::jsonb)
+      FROM (
+        SELECT line, idx
+        FROM (
+          SELECT value AS line, row_number() OVER () AS idx
+          FROM jsonb_array_elements("Job".logs || ${jsonArrayStr}::jsonb)
+        ) combined
+        ORDER BY idx DESC
+        LIMIT ${MAX_JOB_LOG_LINES}
+      ) trimmed
+    ),
+    "updatedAt" = NOW()
+    WHERE id = ${jobId}
+  `);
 }
 
 export async function enqueueJob(
@@ -123,20 +136,37 @@ export async function enqueueJob(
   return job.id;
 }
 
-export async function recoverStuckJobs(): Promise<number> {
+/** Jobs running longer than this are marked failed instead of re-queued on restart. */
+export const STALE_RUNNING_JOB_MS = 2 * 60 * 60 * 1000;
+
+export async function recoverStuckJobs(staleAfterMs = STALE_RUNNING_JOB_MS): Promise<number> {
   const db = getDb();
-  const res = await db
+  const now = new Date();
+  const staleCutoff = new Date(now.getTime() - staleAfterMs);
+
+  const failed = await db
     .update(jobs)
     .set({
       status: "FAILED",
-      completedAt: new Date(),
-      updatedAt: new Date(),
-      error: "Worker restarted mid-job",
+      completedAt: now,
+      updatedAt: now,
+      error: "Job exceeded maximum runtime and was stopped during worker restart",
     })
-    .where(eq(jobs.status, "RUNNING"))
+    .where(and(eq(jobs.status, "RUNNING"), lt(jobs.startedAt, staleCutoff)))
     .returning();
 
-  return res.length;
+  const requeued = await db
+    .update(jobs)
+    .set({
+      status: "PENDING",
+      startedAt: null,
+      updatedAt: now,
+      error: null,
+    })
+    .where(and(eq(jobs.status, "RUNNING"), gte(jobs.startedAt, staleCutoff)))
+    .returning();
+
+  return failed.length + requeued.length;
 }
 
 export async function cancelPendingJob(jobId: string): Promise<boolean> {
