@@ -1,14 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
-  getAllDeployments,
   getInstanceSettings,
   listAllJobs,
   triggerDeploy,
-  type Deployment,
   type JobRecord,
   type Project,
 } from "@/lib/api";
+import { useAllDeployments } from "@/hooks/use-deployments";
 import { useProjectsSummary } from "@/hooks/use-projects";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -55,8 +54,8 @@ export function Overview() {
   const launchCreate = useLaunchCreateProject();
   const navigate = useNavigate();
   const { data: summaryProjects = [], isLoading: summaryLoading } = useProjectsSummary();
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [deployments, setDeployments] = useState<Deployment[]>([]);
+  const { data: deployments = [], isLoading: deploymentsLoading } = useAllDeployments();
+  const projects = summaryProjects as Project[];
   const [domainsByProject, setDomainsByProject] = useState<Record<string, { hostname: string; sslStatus: string }[]>>({});
   const [latestJobs, setLatestJobs] = useState<Record<string, JobRecord | undefined>>({});
   const [, setRecentJobs] = useState<JobRecord[]>([]);
@@ -74,20 +73,16 @@ export function Overview() {
       setInitialLoading(true);
     }
     try {
-      const [d, allJobs, inst] = await Promise.all([
-        getAllDeployments(),
+      const [allJobs, inst] = await Promise.all([
         listAllJobs({ limit: 10 }),
         getInstanceSettings().catch(() => null),
       ]);
-      const p = { projects: summaryProjects };
-      setProjects(p.projects);
-      setDeployments(d.deployments);
       setRecentJobs(allJobs.jobs);
       setConfiguredPublicHost(inst?.publicDomain);
 
       const domainMap: Record<string, { hostname: string; sslStatus: string }[]> = {};
       const jobMap: Record<string, JobRecord | undefined> = {};
-      for (const proj of p.projects) {
+      for (const proj of summaryProjects) {
         domainMap[proj.id] = (proj.domains as { hostname: string; sslStatus: string }[]) || [];
         jobMap[proj.id] = (proj.latestJob as JobRecord) || undefined;
       }
@@ -100,7 +95,7 @@ export function Overview() {
     } finally {
       setInitialLoading(false);
     }
-  }, [projects.length, summaryProjects]);
+  }, [summaryProjects]);
 
   useEffect(() => {
     void loadData(false);
@@ -168,7 +163,7 @@ export function Overview() {
     }
   };
 
-  if ((initialLoading || summaryLoading) && projects.length === 0) {
+  if ((initialLoading || summaryLoading || deploymentsLoading) && projects.length === 0) {
     return (
       <div className="w-full space-y-6 max-w-7xl font-sans">
         <div className="flex items-center justify-between">

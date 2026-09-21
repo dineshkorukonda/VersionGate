@@ -3,22 +3,10 @@ import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { DeleteProjectDialog } from "@/components/modals/DeleteProjectDialog";
 import { projectTabFromPath, type ProjectTab } from "@/lib/project-routes";
 import {
-  getDeployments,
-  getProject,
-  getProjectAnalytics,
-  getProjectEnvironments,
   getProjectLogs,
-  listProjectDomains,
-  listProjectJobs,
   updateProjectEnv,
   rollback,
   triggerDeploy,
-  type Deployment,
-  type EnvironmentSummary,
-  type JobRecord,
-  type Project,
-  type ProjectAnalytics,
-  type ProjectDomain,
 } from "@/lib/api";
 import { ProjectDetailCronTab } from "@/components/project-detail/ProjectDetailCronTab";
 import { ProjectDetailDatabasesTab } from "@/components/project-detail/ProjectDetailDatabasesTab";
@@ -33,6 +21,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { getDeployingDeployment, publicProjectLiveUrl } from "@/lib/deployment-display";
 import { type EnvPair } from "@/components/EnvVariablesEditor";
+import { useInvalidateProjectDetail, useProjectDetail } from "@/hooks/use-project-detail";
 
 function copyText(text: string, label: string) {
   void navigator.clipboard.writeText(text).then(
@@ -47,15 +36,15 @@ export function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
   const activeTab: ProjectTab = id ? projectTabFromPath(pathname, id) : "overview";
 
-  const [project, setProject] = useState<Project | null>(null);
-  const [deployments, setDeployments] = useState<Deployment[]>([]);
-  const [, setJobs] = useState<JobRecord[]>([]);
-  const [customDomains, setCustomDomains] = useState<ProjectDomain[]>([]);
-  const [, setEnvironments] = useState<EnvironmentSummary[]>([]);
-  const [analytics, setAnalytics] = useState<ProjectAnalytics | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [deleteOpen, setDeleteOpen] = useState(false);
+  const { data, isLoading, isError } = useProjectDetail(id);
+  const invalidateProject = useInvalidateProjectDetail();
 
+  const project = data?.project ?? null;
+  const deployments = data?.deployments ?? [];
+  const customDomains = data?.domains ?? [];
+  const analytics = data?.analytics ?? null;
+
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const [envPairs, setEnvPairs] = useState<EnvPair[]>([]);
   const [savingEnv, setSavingEnv] = useState(false);
 
@@ -63,6 +52,22 @@ export function ProjectDetail() {
   const [runtimeContainerName, setRuntimeContainerName] = useState<string | null>(null);
   const [runtimeLogsLoading, setRuntimeLogsLoading] = useState(false);
   const [runtimeAutoRefresh, setRuntimeAutoRefresh] = useState(false);
+
+  useEffect(() => {
+    if (!project?.env || typeof project.env !== "object") {
+      setEnvPairs([{ key: "", value: "" }]);
+      return;
+    }
+    const pairs: EnvPair[] = Object.entries(project.env).map(([k, v]) => ({
+      key: k,
+      value: String(v),
+    }));
+    setEnvPairs(pairs.length > 0 ? pairs : [{ key: "", value: "" }]);
+  }, [project]);
+
+  const refreshProject = useCallback(() => {
+    if (id) void invalidateProject(id);
+  }, [id, invalidateProject]);
 
   const fetchRuntimeLogs = useCallback(async () => {
     if (!id) return;
@@ -91,56 +96,6 @@ export function ProjectDetail() {
     }, 5000);
     return () => clearInterval(interval);
   }, [runtimeAutoRefresh, id, activeTab, fetchRuntimeLogs]);
-
-  const load = async (isSilent = false) => {
-    if (!id) {
-      setLoading(false);
-      setProject(null);
-      return;
-    }
-    if (!isSilent && !project) {
-      setLoading(true);
-    }
-
-    try {
-      const [projRes, depsRes, jobsRes, domsRes, envsRes, analyticsRes] = await Promise.all([
-        getProject(id),
-        getDeployments(id),
-        listProjectJobs(id).catch(() => ({ jobs: [] })),
-        listProjectDomains(id).catch(() => ({ domains: [] })),
-        getProjectEnvironments(id).catch(() => ({ environments: [] })),
-        getProjectAnalytics(id).catch(() => null),
-      ]);
-
-      setProject(projRes.project);
-
-      if (projRes.project.env && typeof projRes.project.env === "object") {
-        const pairs: EnvPair[] = Object.entries(projRes.project.env).map(([k, v]) => ({
-          key: k,
-          value: String(v),
-        }));
-        setEnvPairs(pairs.length > 0 ? pairs : [{ key: "", value: "" }]);
-      } else {
-        setEnvPairs([{ key: "", value: "" }]);
-      }
-
-      setDeployments(depsRes.deployments);
-      setJobs(jobsRes.jobs);
-      setCustomDomains(domsRes.domains);
-      if ("environments" in envsRes) {
-        setEnvironments(envsRes.environments);
-      }
-      setAnalytics(analyticsRes?.analytics ?? null);
-    } catch {
-      if (!isSilent) setProject(null);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    void load();
-  }, [id]);
 
   const productionDeployments = useMemo(() => {
     return deployments.filter(
@@ -180,7 +135,7 @@ export function ProjectDetail() {
       }
       await updateProjectEnv(id, envObj);
       toast.success("[ OK ] Environment variables saved");
-      void load(true);
+      refreshProject();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to save environment variables");
     } finally {
@@ -188,7 +143,7 @@ export function ProjectDetail() {
     }
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="w-full space-y-6">
         <Skeleton className="h-10 w-64" />
@@ -198,7 +153,7 @@ export function ProjectDetail() {
     );
   }
 
-  if (!project) {
+  if (isError || !project) {
     return (
       <div className="w-full space-y-4">
         <p className="text-sm text-neutral-400">
@@ -298,9 +253,7 @@ export function ProjectDetail() {
           projectId={project.id}
           liveUrl={liveUrl}
           onCopy={copyText}
-          onUpdated={() => {
-            void load(true);
-          }}
+          onUpdated={refreshProject}
         />
       )}
 
@@ -311,9 +264,7 @@ export function ProjectDetail() {
       {activeTab === "settings" && (
         <ProjectDetailSettingsTab
           project={project}
-          onRefresh={() => {
-            void load(true);
-          }}
+          onRefresh={refreshProject}
           onDeleteRequest={() => setDeleteOpen(true)}
           copyText={copyText}
         />
