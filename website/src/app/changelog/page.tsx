@@ -44,9 +44,72 @@ interface ProcessedRelease {
 
 const FALLBACK_RELEASES: ProcessedRelease[] = [
   {
+    version: "v3.4.0",
+    date: "September 21, 2026",
+    isLatest: true,
+    summary:
+      "Phased technical debt remediation: unified deploy pipeline service, resilient job recovery, modular dashboard API client, TanStack Query data layer, and landing page capability grid sync.",
+    categories: [
+      {
+        title: "Engine Architecture Hardening",
+        badge: "IMPROVEMENT",
+        items: [
+          {
+            title: "Unified Deploy Pipeline Service",
+            description:
+              "Consolidated duplicate deploy logic from DeploymentService and worker handlers into deploy-pipeline.service.ts with health checks, commit metadata, and monorepo build context resolution.",
+            command: "src/services/deploy-pipeline.service.ts",
+          },
+          {
+            title: "Bounded Job Log Retention",
+            description:
+              "Job log appends now retain only the most recent 5000 lines in PostgreSQL JSONB arrays, preventing unbounded row growth on long deploy pipelines.",
+            command: "MAX_JOB_LOG_LINES=5000",
+          },
+          {
+            title: "Resilient Stuck Job Recovery",
+            description:
+              "Worker restart recovery re-queues recent RUNNING jobs to PENDING instead of marking them failed, while stale jobs exceeding the runtime threshold are stopped safely.",
+          },
+          {
+            title: "Service Layer Cleanup",
+            description:
+              "Moved systemMetrics singleton into system-metrics.service.ts, deduplicated in-process worker boot, and consolidated webhook route registration into a shared helper.",
+          },
+        ],
+      },
+      {
+        title: "Dashboard Developer Experience",
+        badge: "IMPROVEMENT",
+        items: [
+          {
+            title: "Modular API Client",
+            description:
+              "Split the monolithic dashboard api.ts into domain modules (projects, deployments, auth, settings, system, github, databases, cron) with backward-compatible re-exports.",
+          },
+          {
+            title: "TanStack Query Integration",
+            description:
+              "Added QueryClientProvider and useProjectsSummary hook as the foundation for cached, deduplicated server state across dashboard pages.",
+          },
+          {
+            title: "Component Decomposition",
+            description:
+              "Extracted ProjectDetail tab panels and Settings security cards into dedicated components, reducing page file complexity.",
+          },
+          {
+            title: "Integrations Route Normalization",
+            description:
+              "Standardized integrations navigation to /integrations with a legacy redirect from /dashboard/integrations.",
+          },
+        ],
+      },
+    ],
+  },
+  {
     version: "v3.3.0",
     date: "September 20, 2026",
-    isLatest: true,
+    isLatest: false,
     summary:
       "Autonomous background application auto-deploy poller daemon, remote Git ls-remote commit detection eliminating local cache staleness, dual-format GitHub webhook payload ingress, and automatic Git remote URL detection on service adoption.",
     categories: [
