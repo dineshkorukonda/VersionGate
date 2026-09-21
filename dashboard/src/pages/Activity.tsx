@@ -1,8 +1,12 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { DonutChart } from "@/components/charts/DonutChart";
 import { ActivityLineChart, type ActivityDayPoint } from "@/components/charts/ActivityLineChart";
 import { Link } from "react-router-dom";
-import { listAllJobs, getAllDeployments, type JobRecord, type Deployment } from "@/lib/api";
+import { type JobRecord } from "@/lib/api";
+import { useAllDeployments } from "@/hooks/use-deployments";
+import { useRecentJobs } from "@/hooks/use-recent-jobs";
+import { queryKeys } from "@/hooks/query-keys";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -18,8 +22,6 @@ import {
 import { jobArtifactLabel } from "@/lib/job-display";
 import { sortDeploymentsNewestFirst } from "@/lib/deployment-log-display";
 import { cn } from "@/lib/utils";
-
-const POLL_MS = 8000;
 
 function buildLast7DayBuckets(jobs: JobRecord[]): ActivityDayPoint[] {
   const start = new Date();
@@ -81,37 +83,24 @@ function exportJobsCsv(jobs: JobRecord[]) {
 }
 
 export function Activity() {
-  const [jobs, setJobs] = useState<JobRecord[]>([]);
-  const [deployments, setDeployments] = useState<Deployment[]>([]);
+  const queryClient = useQueryClient();
+  const { data: jobsData, isLoading: jobsLoading, isError: jobsError } = useRecentJobs(200);
+  const { data: deployments = [], isLoading: deploymentsLoading } = useAllDeployments();
   const [activeTab, setActiveTab] = useState<"deployments" | "jobs">("deployments");
-  const [total, setTotal] = useState(0);
-  const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [depStatusFilter, setDepStatusFilter] = useState<DeploymentStatusFilter>("all");
   const [depEnvFilter, setDepEnvFilter] = useState<DeploymentEnvFilter>("all");
   const [chartMode, setChartMode] = useState<"all" | "deploy" | "rollback">("all");
 
-  const load = useCallback(async () => {
-    try {
-      const [rJobs, rDeps] = await Promise.all([
-        listAllJobs({ limit: 200 }),
-        getAllDeployments().catch(() => ({ deployments: [] })),
-      ]);
-      setJobs(rJobs.jobs);
-      setDeployments(rDeps.deployments);
-      setTotal(rJobs.total);
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to load activity");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const jobs = jobsData?.jobs ?? [];
+  const total = jobsData?.total ?? 0;
+  const loading = jobsLoading || deploymentsLoading;
 
   useEffect(() => {
-    void load();
-    const id = window.setInterval(() => void load(), POLL_MS);
-    return () => window.clearInterval(id);
-  }, [load]);
+    if (jobsError) {
+      toast.error("Failed to load activity");
+    }
+  }, [jobsError]);
 
   const filteredJobs = useMemo(() => {
     if (statusFilter === "all") return jobs;
@@ -152,9 +141,13 @@ export function Activity() {
     return ((ok / done) * 100).toFixed(1);
   }, [jobs]);
 
+  const refresh = () => {
+    void queryClient.invalidateQueries({ queryKey: queryKeys.jobs.recent(200) });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.deployments.all });
+  };
+
   return (
     <div className="w-full space-y-8 font-sans">
-      {/* Vercel Header Bar */}
       <div className="flex flex-col gap-4 border-b border-neutral-800 pb-6 lg:flex-row lg:items-center lg:justify-between">
         <div className="space-y-1">
           <div className="flex items-center gap-2 text-xs text-neutral-400">
@@ -197,14 +190,13 @@ export function Activity() {
             variant="outline"
             size="sm"
             className="border-neutral-800 bg-neutral-900/80 text-neutral-300 hover:text-white text-xs h-8"
-            onClick={() => void load()}
+            onClick={refresh}
           >
             Refresh
           </Button>
         </div>
       </div>
 
-      {/* Analytics Row */}
       {!loading && jobs.length > 0 ? (
         <div className="grid gap-6 lg:grid-cols-2">
           <div className="overflow-hidden rounded-xl border border-neutral-800 bg-[#0a0a0a]">
@@ -251,7 +243,6 @@ export function Activity() {
         </div>
       ) : null}
 
-      {/* Main Content Tabs */}
       <div className="space-y-4">
         <div className="flex border-b border-neutral-800 gap-6">
           <button
@@ -391,7 +382,6 @@ export function Activity() {
         )}
       </div>
 
-      {/* Aggregate Global Log Stream */}
       <div className="space-y-3">
         <h3 className="text-xs font-semibold uppercase tracking-wider text-neutral-400">Live Aggregate System Stream</h3>
         <AggregateJobLogStream title="Aggregate job tail" pollMs={6000} />

@@ -1,6 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { checkAutoDeploy, getAllDeployments, getProjects, type Deployment, type Project } from "@/lib/api";
+import { useQueryClient } from "@tanstack/react-query";
+import { checkAutoDeploy } from "@/lib/api";
+import { useAllDeployments } from "@/hooks/use-deployments";
+import { useProjects } from "@/hooks/use-projects";
+import { queryKeys } from "@/hooks/query-keys";
 import { DeploymentList } from "@/components/DeploymentList";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -12,25 +16,15 @@ type EnvFilter = "all" | "production" | "preview";
 
 export function Deployments() {
   const navigate = useNavigate();
-  const [deployments, setDeployments] = useState<Deployment[]>([]);
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const { data: deployments = [], isLoading: deploymentsLoading } = useAllDeployments();
+  const { data: projects = [], isLoading: projectsLoading } = useProjects();
   const [syncingAll, setSyncingAll] = useState(false);
   const [projectFilter, setProjectFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [envFilter, setEnvFilter] = useState<EnvFilter>("all");
 
-  const load = useCallback(async () => {
-    try {
-      const [d, p] = await Promise.all([getAllDeployments(), getProjects()]);
-      setDeployments(d.deployments);
-      setProjects(p.projects);
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to load deployments");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const loading = deploymentsLoading || projectsLoading;
 
   const handleSyncAll = async () => {
     setSyncingAll(true);
@@ -41,19 +35,13 @@ export function Deployments() {
       } else {
         toast.success(`[ OK ] Checked ${res.checkedCount} project(s) — all up to date with latest commits.`);
       }
-      void load();
+      await queryClient.invalidateQueries({ queryKey: queryKeys.deployments.all });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to sync auto-deploy");
     } finally {
       setSyncingAll(false);
     }
   };
-
-  useEffect(() => {
-    void load();
-    const id = window.setInterval(() => void load(), 12000);
-    return () => window.clearInterval(id);
-  }, [load]);
 
   const filtered = useMemo(() => {
     let list = [...deployments].sort(
@@ -108,10 +96,8 @@ export function Deployments() {
         </div>
       </div>
 
-      {/* Vercel-style Filters Toolbar */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-wrap items-center gap-2.5">
-          {/* Environment Segmented Control */}
           <div className="flex items-center rounded-lg border border-neutral-800 bg-[#0a0a0a] p-0.5">
             {(["all", "production", "preview"] as const).map((env) => (
               <button
@@ -130,7 +116,6 @@ export function Deployments() {
             ))}
           </div>
 
-          {/* Project Filter */}
           <select
             value={projectFilter}
             onChange={(e) => setProjectFilter(e.target.value)}
@@ -142,7 +127,6 @@ export function Deployments() {
             ))}
           </select>
 
-          {/* Status Filter */}
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}

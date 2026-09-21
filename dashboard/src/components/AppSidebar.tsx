@@ -44,7 +44,7 @@ const workspaceNav = [
   { to: "/projects", label: "Projects", end: true, icon: NavIconFolder },
   { to: "/status", label: "Status", end: false, icon: NavIconStatus },
   { to: "/deployments", label: "Deployments", end: false, icon: NavIconRocket },
-  { to: "/activity", label: "Logs", end: false, icon: NavIconLogs },
+  { to: "/activity", label: "Activity", end: false, icon: NavIconLogs },
   { to: "/databases", label: "Databases", end: false, icon: NavIconDatabase },
   { to: "/cron", label: "Cron Jobs", end: false, icon: NavIconClock },
   { to: "/integrations", label: "Integrations", end: false, icon: NavIconPlug },
@@ -66,16 +66,7 @@ export function AppSidebar({ projects, userEmail, onOpenSearch, onNewProject }: 
   const projectMatch = pathname.match(/^\/projects\/([^/]+)/);
   const currentProjectId = projectMatch && projectMatch[1] !== "new" ? projectMatch[1] : null;
 
-  const isProjectSettings = Boolean(
-    currentProjectId && pathname.startsWith(`/projects/${currentProjectId}/settings`)
-  );
   const isWorkspaceSettings = pathname.startsWith("/settings");
-
-  // Determine active project settings section
-  const currentProjectSection = useMemo(() => {
-    const sp = new URLSearchParams(search);
-    return sp.get("section") || "general";
-  }, [search]);
 
   // Determine active workspace settings tab
   const currentWorkspaceTab = useMemo(() => {
@@ -127,7 +118,9 @@ export function AppSidebar({ projects, userEmail, onOpenSearch, onNewProject }: 
         to: `/projects/${currentProjectId}/deployments`,
         label: "Deployments",
         icon: NavIconRocket,
-        isActive: pathname.startsWith(`/projects/${currentProjectId}/deployments`),
+        isActive:
+          pathname.startsWith(`/projects/${currentProjectId}/deployments`) ||
+          pathname.includes(`/projects/${currentProjectId}/deploy/`),
       },
       {
         to: `/projects/${currentProjectId}/logs`,
@@ -173,20 +166,6 @@ export function AppSidebar({ projects, userEmail, onOpenSearch, onNewProject }: 
       },
     ];
   }, [currentProjectId, pathname]);
-
-  // Project settings sub-navigation items
-  const projectSettingsNav = useMemo(() => {
-    if (!currentProjectId) return [];
-    return [
-      { id: "general", label: "General" },
-      { id: "build", label: "Build and Deployment" },
-      { id: "env", label: "Environment Variables" },
-      { id: "domains", label: "Domains" },
-      { id: "cron", label: "Cron Jobs" },
-      { id: "git", label: "Git & Repository" },
-      { id: "security", label: "Security & Danger Zone" },
-    ];
-  }, [currentProjectId]);
 
   // Workspace settings sub-navigation items
   const workspaceSettingsNav = [
@@ -264,43 +243,8 @@ export function AppSidebar({ projects, userEmail, onOpenSearch, onNewProject }: 
 
       {/* SIDEBAR CONTENT */}
       <SidebarContent className="gap-1 px-2 py-2">
-        {/* CASE 1: PROJECT SETTINGS MODE */}
-        {isProjectSettings && currentProjectId ? (
-          <SidebarGroup className="p-0">
-            {/* Back button to Project Overview */}
-            <div className="px-1 pb-2">
-              <button
-                type="button"
-                onClick={() => navigate(`/projects/${currentProjectId}`)}
-                className="flex items-center gap-2 text-xs font-semibold text-neutral-400 hover:text-white transition-colors"
-              >
-                <NavIconArrowLeft className="size-3.5" />
-                <span>Settings</span>
-              </button>
-            </div>
-            <SidebarGroupContent>
-              <SidebarMenu className="gap-0.5">
-                {projectSettingsNav.map((s) => {
-                  const isActive = currentProjectSection === s.id;
-                  return (
-                    <SidebarMenuItem key={s.id}>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          navigate(`/projects/${currentProjectId}/settings?section=${s.id}`)
-                        }
-                        className={navLinkClass(isActive)}
-                      >
-                        <span className="truncate">{s.label}</span>
-                      </button>
-                    </SidebarMenuItem>
-                  );
-                })}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        ) : isWorkspaceSettings ? (
-          /* CASE 2: WORKSPACE SETTINGS MODE */
+        {isWorkspaceSettings ? (
+          /* WORKSPACE SETTINGS MODE */
           <SidebarGroup className="p-0">
             {/* Back button to Workspace Overview */}
             <div className="px-1 pb-2">
@@ -333,7 +277,7 @@ export function AppSidebar({ projects, userEmail, onOpenSearch, onNewProject }: 
             </SidebarGroupContent>
           </SidebarGroup>
         ) : currentProjectId ? (
-          /* CASE 3: PROJECT NAVIGATION MODE (SCREENSHOT 1) */
+          /* PROJECT NAVIGATION MODE */
           <SidebarGroup className="p-0">
             <SidebarGroupContent>
               <SidebarMenu className="gap-0.5">
@@ -349,7 +293,7 @@ export function AppSidebar({ projects, userEmail, onOpenSearch, onNewProject }: 
             </SidebarGroupContent>
           </SidebarGroup>
         ) : (
-          /* CASE 4: GLOBAL WORKSPACE NAVIGATION */
+          /* GLOBAL WORKSPACE NAVIGATION */
           <>
             <SidebarGroup className="p-0">
               <SidebarGroupContent>
