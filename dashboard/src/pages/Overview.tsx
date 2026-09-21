@@ -410,10 +410,10 @@ export function Overview() {
               : "git-repo";
 
             return (
-              <div
+              <Link
                 key={p.id}
-                onClick={() => navigate(`/projects/${p.id}`)}
-                className="group relative flex flex-col justify-between overflow-hidden rounded-xl border border-neutral-800 bg-[#0a0a0a] p-5 transition-all hover:border-neutral-700 hover:shadow-lg cursor-pointer space-y-4"
+                to={`/projects/${p.id}`}
+                className="group relative flex flex-col justify-between overflow-hidden rounded-xl border border-neutral-800 bg-[#0a0a0a] p-5 transition-all hover:border-neutral-700 hover:shadow-lg space-y-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-600"
               >
                 {/* Card Top: Avatar, Name, Domain, & Overflow Menu */}
                 <div className="flex items-start justify-between gap-3">
@@ -571,7 +571,7 @@ export function Overview() {
                     <span>{p.branch}</span>
                   </div>
                 </div>
-              </div>
+              </Link>
             );
           })}
         </div>
@@ -602,8 +602,17 @@ export function Overview() {
                 return (
                   <tr
                     key={p.id}
+                    tabIndex={0}
+                    role="link"
+                    aria-label={`Open project ${p.name}`}
                     onClick={() => navigate(`/projects/${p.id}`)}
-                    className="hover:bg-neutral-900/50 transition-colors cursor-pointer"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        navigate(`/projects/${p.id}`);
+                      }
+                    }}
+                    className="hover:bg-neutral-900/50 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-neutral-600"
                   >
                     <td className="p-3.5 pl-5">
                       <div className="flex items-center gap-2.5">

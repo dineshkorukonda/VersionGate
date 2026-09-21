@@ -46,7 +46,6 @@ export function SidebarBreadcrumbs({ projects = [] }: SidebarBreadcrumbsProps) {
     };
   }, [currentProjectId, projects]);
 
-  // Determine current page title
   const pageTitle = useMemo(() => {
     if (currentProjectId) {
       const tab = projectTabFromPath(pathname, currentProjectId);
@@ -109,29 +108,31 @@ export function SidebarBreadcrumbs({ projects = [] }: SidebarBreadcrumbsProps) {
   }, [currentProjectId, pathname, search]);
 
   return (
-    <div className="flex h-12 w-full items-center justify-between px-4">
-      {/* LEFT: Project Switcher Dropdown (Vercel Style: <Avatar> <Name> ⇅) */}
-      <div className="flex items-center gap-2">
+    <div className="grid flex-1 min-w-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2">
+      <div className="flex min-w-0 items-center justify-start">
         <DropdownMenu>
-          <DropdownMenuTrigger className="flex items-center gap-2 rounded-md px-2 py-1 text-xs font-medium text-neutral-200 hover:bg-neutral-800/80 transition-colors focus:outline-none">
+          <DropdownMenuTrigger
+            aria-label={currentProjectId ? "Switch project" : "Switch workspace"}
+            className="flex max-w-full items-center gap-2 rounded-md px-2 py-1 text-xs font-medium text-neutral-200 hover:bg-neutral-800/80 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-600"
+          >
             {currentProjectId ? (
               <>
-                <span className="flex size-4 items-center justify-center rounded bg-blue-600/80 text-[10px] font-bold text-white uppercase shadow-sm">
+                <span className="flex size-4 shrink-0 items-center justify-center rounded bg-blue-600/80 text-[10px] font-bold text-white uppercase shadow-sm">
                   {projectName ? projectName.charAt(0) : "P"}
                 </span>
-                <span className="font-semibold text-white truncate max-w-[140px] sm:max-w-[200px]">
+                <span className="truncate font-semibold text-white max-w-[100px] sm:max-w-[160px]">
                   {projectName || "Project"}
                 </span>
               </>
             ) : (
               <>
-                <span className="flex size-4 items-center justify-center rounded bg-neutral-800 text-[10px] font-bold text-white shadow-sm">
+                <span className="flex size-4 shrink-0 items-center justify-center rounded bg-neutral-800 text-[10px] font-bold text-white shadow-sm">
                   VG
                 </span>
-                <span className="font-semibold text-white">VersionGate</span>
+                <span className="truncate font-semibold text-white">VersionGate</span>
               </>
             )}
-            <NavIconChevronsUpDown className="size-3 text-neutral-500" />
+            <NavIconChevronsUpDown className="size-3 shrink-0 text-neutral-500" />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-56 border-neutral-800 bg-[#0a0a0a] text-white">
             <DropdownMenuItem
@@ -145,9 +146,9 @@ export function SidebarBreadcrumbs({ projects = [] }: SidebarBreadcrumbsProps) {
               <DropdownMenuItem
                 key={p.id}
                 onClick={() => navigate(`/projects/${p.id}`)}
-                className="flex items-center gap-2 cursor-pointer text-xs text-neutral-300 hover:text-white"
+                className="flex cursor-pointer items-center gap-2 text-xs text-neutral-300 hover:text-white"
               >
-                <span className="flex size-3.5 items-center justify-center rounded bg-neutral-800 text-[9px] font-semibold text-neutral-300">
+                <span className="flex size-3.5 shrink-0 items-center justify-center rounded bg-neutral-800 text-[9px] font-semibold text-neutral-300">
                   {p.name.charAt(0).toUpperCase()}
                 </span>
                 <span className="truncate">{p.name}</span>
@@ -157,25 +158,23 @@ export function SidebarBreadcrumbs({ projects = [] }: SidebarBreadcrumbsProps) {
         </DropdownMenu>
       </div>
 
-      {/* CENTER: Exact Page Title matching screenshot ("Overview", "Deployments", "Project Settings", etc.) */}
-      <div className="absolute left-1/2 -translate-x-1/2 hidden md:flex items-center">
-        <span className="text-xs font-semibold text-neutral-300 tracking-wide">
+      <div className="min-w-0 px-1 text-center">
+        <span className="block truncate text-xs font-semibold tracking-wide text-neutral-300">
           {pageTitle}
         </span>
       </div>
 
-      {/* RIGHT: Live Status Action Button */}
-      <div className="flex items-center gap-2">
+      <div className="flex min-w-0 items-center justify-end">
         <button
           type="button"
           onClick={() => navigate("/status")}
-          className="inline-flex items-center gap-2 rounded-full border border-neutral-800 bg-neutral-900/90 px-3 py-1 font-mono text-xs font-medium text-neutral-300 hover:border-neutral-700 hover:text-white transition-colors"
+          aria-label="View system status"
+          className="inline-flex shrink-0 items-center gap-2 rounded-full border border-neutral-800 bg-neutral-900/90 px-2.5 py-1 font-mono text-xs font-medium text-neutral-300 transition-colors hover:border-neutral-700 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-600 sm:px-3"
         >
-          <span className="size-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_6px_rgba(52,211,153,0.8)]" />
+          <span className="size-1.5 shrink-0 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_6px_rgba(52,211,153,0.8)]" />
           <span>Status</span>
         </button>
       </div>
     </div>
   );
 }
-

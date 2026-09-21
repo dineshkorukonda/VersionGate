@@ -7,8 +7,6 @@ import { ChangePasswordCard } from "@/components/settings/ChangePasswordCard";
 import { settingsInputClass } from "@/components/settings/settings-styles";
 import { boolPill, Row } from "@/components/settings/settings-ui";
 import { type InstanceSettings } from "@/lib/api";
-import { toast } from "sonner";
-
 export interface SettingsGeneralTabProps {
   instance: InstanceSettings;
 }
@@ -38,12 +36,13 @@ export function SettingsGeneralTab({ instance }: SettingsGeneralTabProps) {
       <VercelCardBox
         title="Team Name"
         description="This is your team's visible name within VersionGate. For example, the name of your company or department."
-        footerLeft={<span>Please use 32 characters at maximum.</span>}
+        footerLeft={<span>Team profile editing is coming soon. Please use 32 characters at maximum.</span>}
         footerAction={
           <Button
             size="sm"
             className="bg-white text-black font-semibold hover:bg-neutral-200 text-xs"
-            onClick={() => toast.success("Team name saved")}
+            disabled
+            title="Team profile API is not yet available"
           >
             Save
           </Button>
@@ -55,6 +54,8 @@ export function SettingsGeneralTab({ instance }: SettingsGeneralTabProps) {
             onChange={(e) => setTeamNameDraft(e.target.value)}
             className={settingsInputClass}
             maxLength={32}
+            disabled
+            aria-disabled="true"
           />
         </div>
       </VercelCardBox>
@@ -62,12 +63,13 @@ export function SettingsGeneralTab({ instance }: SettingsGeneralTabProps) {
       <VercelCardBox
         title="Team URL"
         description="This is your team's URL namespace on VersionGate. Used in deployment URLs and API namespaces."
-        footerLeft={<span>Please use 48 characters at maximum.</span>}
+        footerLeft={<span>Team URL editing is coming soon. Please use 48 characters at maximum.</span>}
         footerAction={
           <Button
             size="sm"
             className="bg-white text-black font-semibold hover:bg-neutral-200 text-xs"
-            onClick={() => toast.success("Team URL updated")}
+            disabled
+            title="Team profile API is not yet available"
           >
             Save
           </Button>
@@ -82,6 +84,8 @@ export function SettingsGeneralTab({ instance }: SettingsGeneralTabProps) {
             onChange={(e) => setTeamUrlDraft(e.target.value)}
             className="h-9 border-0 bg-transparent px-3 text-xs text-white focus-visible:ring-0"
             maxLength={48}
+            disabled
+            aria-disabled="true"
           />
         </div>
       </VercelCardBox>
