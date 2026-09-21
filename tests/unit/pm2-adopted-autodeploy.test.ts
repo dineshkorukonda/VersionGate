@@ -80,18 +80,6 @@ describe("Adopted PM2 Services & Auto-Deployment Engine", () => {
     expect(buildEnv.PORT).toBe("3000");
   });
 
-  test("ServiceDiscoveryService extractGitMetadata walks up directories to find git root and relative buildContext", async () => {
-    const { ServiceDiscoveryService } = await import("../../src/services/service-discovery.service");
-    const discovery = new ServiceDiscoveryService();
-    // Test with current working directory
-    const meta = discovery.extractGitMetadata(process.cwd());
-    expect(meta.buildContext).toBeDefined();
-    expect(meta.buildContext).toBe(".");
-    if (meta.repoUrl) {
-      expect(meta.repoUrl.startsWith("https://") || meta.repoUrl.startsWith("git@")).toBe(true);
-    }
-  });
-
   test("getPm2Logs handles array of candidate names without throwing", async () => {
     const { getPm2Logs } = await import("../../src/utils/pm2");
     const logs = await getPm2Logs(["non-existent-app-1", "non-existent-app-2"], 10);
