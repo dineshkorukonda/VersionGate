@@ -6,7 +6,7 @@ import { disconnectDb } from "./db/client";
 import { ReconciliationService } from "./services/reconciliation.service";
 import { ContainerMonitorService } from "./services/container-monitor.service";
 import { registerAfterSetup } from "./services/post-setup-hooks.service";
-import { systemMetrics } from "./controllers/system.controller";
+import { systemMetrics } from "./services/system-metrics.service";
 import { kickSelfUpdatePoll, stopSelfUpdatePoll } from "./services/self-update-poll.service";
 import { startAutoDeployPoll, stopAutoDeployPoll } from "./services/autodeploy-poll.service";
 
@@ -70,7 +70,6 @@ async function start(): Promise<void> {
         try {
           logger.info("Applying database migrations…");
           runDrizzleSchemaSync();
-          startInProcessWorker();
 
           try {
             const reconciliation = new ReconciliationService();
@@ -109,6 +108,7 @@ async function start(): Promise<void> {
     );
 
     if (databaseUrlLive()) {
+      startInProcessWorker();
       monitor.start();
       engineHealthMonitor.start();
       cronRunnerService.startScheduler();

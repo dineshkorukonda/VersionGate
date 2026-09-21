@@ -10,7 +10,7 @@ import { GitService } from "./git.service";
 import { isPm2Available, listPm2Processes } from "../utils/pm2";
 import { inspectContainer } from "../utils/docker";
 import { config } from "../config/env";
-import { systemMetrics } from "../controllers/system.controller";
+import { systemMetrics } from "./system-metrics.service";
 import { enqueueJob } from "./job-queue.service";
 import { logger } from "../utils/logger";
 

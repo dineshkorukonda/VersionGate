@@ -346,3 +346,6 @@ export class SystemMetricsService {
     }
   }
 }
+
+/** Shared singleton for server boot and HTTP handlers — avoids controller imports from services. */
+export const systemMetrics = new SystemMetricsService();

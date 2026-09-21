@@ -47,7 +47,7 @@ const workspaceNav = [
   { to: "/activity", label: "Logs", end: false, icon: NavIconLogs },
   { to: "/databases", label: "Databases", end: false, icon: NavIconDatabase },
   { to: "/cron", label: "Cron Jobs", end: false, icon: NavIconClock },
-  { to: "/dashboard/integrations", label: "Integrations", end: false, icon: NavIconPlug },
+  { to: "/integrations", label: "Integrations", end: false, icon: NavIconPlug },
   { to: "/system", label: "Observability", end: false, icon: NavIconPulse },
   { to: "/settings", label: "Settings", end: false, icon: NavIconSettings },
 ] as const;

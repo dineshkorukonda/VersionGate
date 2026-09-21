@@ -103,7 +103,7 @@ export function SidebarBreadcrumbs({ projects = [] }: SidebarBreadcrumbsProps) {
     if (pathname.startsWith("/databases")) return "Databases";
     if (pathname.startsWith("/status")) return "System Status";
     if (pathname.startsWith("/system")) return "System Metrics";
-    if (pathname.startsWith("/dashboard/integrations")) return "Integrations";
+    if (pathname.startsWith("/integrations")) return "Integrations";
 
     return "VersionGate";
   }, [currentProjectId, pathname, search]);

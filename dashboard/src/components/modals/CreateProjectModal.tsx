@@ -467,7 +467,7 @@ export function CreateProjectModal({
                 <AlertDescription>
                   Install the VersionGate GitHub App to browse repositories here. You can still paste a repository URL
                   below.&nbsp;
-                  <Link to="/dashboard/integrations" className="font-medium text-foreground underline-offset-2 hover:underline">
+                  <Link to="/integrations" className="font-medium text-foreground underline-offset-2 hover:underline">
                     Open Integrations
                   </Link>
                 </AlertDescription>

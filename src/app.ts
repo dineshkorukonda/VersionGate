@@ -9,7 +9,7 @@ import { deploymentRoutes } from "./routes/deployment.routes";
 import { projectRoutes } from "./routes/project.routes";
 import { systemRoutes } from "./routes/system.routes";
 import { metricsRoutes } from "./routes/metrics.routes";
-import { webhookRoutes } from "./routes/webhook.routes";
+import { registerWebhookRouteGroups } from "./routes/webhook.routes";
 import { setupRoutes } from "./routes/setup.routes";
 import { settingsRoutes } from "./routes/settings.routes";
 import { logsRoutes } from "./routes/logs.routes";
@@ -170,18 +170,7 @@ export async function buildApp(): Promise<FastifyInstance> {
     await instance.register(dbRoutes);
     await metricsRoutes(instance);
   }, { prefix: "/api/v1" });
-  await app.register(async (instance) => {
-    await instance.register(dbRoutes);
-    await webhookRoutes(instance);
-  }, { prefix: "/api/v1" });
-  await app.register(async (instance) => {
-    await instance.register(dbRoutes);
-    await webhookRoutes(instance);
-  }, { prefix: "/api" });
-  await app.register(async (instance) => {
-    await instance.register(dbRoutes);
-    await webhookRoutes(instance);
-  });
+  await registerWebhookRouteGroups(app, dbRoutes);
   await app.register(setupRoutes, { prefix: "/api/v1" });
   await app.register(settingsRoutes, { prefix: "/api/v1" });
 
