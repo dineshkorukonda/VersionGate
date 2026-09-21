@@ -235,9 +235,14 @@ export function AppSidebar({ projects, userEmail, onOpenSearch, onNewProject }: 
             <NavIconSearch />
             <span>Find</span>
           </span>
-          <kbd className="rounded border border-neutral-800 bg-neutral-900 px-1 font-mono text-[10px] text-neutral-500">
-            F
-          </kbd>
+          <span className="flex items-center gap-1">
+            <kbd className="rounded border border-neutral-800 bg-neutral-900 px-1 font-mono text-[10px] text-neutral-500">
+              F
+            </kbd>
+            <kbd className="rounded border border-neutral-800 bg-neutral-900 px-1 font-mono text-[10px] text-neutral-500">
+              Ctrl+K
+            </kbd>
+          </span>
         </button>
       </SidebarHeader>
 
@@ -332,7 +337,7 @@ export function AppSidebar({ projects, userEmail, onOpenSearch, onNewProject }: 
                           <span className="flex size-4 shrink-0 items-center justify-center rounded bg-neutral-800 text-[10px] font-medium text-neutral-300">
                             {project.name.charAt(0).toUpperCase()}
                           </span>
-                          <span className="truncate">{project.name}</span>
+                          <span className="truncate" title={project.name}>{project.name}</span>
                         </Link>
                       </SidebarMenuItem>
                     );

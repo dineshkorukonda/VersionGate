@@ -172,6 +172,7 @@ export function EnvVariablesEditor({
             {pairs.map((p, idx) => (
               <div key={idx} className="flex items-center gap-2">
                 <Input
+                  aria-label={`Environment variable name ${idx + 1}`}
                   placeholder="KEY"
                   value={p.key}
                   onChange={(e) => updatePair(idx, "key", e.target.value)}
@@ -188,6 +189,7 @@ export function EnvVariablesEditor({
                 />
                 <Input
                   type={maskSecrets ? "password" : "text"}
+                  aria-label={`Environment variable value ${idx + 1}`}
                   placeholder="VALUE"
                   value={p.value}
                   onChange={(e) => updatePair(idx, "value", e.target.value)}
@@ -206,6 +208,7 @@ export function EnvVariablesEditor({
                   type="button"
                   variant="ghost"
                   size="sm"
+                  aria-label={`Remove variable ${p.key || idx + 1}`}
                   onClick={() => removePair(idx)}
                   className="h-8 w-8 p-0 font-mono text-xs text-muted-foreground hover:text-rose-500"
                 >

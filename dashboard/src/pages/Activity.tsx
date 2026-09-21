@@ -84,8 +84,8 @@ function exportJobsCsv(jobs: JobRecord[]) {
 
 export function Activity() {
   const queryClient = useQueryClient();
-  const { data: jobsData, isLoading: jobsLoading, isError: jobsError } = useRecentJobs(200);
-  const { data: deployments = [], isLoading: deploymentsLoading } = useAllDeployments();
+  const { data: jobsData, isLoading: jobsLoading, isError: jobsError, isFetching: jobsFetching } = useRecentJobs(200);
+  const { data: deployments = [], isLoading: deploymentsLoading, isFetching: deploymentsFetching } = useAllDeployments();
   const [activeTab, setActiveTab] = useState<"deployments" | "jobs">("deployments");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [depStatusFilter, setDepStatusFilter] = useState<DeploymentStatusFilter>("all");
@@ -95,6 +95,7 @@ export function Activity() {
   const jobs = jobsData?.jobs ?? [];
   const total = jobsData?.total ?? 0;
   const loading = jobsLoading || deploymentsLoading;
+  const refreshing = jobsFetching || deploymentsFetching;
 
   useEffect(() => {
     if (jobsError) {
@@ -189,10 +190,11 @@ export function Activity() {
             type="button"
             variant="outline"
             size="sm"
+            disabled={refreshing}
             className="border-neutral-800 bg-neutral-900/80 text-neutral-300 hover:text-white text-xs h-8"
             onClick={refresh}
           >
-            Refresh
+            {refreshing ? "Refreshing..." : "Refresh"}
           </Button>
         </div>
       </div>
