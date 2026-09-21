@@ -297,8 +297,8 @@ export function Projects() {
               })}
             </div>
           ) : (
-            <div className="overflow-hidden rounded-xl border border-neutral-800 bg-[#0a0a0a]">
-              <table className="w-full text-left font-sans text-xs">
+            <div className="overflow-x-auto rounded-xl border border-neutral-800 bg-[#0a0a0a]">
+              <table className="w-full min-w-[720px] text-left font-sans text-xs">
                 <thead className="border-b border-neutral-800 text-[11px] font-medium uppercase tracking-wider text-neutral-500">
                   <tr>
                     <th className="px-6 py-3.5 font-medium">Project</th>

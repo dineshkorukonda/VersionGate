@@ -282,7 +282,9 @@ export function Integrations() {
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-4">
                   <Avatar className="size-14 border border-neutral-800">
-                    {avatarUrl ? <AvatarImage src={avatarUrl} alt="" /> : null}
+                    {avatarUrl ? (
+                      <AvatarImage src={avatarUrl} alt={primaryInstallation.githubAccountLogin ?? "GitHub account"} />
+                    ) : null}
                     <AvatarFallback className="bg-neutral-900 text-lg font-semibold text-white">
                       {primaryInstallation.githubAccountLogin.slice(0, 2).toUpperCase()}
                     </AvatarFallback>

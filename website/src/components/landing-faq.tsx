@@ -60,15 +60,17 @@ export function LandingFAQ() {
               >
                 <button
                   type="button"
+                  aria-expanded={isOpen}
+                  aria-controls={`faq-panel-${idx}`}
                   onClick={() => setOpenIdx(isOpen ? null : idx)}
-                  className="flex w-full items-center justify-between text-left text-sm font-medium text-foreground"
+                  className="flex w-full items-center justify-between text-left text-sm font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 >
                   <span>{faq.q}</span>
                   <span className="ml-4 text-primary">{isOpen ? "−" : "+"}</span>
                 </button>
 
                 {isOpen && (
-                  <div className="mt-4 pt-3 border-t border-border/40 text-xs leading-relaxed text-zinc-400">
+                  <div id={`faq-panel-${idx}`} className="mt-4 pt-3 border-t border-border/40 text-xs leading-relaxed text-zinc-400">
                     <p>{faq.a}</p>
                     {faq.code && (
                       <pre className="mt-3 rounded-md bg-black p-2.5 font-mono text-[11px] text-emerald-400 overflow-x-auto">

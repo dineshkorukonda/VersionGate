@@ -239,8 +239,8 @@ export function ProjectDetailSettingsTab({
 
       <VercelCardBox
         title="Avatar"
-        description="This is your project's avatar. Click it or drop an image to upload."
-        footerLeft={<span>An avatar is optional but recommended.</span>}
+        description="Avatar is generated from the project name. Custom upload support is planned for a future release."
+        footerLeft={<span>Generated from project name until upload is available.</span>}
       >
         <div className="flex items-center justify-between max-w-md">
           <span className="text-xs text-neutral-400">Custom project logo</span>

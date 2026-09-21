@@ -284,7 +284,7 @@ export function GlobalSearchDialog({
           {filteredItems.length === 0 ? (
             <div className="py-12 text-center">
               <p className="font-mono text-xs text-neutral-400">No matching commands or projects found</p>
-              <p className="mt-1 font-sans text-[11px] text-neutral-600">
+              <p className="mt-1 font-sans text-[11px] text-neutral-400">
                 Try searching for a project name, page title, or operational action
               </p>
             </div>

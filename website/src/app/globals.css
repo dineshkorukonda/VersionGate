@@ -66,6 +66,9 @@ body {
 .border-border { border-color: hsl(var(--border)); }
 .bg-primary { background-color: hsl(var(--primary)); }
 .text-primary-foreground { color: hsl(var(--primary-foreground)); }
+.bg-surface { background-color: hsl(var(--surface)); }
+.bg-terminal { background-color: hsl(0 0% 5%); }
+.font-display { font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif; }
 
 .bg-grid-pattern {
   background-size: 40px 40px;

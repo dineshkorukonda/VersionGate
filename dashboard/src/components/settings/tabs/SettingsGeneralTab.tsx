@@ -92,8 +92,8 @@ export function SettingsGeneralTab({ instance }: SettingsGeneralTabProps) {
 
       <VercelCardBox
         title="Team Avatar"
-        description="This is your team's avatar. Upload a custom avatar or click to generate."
-        footerLeft={<span>An avatar is optional but strongly recommended.</span>}
+        description="Avatar is generated from your team name. Custom upload support is planned for a future release."
+        footerLeft={<span>Generated from team name until upload is available.</span>}
       >
         <div className="flex items-center justify-between max-w-md">
           <span className="text-xs text-neutral-400">Team identity avatar</span>

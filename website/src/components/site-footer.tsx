@@ -19,6 +19,7 @@ export function SiteFooter() {
               <p className="font-medium text-white">Product</p>
               <ul className="space-y-1.5 text-neutral-500">
                 <li><Link href="/#features" className="hover:text-white transition">Features</Link></li>
+                <li><Link href="/#architecture" className="hover:text-white transition">How it works</Link></li>
                 <li><Link href="/#install" className="hover:text-white transition">Install</Link></li>
                 <li><Link href="/changelog" className="hover:text-white transition">Changelog</Link></li>
               </ul>

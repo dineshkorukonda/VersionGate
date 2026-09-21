@@ -1,7 +1,10 @@
+import type { ReactNode } from "react";
+
 interface Feature {
   title: string;
   description: string;
   detail: string;
+  visual: ReactNode;
 }
 
 const FEATURES: Feature[] = [
@@ -10,24 +13,67 @@ const FEATURES: Feature[] = [
     description:
       "Every production environment gets two slots. VersionGate builds on the idle port, health-checks the new container, then reloads Nginx upstream — no dropped connections.",
     detail: "Warm-swap rollback reuses cached images in under 2 seconds.",
+    visual: (
+      <div className="space-y-3 font-mono text-[11px]">
+        <div className="flex items-center justify-between rounded border border-neutral-800 bg-black px-3 py-2">
+          <span className="text-neutral-400">slot-a :8081</span>
+          <span className="rounded border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-emerald-400">[ LIVE ]</span>
+        </div>
+        <div className="flex items-center justify-between rounded border border-neutral-800 bg-black px-3 py-2">
+          <span className="text-neutral-400">slot-b :8082</span>
+          <span className="rounded border border-sky-500/30 bg-sky-500/10 px-2 py-0.5 text-sky-300">[ BUILDING ]</span>
+        </div>
+        <p className="text-emerald-400/90">GET /health → 200 OK · nginx -s reload</p>
+      </div>
+    ),
   },
   {
     title: "Docker or bare-metal PM2",
     description:
       "Run containerized apps or host processes directly with PM2. Auto-detects Bun, pnpm, uv, Poetry, Cargo, and Composer from your repository.",
     detail: "One project wizard for repo, build commands, and encrypted env vars.",
+    visual: (
+      <div className="space-y-2 font-mono text-[11px] text-neutral-300">
+        <p><span className="text-neutral-500">deploymentType:</span> pm2 | docker</p>
+        <p><span className="text-neutral-500">packageManager:</span> bun</p>
+        <p><span className="text-neutral-500">buildCommand:</span> bun run build</p>
+        <p><span className="text-neutral-500">startCommand:</span> bun run start</p>
+      </div>
+    ),
   },
   {
     title: "Database studio built in",
     description:
       "Provision PostgreSQL, Redis, MySQL, or MongoDB on the server. Inspect schemas, run queries, and link credentials into projects without leaving the dashboard.",
     detail: "SQL, Redis, and Mongo query runners with export to JSON or CSV.",
+    visual: (
+      <div className="space-y-2 font-mono text-[11px]">
+        <p className="text-neutral-500">POST /api/v1/databases/:id/query</p>
+        <pre className="overflow-x-auto rounded border border-neutral-800 bg-black p-3 text-emerald-400/90">
+{`SELECT tablename
+FROM pg_tables
+WHERE schemaname = 'public';`}
+        </pre>
+      </div>
+    ),
   },
   {
     title: "Deployments you can actually read",
     description:
       "Global and per-project deployment feeds show commit message, author, branch, SHA, environment, status, and duration — the same view you use to debug production.",
     detail: "Route-synced project tabs for Deployments, Domains, Logs, and Settings.",
+    visual: (
+      <div className="divide-y divide-neutral-800 font-mono text-[11px]">
+        <div className="flex items-center justify-between py-2">
+          <span className="truncate text-neutral-300">feat: add deployment logs UI</span>
+          <span className="shrink-0 text-emerald-400">[ READY ]</span>
+        </div>
+        <div className="flex items-center justify-between py-2">
+          <span className="truncate text-neutral-300">fix: nginx upstream reload</span>
+          <span className="shrink-0 text-sky-300">[ BUILDING ]</span>
+        </div>
+      </div>
+    ),
   },
 ];
 
@@ -59,20 +105,7 @@ export function FeatureShowcase() {
                 <p className="mt-4 text-sm text-neutral-500">{feature.detail}</p>
               </div>
               <div className="rounded-xl border border-neutral-800 bg-neutral-950 p-6">
-                <div className="space-y-3">
-                  <div className="h-2 w-24 rounded bg-neutral-800" />
-                  <div className="h-2 w-full rounded bg-neutral-800/80" />
-                  <div className="h-2 w-[83%] rounded bg-neutral-800/60" />
-                  <div className="mt-6 rounded-lg border border-neutral-800 bg-[#0a0a0a] p-4">
-                    <p className="font-mono text-xs text-neutral-500">{feature.title}</p>
-                    <p className="mt-2 font-mono text-xs text-emerald-400/90">
-                      {index === 0 && "GET /health → 200 OK · nginx -s reload"}
-                      {index === 1 && "deploymentType: pm2 | docker · packageManager: bun"}
-                      {index === 2 && "POST /api/v1/databases/:id/query"}
-                      {index === 3 && "GET /api/v1/deployments · GET /projects/:id/commits"}
-                    </p>
-                  </div>
-                </div>
+                {feature.visual}
               </div>
             </div>
           ))}

@@ -4,6 +4,7 @@ import { HeroSection } from "@/components/landing/hero-section";
 import { LaunchVideoSection } from "@/components/landing/launch-video-section";
 import { FeatureShowcase } from "@/components/landing/feature-showcase";
 import { CapabilityGrid } from "@/components/capability-grid";
+import { LandingFAQ } from "@/components/landing-faq";
 import { HowItWorks } from "@/components/landing/how-it-works";
 import { InstallSection } from "@/components/landing/install-section";
 
@@ -17,6 +18,7 @@ export default function Home() {
         <FeatureShowcase />
         <CapabilityGrid />
         <HowItWorks />
+        <LandingFAQ />
         <InstallSection />
       </main>
       <SiteFooter />

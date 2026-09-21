@@ -43,6 +43,16 @@ export function LaunchVideoSection() {
     const video = videoRef.current;
     if (!video) return;
 
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reducedMotion) {
+      video.pause();
+      video.removeAttribute("autoplay");
+    } else {
+      void video.play().catch(() => {
+        /* autoplay may be blocked until user interaction */
+      });
+    }
+
     const handleTimeUpdate = () => {
       if (video.duration) {
         setProgress((video.currentTime / video.duration) * 100);
@@ -133,6 +143,9 @@ export function LaunchVideoSection() {
               <span>[ RUN /BRAG ]</span>
               <span className="text-neutral-500">{copied ? "COPIED" : "COPY CMD"}</span>
             </button>
+            <span aria-live="polite" className="sr-only">
+              {copied ? "Command copied to clipboard" : ""}
+            </span>
           </div>
         </div>
 
