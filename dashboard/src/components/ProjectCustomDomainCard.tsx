@@ -250,6 +250,13 @@ export function ProjectCustomDomainCard({
                     variant="outline"
                     size="sm"
                     disabled={sslRunning || !primary.dnsOk || primary.sslStatus === "issued"}
+                    title={
+                      primary.sslStatus === "issued"
+                        ? "TLS certificate already issued"
+                        : !primary.dnsOk
+                          ? "Verify DNS before requesting TLS"
+                          : undefined
+                    }
                     onClick={() => void onSsl()}
                     className="border-neutral-800 text-neutral-300 hover:text-white text-xs h-8"
                   >
@@ -299,15 +306,25 @@ export function ProjectCustomDomainCard({
                       <tr>
                         <td className="py-2.5 font-bold text-white">A</td>
                         <td className="py-2.5">
-                          <span className="cursor-pointer hover:underline" onClick={() => copyValue(primary.hostname, "Hostname")}>
+                          <button
+                            type="button"
+                            className="cursor-pointer text-left hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-600"
+                            aria-label={`Copy hostname ${primary.hostname}`}
+                            onClick={() => copyValue(primary.hostname, "Hostname")}
+                          >
                             {primary.hostname}
-                          </span>
+                          </button>
                         </td>
                         <td className="py-2.5">
                           {expectedIpv4 ? (
-                            <span className="cursor-pointer font-semibold text-white hover:underline" onClick={() => copyValue(expectedIpv4, "Target IPv4")}>
+                            <button
+                              type="button"
+                              className="cursor-pointer font-semibold text-white hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-600"
+                              aria-label={`Copy target IPv4 ${expectedIpv4}`}
+                              onClick={() => copyValue(expectedIpv4, "Target IPv4")}
+                            >
                               {expectedIpv4}
-                            </span>
+                            </button>
                           ) : (
                             <span className="text-neutral-500">Not configured</span>
                           )}

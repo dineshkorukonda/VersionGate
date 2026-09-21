@@ -2,6 +2,7 @@ import { Outlet, useNavigate } from "react-router-dom";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
+import { toast } from "sonner";
 import { useEffect, useState } from "react";
 import { getAuthStatus, getInstanceSettings, getProjects, getSetupStatus, type Project } from "@/lib/api";
 import { setConfiguredPublicHost } from "@/lib/deployment-display";
@@ -95,7 +96,9 @@ export function Layout() {
         const r = await getProjects();
         if (!cancelled) setProjects(r.projects);
       } catch {
-        /* sidebar project list is non-critical */
+        if (!cancelled) {
+          toast.error("Could not refresh sidebar project list");
+        }
       }
     };
     void loadProjects();

@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { VercelCardBox } from "@/components/ui/VercelCardBox";
+import { ConfirmDialog } from "@/components/modals/ConfirmDialog";
 import { toast } from "sonner";
 import { settingsInputClass } from "./settings-styles";
 
@@ -18,6 +19,7 @@ export function ApiTokensCard() {
   const [name, setName] = useState("");
   const [creating, setCreating] = useState(false);
   const [newRawToken, setNewRawToken] = useState<string | null>(null);
+  const [revokeTarget, setRevokeTarget] = useState<ApiTokenItem | null>(null);
 
   const loadTokens = async () => {
     try {
@@ -95,10 +97,12 @@ export function ApiTokensCard() {
 
         <form onSubmit={handleCreate} className="flex gap-2 max-w-md">
           <Input
+            id="api-token-name"
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Token name (e.g. GitHub Actions, CLI)"
             className={settingsInputClass}
+            aria-label="Token name"
           />
           <Button
             type="submit"
@@ -130,7 +134,7 @@ export function ApiTokensCard() {
                     variant="ghost"
                     size="sm"
                     className="text-red-400 hover:text-red-300 hover:bg-red-950/20 text-xs h-7"
-                    onClick={() => void handleRevoke(t.id)}
+                    onClick={() => setRevokeTarget(t)}
                   >
                     Revoke
                   </Button>
@@ -140,6 +144,19 @@ export function ApiTokensCard() {
           )}
         </div>
       </div>
+
+      <ConfirmDialog
+        open={Boolean(revokeTarget)}
+        onOpenChange={(open) => {
+          if (!open) setRevokeTarget(null);
+        }}
+        title={`Revoke token "${revokeTarget?.name}"?`}
+        description="This token will stop working immediately. Any CI/CD workflows using it will fail until a new token is issued."
+        confirmLabel="Revoke Token"
+        onConfirm={() => {
+          if (revokeTarget) void handleRevoke(revokeTarget.id);
+        }}
+      />
     </VercelCardBox>
   );
 }

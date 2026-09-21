@@ -1590,9 +1590,9 @@ export default async function ChangelogPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground transition-colors">
-      <SiteHeader />
+      <SiteHeader active="changelog" />
 
-      <main className="mx-auto max-w-5xl px-4 py-12 sm:px-6">
+      <main id="main" className="mx-auto max-w-5xl px-4 py-12 sm:px-6">
         {/* Page Header */}
         <div className="space-y-4 border-b border-border pb-8">
           <div className="flex items-center justify-between flex-wrap gap-4">
@@ -1673,9 +1673,12 @@ export default async function ChangelogPage() {
                             <h3 className="font-sans text-sm font-semibold text-foreground">
                               {item.title}
                             </h3>
-                            {item.prNumber && item.prLink ? (
+                            {item.prNumber ? (
                               <Link
-                                href={item.prLink}
+                                href={
+                                  item.prLink ??
+                                  `https://github.com/dineshkorukonda/VersionGate/pull/${item.prNumber}`
+                                }
                                 target="_blank"
                                 rel="noreferrer"
                                 className="font-mono text-xs text-muted-foreground hover:text-foreground underline-offset-2 hover:underline"

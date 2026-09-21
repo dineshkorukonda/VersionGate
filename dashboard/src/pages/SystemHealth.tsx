@@ -23,7 +23,7 @@ function hostnameHint(): string {
 }
 
 export function SystemHealth() {
-  const { data, isLoading, isFetching, refetch } = useSystemHealth();
+  const { data, isLoading, isFetching, isError, error, refetch } = useSystemHealth();
   const { history, push } = useServerMetricHistory();
 
   const preflight = data?.preflight ?? null;
@@ -56,15 +56,35 @@ export function SystemHealth() {
     return items;
   }, [preflight, dashboard]);
 
-  if (isLoading || !stats) {
+  if (isLoading) {
     return (
-      <div className="w-full space-y-6">
+      <div className="w-full space-y-6" role="status" aria-live="polite">
         <Skeleton className="h-10 w-72" />
         <Skeleton className="h-32 w-full" />
         <div className="grid gap-4 md:grid-cols-2">
           <Skeleton className="h-44" />
           <Skeleton className="h-44" />
         </div>
+      </div>
+    );
+  }
+
+  if (isError || !stats) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-4 py-16 text-center" role="alert">
+        <p className="text-sm text-neutral-300">
+          {error instanceof Error ? error.message : "Failed to load system health telemetry."}
+        </p>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={isFetching}
+          onClick={() => void refetch()}
+          className="border-neutral-800 bg-neutral-900 text-neutral-300 hover:text-white text-xs"
+        >
+          {isFetching ? "Retrying..." : "Retry"}
+        </Button>
       </div>
     );
   }

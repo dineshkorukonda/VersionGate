@@ -179,6 +179,7 @@ export function Overview() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search Projects..."
+              aria-label="Search projects"
               className="h-9 rounded-md border border-neutral-800 bg-[#0a0a0a] pl-8 pr-7 text-xs text-white placeholder:text-neutral-500 focus-visible:border-neutral-500 focus-visible:ring-0"
             />
             {searchQuery && (
@@ -196,6 +197,7 @@ export function Overview() {
           <div className="flex items-center gap-1 overflow-x-auto rounded-lg border border-neutral-800 bg-[#0a0a0a] p-0.5 text-xs">
             <button
               type="button"
+              aria-pressed={statusFilter === "all"}
               onClick={() => setStatusFilter("all")}
               className={cn(
                 "rounded px-2.5 py-1 text-xs transition-colors",
@@ -208,6 +210,7 @@ export function Overview() {
             </button>
             <button
               type="button"
+              aria-pressed={statusFilter === "active"}
               onClick={() => setStatusFilter("active")}
               className={cn(
                 "inline-flex items-center gap-1.5 rounded px-2.5 py-1 text-xs transition-colors",
@@ -221,6 +224,7 @@ export function Overview() {
             </button>
             <button
               type="button"
+              aria-pressed={statusFilter === "deploying"}
               onClick={() => setStatusFilter("deploying")}
               className={cn(
                 "inline-flex items-center gap-1.5 rounded px-2.5 py-1 text-xs transition-colors",
@@ -235,6 +239,7 @@ export function Overview() {
             {stats.failed > 0 && (
               <button
                 type="button"
+                aria-pressed={statusFilter === "failed"}
                 onClick={() => setStatusFilter("failed")}
                 className={cn(
                   "inline-flex items-center gap-1.5 rounded px-2.5 py-1 text-xs transition-colors",
@@ -253,6 +258,7 @@ export function Overview() {
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as "activity" | "name" | "created")}
+            aria-label="Sort projects"
             className="h-9 rounded-md border border-neutral-800 bg-[#0a0a0a] px-3 text-xs text-neutral-300 outline-none hover:border-neutral-700 cursor-pointer"
           >
             <option value="activity">Sort by activity</option>
@@ -267,6 +273,7 @@ export function Overview() {
           <div className="flex items-center rounded-lg border border-neutral-800 bg-[#0a0a0a] p-0.5">
             <button
               type="button"
+              aria-pressed={viewMode === "grid"}
               onClick={() => setViewMode("grid")}
               className={cn(
                 "rounded p-1.5 transition-colors",
@@ -278,6 +285,7 @@ export function Overview() {
             </button>
             <button
               type="button"
+              aria-pressed={viewMode === "list"}
               onClick={() => setViewMode("list")}
               className={cn(
                 "rounded p-1.5 transition-colors",
@@ -427,6 +435,7 @@ export function Overview() {
                           to={`/projects/${p.id}`}
                           onClick={(e) => e.stopPropagation()}
                           className="truncate font-semibold text-sm text-white hover:underline"
+                          title={p.name}
                         >
                           {p.name}
                         </Link>
@@ -620,7 +629,7 @@ export function Overview() {
                           {p.name.charAt(0).toUpperCase()}
                         </div>
                         <div className="min-w-0">
-                          <p className="font-semibold text-white truncate hover:underline">{p.name}</p>
+                          <p className="font-semibold text-white truncate hover:underline" title={p.name}>{p.name}</p>
                           {liveUrl && (
                             <p className="text-[11px] font-mono text-neutral-400 truncate">
                               {liveUrl.replace(/^https?:\/\//, "")}

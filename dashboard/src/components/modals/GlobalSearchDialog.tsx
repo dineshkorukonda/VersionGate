@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getProjects, type Project } from "@/lib/api";
 import {
@@ -33,6 +33,7 @@ export function GlobalSearchDialog({
   const [q, setQ] = useState("");
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const listRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!open) {
@@ -194,6 +195,11 @@ export function GlobalSearchDialog({
     setSelectedIndex(0);
   }, [q]);
 
+  useEffect(() => {
+    const active = listRef.current?.querySelector<HTMLElement>(`[data-command-index="${selectedIndex}"]`);
+    active?.scrollIntoView({ block: "nearest" });
+  }, [selectedIndex]);
+
   const onKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "ArrowDown") {
       e.preventDefault();
@@ -238,6 +244,13 @@ export function GlobalSearchDialog({
           <span className="font-mono text-xs text-neutral-500 font-semibold">[CMD]</span>
           <Input
             autoFocus
+            role="combobox"
+            aria-expanded={open}
+            aria-controls="global-search-listbox"
+            aria-activedescendant={
+              filteredItems[selectedIndex] ? `global-search-option-${selectedIndex}` : undefined
+            }
+            aria-label="Search commands and projects"
             value={q}
             onChange={(e) => setQ(e.target.value)}
             onKeyDown={onKeyDown}
@@ -261,7 +274,13 @@ export function GlobalSearchDialog({
           )}
         </div>
 
-        <div className="max-h-[380px] overflow-y-auto p-2">
+        <div
+          id="global-search-listbox"
+          ref={listRef}
+          role="listbox"
+          aria-label="Search results"
+          className="max-h-[380px] overflow-y-auto p-2"
+        >
           {filteredItems.length === 0 ? (
             <div className="py-12 text-center">
               <p className="font-mono text-xs text-neutral-400">No matching commands or projects found</p>
@@ -281,7 +300,11 @@ export function GlobalSearchDialog({
                     return (
                       <button
                         key={item.id}
+                        id={`global-search-option-${index}`}
+                        data-command-index={index}
                         type="button"
+                        role="option"
+                        aria-selected={isSelected}
                         onClick={item.action}
                         onMouseEnter={() => setSelectedIndex(index)}
                         className={cn(
@@ -293,7 +316,7 @@ export function GlobalSearchDialog({
                       >
                         <div className="min-w-0 flex-1 pr-3">
                           <div className="flex items-center gap-2">
-                            <span className="font-medium text-xs font-sans truncate">{item.title}</span>
+                            <span className="font-medium text-xs font-sans truncate" title={item.title}>{item.title}</span>
                             {item.badge && (
                               <span className="rounded border border-neutral-800 bg-neutral-950 px-1.5 py-0.2 font-mono text-[9px] text-neutral-400">
                                 {item.badge}
@@ -301,7 +324,7 @@ export function GlobalSearchDialog({
                             )}
                           </div>
                           {item.subtitle && (
-                            <p className="mt-0.5 truncate font-mono text-[11px] text-neutral-500">
+                            <p className="mt-0.5 truncate font-mono text-[11px] text-neutral-500" title={item.subtitle}>
                               {item.subtitle}
                             </p>
                           )}

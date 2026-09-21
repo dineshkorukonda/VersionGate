@@ -103,6 +103,7 @@ export function Deployments() {
               <button
                 key={env}
                 type="button"
+                aria-pressed={envFilter === env}
                 onClick={() => setEnvFilter(env)}
                 className={cn(
                   "rounded-md px-3 py-1 text-xs font-medium capitalize transition-colors",
@@ -119,6 +120,7 @@ export function Deployments() {
           <select
             value={projectFilter}
             onChange={(e) => setProjectFilter(e.target.value)}
+            aria-label="Filter by project"
             className="h-8 rounded-lg border border-neutral-800 bg-[#0a0a0a] px-2.5 text-xs text-neutral-300 focus:border-neutral-600 focus:outline-none"
           >
             <option value="all">All Projects</option>
@@ -130,6 +132,7 @@ export function Deployments() {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
+            aria-label="Filter by deployment status"
             className="h-8 rounded-lg border border-neutral-800 bg-[#0a0a0a] px-2.5 text-xs text-neutral-300 focus:border-neutral-600 focus:outline-none"
           >
             <option value="all">All Statuses</option>

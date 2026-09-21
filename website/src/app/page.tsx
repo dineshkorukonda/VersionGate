@@ -11,7 +11,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-black text-foreground">
       <SiteHeader />
-      <main>
+      <main id="main">
         <HeroSection />
         <LaunchVideoSection />
         <FeatureShowcase />

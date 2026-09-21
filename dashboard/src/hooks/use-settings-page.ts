@@ -21,6 +21,7 @@ export function useSettingsPage() {
   const [instance, setInstance] = useState<InstanceSettings | null>(null);
   const [setup, setSetup] = useState<SetupStatus | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const [publicDomainDraft, setPublicDomainDraft] = useState("");
   const [publicBasePathDraft, setPublicBasePathDraft] = useState("/");
@@ -43,6 +44,7 @@ export function useSettingsPage() {
   useEffect(() => {
     let cancelled = false;
     void (async () => {
+      setLoadError(null);
       try {
         const [i, s] = await Promise.all([getInstanceSettings(), getSetupStatus()]);
         if (cancelled) return;
@@ -80,7 +82,11 @@ export function useSettingsPage() {
           }
         }
       } catch (e) {
-        if (!cancelled) toast.error(e instanceof Error ? e.message : "Failed to load settings");
+        if (!cancelled) {
+          const message = e instanceof Error ? e.message : "Failed to load settings";
+          setLoadError(message);
+          toast.error(message);
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -300,10 +306,35 @@ export function useSettingsPage() {
     }
   };
 
+  const reload = () => {
+    setLoading(true);
+    setLoadError(null);
+    void (async () => {
+      try {
+        const [i, s] = await Promise.all([getInstanceSettings(), getSetupStatus()]);
+        setInstance(i);
+        setSetup(s);
+        setPublicDomainDraft(i.publicDomain ?? "");
+        setPublicBasePathDraft(i.publicBasePath ?? "/");
+        setCertbotEmailDraft(i.certbotEmail ?? "");
+        setExcludedPortsDraft(i.excludedPorts ?? "80,443,3000,5173,5432,6379,9090");
+        setLoadError(null);
+      } catch (e) {
+        const message = e instanceof Error ? e.message : "Failed to load settings";
+        setLoadError(message);
+        toast.error(message);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  };
+
   return {
     instance,
     setup,
     loading,
+    loadError,
+    reload,
     publicDomainDraft,
     setPublicDomainDraft,
     publicBasePathDraft,

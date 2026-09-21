@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { CronJobsManager } from "@/components/CronJobsManager";
 import { getProjects, type Project } from "@/lib/api";
 import { PageHeader } from "@/components/PageHeader";
+import { toast } from "sonner";
 
 export function CronJobs() {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -9,7 +10,9 @@ export function CronJobs() {
   useEffect(() => {
     void getProjects()
       .then((res) => setProjects(res.projects || []))
-      .catch(() => {});
+      .catch((err: unknown) => {
+        toast.error(err instanceof Error ? err.message : "Failed to load projects for cron scheduling");
+      });
   }, []);
 
   return (

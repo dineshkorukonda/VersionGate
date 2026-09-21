@@ -43,6 +43,12 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <body
         className={`${sans.variable} ${mono.variable} font-sans antialiased bg-background text-foreground`}
       >
+        <a
+          href="#main"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-md focus:border focus:border-border focus:bg-card focus:px-4 focus:py-2 focus:text-sm focus:text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+        >
+          Skip to main content
+        </a>
         {children}
       </body>
     </html>

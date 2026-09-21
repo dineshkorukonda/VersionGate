@@ -14,19 +14,23 @@ export function Status() {
   const [report, setReport] = useState<ComprehensiveStatusReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [checkingSync, setCheckingSync] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [deployingProjectId, setDeployingProjectId] = useState<string | null>(null);
   const [filter, setFilter] = useState<"ALL" | "OUT_OF_SYNC" | "HEALTHY" | "PM2" | "DOCKER">("ALL");
 
   const loadStatus = async (silent = false) => {
     if (!silent) setLoading(true);
+    else setRefreshing(true);
     try {
       const data = await getSystemStatusOverview();
       setReport(data);
-    } catch (err: any) {
+    } catch (err: unknown) {
       if (!silent) {
         toast.error(err instanceof Error ? err.message : "Failed to load system status");
       }
     } finally {
       if (!silent) setLoading(false);
+      else setRefreshing(false);
     }
   };
 
@@ -57,6 +61,7 @@ export function Status() {
   };
 
   const handleForceDeploy = async (projectId: string) => {
+    setDeployingProjectId(projectId);
     try {
       const res = await checkAutoDeploy({ projectId, forceDeploy: true });
       const triggered = res.results.find((r) => r.projectId === projectId && r.deployTriggered);
@@ -66,8 +71,10 @@ export function Status() {
         toast.info("Deploy triggered");
       }
       await loadStatus(true);
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Failed to trigger deployment");
+    } finally {
+      setDeployingProjectId(null);
     }
   };
 
@@ -132,10 +139,11 @@ export function Status() {
             type="button"
             variant="outline"
             size="sm"
-            onClick={() => loadStatus()}
+            disabled={refreshing}
+            onClick={() => void loadStatus(true)}
             className="border-neutral-800 font-mono text-xs text-neutral-400 hover:text-white"
           >
-            [ Refresh ]
+            {refreshing ? "[ Refreshing... ]" : "[ Refresh ]"}
           </Button>
         </div>
       </div>
@@ -420,10 +428,11 @@ export function Status() {
                                 type="button"
                                 variant="outline"
                                 size="xs"
-                                onClick={() => handleForceDeploy(app.projectId)}
+                                disabled={deployingProjectId === app.projectId}
+                                onClick={() => void handleForceDeploy(app.projectId)}
                                 className="border-neutral-800 bg-neutral-900 text-neutral-300 hover:text-white text-[10px]"
                               >
-                                [ Deploy ]
+                                {deployingProjectId === app.projectId ? "[ Deploying... ]" : "[ Deploy ]"}
                               </Button>
                               <Link
                                 to={`/projects/${app.projectId}`}

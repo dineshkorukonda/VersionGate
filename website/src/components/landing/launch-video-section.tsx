@@ -93,11 +93,10 @@ export function LaunchVideoSection() {
     setIsMuted(video.muted);
   };
 
-  const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
+  const handleSeek = (value: number) => {
     const video = videoRef.current;
     if (!video || !video.duration) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const clickPos = (e.clientX - rect.left) / rect.width;
+    const clickPos = value / 100;
     video.currentTime = clickPos * video.duration;
   };
 
@@ -188,15 +187,23 @@ export function LaunchVideoSection() {
               </div>
 
               {/* Video Timeline Scrubber */}
-              <div
-                className="h-1.5 w-full bg-neutral-800 cursor-pointer transition-all hover:h-2.5"
-                onClick={handleSeek}
-              >
-                <div
-                  className="h-full bg-primary transition-all duration-100"
-                  style={{ width: `${progress}%` }}
-                />
-              </div>
+              <label htmlFor="launch-video-progress" className="sr-only">
+                Video progress
+              </label>
+              <input
+                id="launch-video-progress"
+                type="range"
+                min={0}
+                max={100}
+                step={0.1}
+                value={progress}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={Math.round(progress)}
+                aria-label="Video progress"
+                onChange={(e) => handleSeek(Number(e.target.value))}
+                className="h-1.5 w-full cursor-pointer appearance-none bg-neutral-800 accent-primary transition-all hover:h-2.5"
+              />
 
               {/* Interactive Control Footer */}
               <div className="flex items-center justify-between border-t border-neutral-800/80 bg-neutral-950/90 px-4 py-3 font-mono text-xs">

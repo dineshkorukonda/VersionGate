@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { getProject, type Project } from "@/lib/api";
+import { getProject, getSystemStatusOverview, type Project } from "@/lib/api";
 import { projectTabFromPath } from "@/lib/project-routes";
 import {
   DropdownMenu,
@@ -10,6 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { NavIconChevronsUpDown } from "@/components/nav-icons";
+import { cn } from "@/lib/utils";
 
 interface SidebarBreadcrumbsProps {
   projects?: Project[];
@@ -19,6 +20,7 @@ export function SidebarBreadcrumbs({ projects = [] }: SidebarBreadcrumbsProps) {
   const navigate = useNavigate();
   const { pathname, search } = useLocation();
   const [projectName, setProjectName] = useState<string | null>(null);
+  const [overallStatus, setOverallStatus] = useState<"operational" | "degraded" | "down" | "unknown">("unknown");
 
   const projectMatch = pathname.match(/^\/projects\/([^/]+)/);
   const currentProjectId = projectMatch && projectMatch[1] !== "new" ? projectMatch[1] : null;
@@ -45,6 +47,50 @@ export function SidebarBreadcrumbs({ projects = [] }: SidebarBreadcrumbsProps) {
       cancelled = true;
     };
   }, [currentProjectId, projects]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadStatus = () => {
+      void getSystemStatusOverview()
+        .then((report) => {
+          if (!cancelled) setOverallStatus(report.overallStatus);
+        })
+        .catch(() => {
+          if (!cancelled) setOverallStatus("unknown");
+        });
+    };
+    loadStatus();
+    const id = window.setInterval(loadStatus, 30_000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+    };
+  }, []);
+
+  const statusMeta = useMemo(() => {
+    switch (overallStatus) {
+      case "operational":
+        return {
+          label: "System operational",
+          dotClass: "bg-emerald-400 animate-pulse shadow-[0_0_6px_rgba(52,211,153,0.8)]",
+        };
+      case "degraded":
+        return {
+          label: "System degraded",
+          dotClass: "bg-amber-400 shadow-[0_0_6px_rgba(251,191,36,0.8)]",
+        };
+      case "down":
+        return {
+          label: "System down",
+          dotClass: "bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.8)]",
+        };
+      default:
+        return {
+          label: "System status unknown",
+          dotClass: "bg-neutral-500",
+        };
+    }
+  }, [overallStatus]);
 
   const pageTitle = useMemo(() => {
     if (currentProjectId) {
@@ -120,7 +166,7 @@ export function SidebarBreadcrumbs({ projects = [] }: SidebarBreadcrumbsProps) {
                 <span className="flex size-4 shrink-0 items-center justify-center rounded bg-blue-600/80 text-[10px] font-bold text-white uppercase shadow-sm">
                   {projectName ? projectName.charAt(0) : "P"}
                 </span>
-                <span className="truncate font-semibold text-white max-w-[100px] sm:max-w-[160px]">
+                <span className="truncate font-semibold text-white max-w-[100px] sm:max-w-[160px]" title={projectName || "Project"}>
                   {projectName || "Project"}
                 </span>
               </>
@@ -168,10 +214,11 @@ export function SidebarBreadcrumbs({ projects = [] }: SidebarBreadcrumbsProps) {
         <button
           type="button"
           onClick={() => navigate("/status")}
-          aria-label="View system status"
+          aria-label={statusMeta.label}
+          title={statusMeta.label}
           className="inline-flex shrink-0 items-center gap-2 rounded-full border border-neutral-800 bg-neutral-900/90 px-2.5 py-1 font-mono text-xs font-medium text-neutral-300 transition-colors hover:border-neutral-700 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-600 sm:px-3"
         >
-          <span className="size-1.5 shrink-0 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_6px_rgba(52,211,153,0.8)]" />
+          <span className={cn("size-1.5 shrink-0 rounded-full", statusMeta.dotClass)} />
           <span>Status</span>
         </button>
       </div>

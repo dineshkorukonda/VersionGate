@@ -138,7 +138,8 @@ export function Projects() {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search projects or repo..."
-              className="h-8.5 w-full rounded-lg border border-neutral-800 bg-[#0a0a0a] pl-9 pr-3 font-sans text-xs text-white placeholder:text-neutral-500 focus:border-neutral-600 focus:outline-none"
+              aria-label="Search projects or repository"
+              className="h-9 w-full rounded-lg border border-neutral-800 bg-[#0a0a0a] pl-9 pr-3 font-sans text-xs text-white placeholder:text-neutral-500 focus:border-neutral-600 focus:outline-none"
             />
           </div>
 
@@ -185,11 +186,29 @@ export function Projects() {
         <Card className="border-dashed border-neutral-800 bg-[#0a0a0a] rounded-xl">
           <CardContent className="flex flex-col items-center justify-center gap-4 py-12 text-center">
             <p className="font-sans text-sm text-neutral-400">
-              No projects found matching your search.
+              {projects.length === 0
+                ? "No projects yet. Create your first deployment target to get started."
+                : "No projects match your current filters."}
             </p>
-            <Button type="button" size="sm" className="bg-white text-black font-semibold hover:bg-neutral-200 text-xs" onClick={() => launchCreate()}>
-              Create First Project
-            </Button>
+            {projects.length === 0 ? (
+              <Button type="button" size="sm" className="bg-white text-black font-semibold hover:bg-neutral-200 text-xs" onClick={() => launchCreate()}>
+                Create First Project
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="border-neutral-800 text-neutral-300 hover:text-white text-xs"
+                onClick={() => {
+                  setSearchTerm("");
+                  setEnvFilter("ALL");
+                  setPage(0);
+                }}
+              >
+                Clear Filters
+              </Button>
+            )}
           </CardContent>
         </Card>
       ) : (

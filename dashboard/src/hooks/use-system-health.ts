@@ -21,7 +21,7 @@ export function useSystemHealth(refetchInterval = 5_000) {
     queryFn: async (): Promise<SystemHealthData> => {
       const [preflight, dashboard, engineHealth] = await Promise.all([
         getPreflight().catch(() => null),
-        getServerDashboard().catch(() => null),
+        getServerDashboard(),
         getEngineHealth().catch(() => null),
       ]);
       return { preflight, dashboard, engineHealth };
