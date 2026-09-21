@@ -3,6 +3,7 @@ import { ProjectRepository } from "../repositories/project.repository";
 import { EnvironmentRepository } from "../repositories/environment.repository";
 import { enqueueJob } from "../services/job-queue.service";
 import { logger } from "../utils/logger";
+import { checkRateLimit } from "../utils/rate-limiter";
 
 const projectRepo = new ProjectRepository();
 const envRepo = new EnvironmentRepository();
@@ -67,6 +68,15 @@ export async function githubWebhookHandler(
   reply: FastifyReply
 ): Promise<void> {
   const { secret } = req.params;
+
+  const limit = checkRateLimit(`webhook:${secret}`, 30, 60_000);
+  if (!limit.allowed) {
+    return reply.code(429).send({
+      error: "TooManyRequests",
+      message: "Webhook rate limit exceeded. Retry later.",
+      retryAfterMs: limit.retryAfterMs,
+    });
+  }
 
   // Look up the project by its webhook secret
   const project = await projectRepo.findByWebhookSecret(secret);

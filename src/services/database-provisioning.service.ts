@@ -432,6 +432,20 @@ export class DatabaseProvisioningService {
       throw new Error("Database not found");
     }
 
+    if (record.linkedProjectId) {
+      const project = await this.projectRepo.findById(record.linkedProjectId);
+      if (project) {
+        const cfg = DEFAULT_ENGINE_CONFIG[record.engine];
+        const envKey = cfg.envVarKey;
+        const currentEnv = { ...((project.env as Record<string, string>) || {}) };
+        if (envKey in currentEnv) {
+          delete currentEnv[envKey];
+          await this.projectRepo.update(project.id, { env: currentEnv as any });
+          logger.info({ databaseId, projectId: project.id, envKey }, "Removed linked database env key from project");
+        }
+      }
+    }
+
     await this.dbRepo.update(databaseId, {
       linkedProjectId: null,
     });
@@ -519,8 +533,10 @@ export class DatabaseProvisioningService {
           tables.push({ name: col, type: "collection" });
         }
       }
-    } catch (err: any) {
-      logger.warn({ id: databaseId, engine: record.engine, err }, "Failed to fetch schema tables from container");
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      logger.warn({ id: databaseId, engine: record.engine, err: errMsg }, "Failed to fetch schema tables from container");
+      throw new Error(`Schema introspection failed: ${errMsg}`);
     }
 
     return {

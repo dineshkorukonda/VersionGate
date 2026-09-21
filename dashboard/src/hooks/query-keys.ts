@@ -14,4 +14,7 @@ export const queryKeys = {
   jobs: {
     recent: (limit: number) => ["jobs", "recent", limit] as const,
   },
+  system: {
+    health: ["system", "health"] as const,
+  },
 } as const;

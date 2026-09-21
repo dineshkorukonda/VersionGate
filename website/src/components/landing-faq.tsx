@@ -23,9 +23,9 @@ const FAQS: FAQ[] = [
     a: "The database studio lets you inspect tables, examine schemas, and execute SQL, Redis commands, or MongoDB operations directly against provisioned containers with millisecond timing and JSON/CSV export.",
   },
   {
-    q: "Can VersionGate adopt containers already running on my server?",
-    a: "Yes. Server deployment auto-adoption scans for existing Docker containers and PM2 processes, detects ports and working directories, and imports them into VersionGate management in one click.",
-    code: "GET /api/v1/system/discover-deployments",
+    q: "Can I import an existing PM2 or Docker app without rebuilding it?",
+    a: "Create a project with the same repository URL, working directory, and runtime type (PM2 or Docker). VersionGate links Git remotes, webhooks, and health checks so commit-triggered deploys work on the host path you configure.",
+    code: "POST /api/v1/projects  |  POST /api/webhooks/:secret",
   },
   {
     q: "How does DNS preflight prevent Let's Encrypt rate-limit bans?",

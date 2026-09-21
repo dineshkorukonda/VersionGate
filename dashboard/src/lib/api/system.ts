@@ -1,7 +1,6 @@
 import { request } from "./client";
 import type {
   ComprehensiveStatusReport,
-  DiscoveredDeployment,
   EngineHealthReport,
   PreflightReport,
   ServerStats,
@@ -22,10 +21,6 @@ export function getServerDashboard(): Promise<SystemDashboardResponse> {
 
 export function getEngineHealth(): Promise<EngineHealthReport> {
   return request("GET", "/system/engine-health");
-}
-
-export function discoverServerDeployments(): Promise<{ candidates: DiscoveredDeployment[] }> {
-  return request("GET", "/system/discover-deployments");
 }
 
 export function getSystemStatusOverview(): Promise<ComprehensiveStatusReport> {

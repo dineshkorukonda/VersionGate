@@ -1,5 +1,6 @@
-import { describe, expect, it } from "bun:test";
-import { isCronMatch, matchCronField, cronRunnerService } from "../../src/services/cron-runner.service";
+import { describe, expect, it, mock } from "bun:test";
+import { isCronMatch, matchCronField, CronRunnerService } from "../../src/services/cron-runner.service";
+import type { CronJobSelect } from "../../src/db/schema";
 import { serverSpecsService } from "../../src/services/server-specs.service";
 import {
   listCronJobsHandler,
@@ -77,9 +78,66 @@ describe("Server Hardware Capacity & Recommendation Specs", () => {
 
 describe("Cron Runner Service & Controllers", () => {
   it("CronRunnerService provides startScheduler, stopScheduler, and runJobById", () => {
-    expect(typeof cronRunnerService.startScheduler).toBe("function");
-    expect(typeof cronRunnerService.stopScheduler).toBe("function");
-    expect(typeof cronRunnerService.runJobById).toBe("function");
+    const runner = new CronRunnerService();
+    expect(typeof runner.startScheduler).toBe("function");
+    expect(typeof runner.stopScheduler).toBe("function");
+    expect(typeof runner.runJobById).toBe("function");
+  });
+
+  it("tick skips duplicate jobs already marked as running", async () => {
+    const enabledJob: CronJobSelect = {
+      id: "cron-dup-1",
+      name: "duplicate-guard",
+      schedule: "* * * * *",
+      enabled: true,
+      targetType: "COMMAND",
+      command: "echo ok",
+      timeoutSeconds: 5,
+      projectId: null,
+      httpPath: null,
+      httpMethod: null,
+      httpHeaders: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      lastRunAt: null,
+      lastStatus: null,
+      lastDurationMs: null,
+      lastOutput: null,
+    } as CronJobSelect;
+
+    const findEnabled = mock(async () => [enabledJob]);
+    const update = mock(async (id: string, data: Record<string, unknown>) => ({
+      ...enabledJob,
+      id,
+      ...data,
+    }));
+    const createLog = mock(async (data: Record<string, unknown>) => ({
+      id: "log-1",
+      cronJobId: enabledJob.id,
+      createdAt: new Date(),
+      ...data,
+    }));
+
+    mock.module("../../src/repositories/cron.repository", () => ({
+      cronRepository: {
+        findEnabled,
+        update,
+        createLog,
+        findById: mock(async () => enabledJob),
+      },
+    }));
+
+    const { CronRunnerService: IsolatedCronRunnerService } = await import(
+      "../../src/services/cron-runner.service?t=" + Date.now()
+    );
+
+    const runner = new IsolatedCronRunnerService();
+    (runner as any).runningJobs.add(enabledJob.id);
+
+    await runner.tick();
+
+    expect(findEnabled).toHaveBeenCalled();
+    expect(update).not.toHaveBeenCalled();
   });
 
   it("cron controller handlers are defined as Fastify route handlers", () => {

@@ -13,6 +13,12 @@ import { config } from "../config/env";
 import { systemMetrics } from "./system-metrics.service";
 import { enqueueJob } from "./job-queue.service";
 import { logger } from "../utils/logger";
+import { checkRateLimit } from "../utils/rate-limiter";
+
+/** Minimum interval between auto-deploy poll git checks per project (ms). */
+const AUTODEPLOY_GIT_CHECK_WINDOW_MS = 30_000;
+/** Minimum interval between poll-triggered deploy enqueues per project (ms). */
+const AUTODEPLOY_DEPLOY_TRIGGER_WINDOW_MS = 300_000;
 
 export interface SubsystemStatus {
   id: string;
@@ -475,6 +481,27 @@ export class StatusOverviewService {
 
       const activeDeploy = await this.deploymentRepo.findActiveForEnvironment(defaultEnv.id);
       let latestCommit: { sha: string; message: string; author: string; date: string } | null = null;
+
+      if (!options.forceDeploy) {
+        const gitCheckLimit = checkRateLimit(
+          `autodeploy:git:${project.id}`,
+          1,
+          AUTODEPLOY_GIT_CHECK_WINDOW_MS
+        );
+        if (!gitCheckLimit.allowed) {
+          results.push({
+            projectId: project.id,
+            projectName: project.name,
+            branch: project.branch,
+            deployedCommitSha: activeDeploy?.commitSha ?? "",
+            synced: false,
+            deployTriggered: false,
+            reason: "Auto-deploy poll: git check rate limited for this project",
+          });
+          continue;
+        }
+      }
+
       try {
         latestCommit = await this.gitService.getLatestCommit(project);
       } catch {
@@ -488,6 +515,27 @@ export class StatusOverviewService {
       const shouldDeploy = Boolean(options.forceDeploy || (!isSynced && latestSha) || !activeDeploy);
 
       if (shouldDeploy) {
+        if (!options.forceDeploy) {
+          const deployLimit = checkRateLimit(
+            `autodeploy:deploy:${project.id}`,
+            1,
+            AUTODEPLOY_DEPLOY_TRIGGER_WINDOW_MS
+          );
+          if (!deployLimit.allowed) {
+            results.push({
+              projectId: project.id,
+              projectName: project.name,
+              branch: project.branch,
+              latestCommitSha: latestSha,
+              deployedCommitSha: deployedSha,
+              synced: isSynced,
+              deployTriggered: false,
+              reason: "Auto-deploy poll: deploy trigger rate limited for this project",
+            });
+            continue;
+          }
+        }
+
         try {
           const jobId = await enqueueJob("DEPLOY", project.id, {}, defaultEnv.id);
           triggeredCount++;

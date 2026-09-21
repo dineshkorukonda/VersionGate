@@ -1,7 +1,5 @@
 import { request } from "./client";
 import type {
-  AdoptDeploymentInput,
-  Deployment,
   DomainDnsVerificationResult,
   EnvironmentSummary,
   Project,
@@ -130,9 +128,3 @@ export function patchEnvironmentEnv(
 }
 
 export const getProjectEnvironments = listEnvironments;
-
-export function adoptServerDeployment(
-  input: AdoptDeploymentInput
-): Promise<{ project: Project; deployment: Deployment }> {
-  return request("POST", "/projects/adopt", input);
-}

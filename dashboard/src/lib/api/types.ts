@@ -447,37 +447,6 @@ export interface DatabaseQueryResult {
   rawOutput: string;
 }
 
-export interface DiscoveredDeployment {
-  id: string;
-  name: string;
-  serviceType: "pm2" | "docker";
-  status: "online" | "running" | "stopped";
-  port?: number;
-  containerName?: string;
-  imageTag?: string;
-  pm2Name?: string;
-  localPath?: string;
-  buildContext?: string;
-  repoUrl?: string;
-  branch?: string;
-  detectedDomains?: string[];
-  alreadyAdopted: boolean;
-}
-
-export interface AdoptDeploymentInput {
-  name: string;
-  serviceType: "pm2" | "docker";
-  port: number;
-  repoUrl?: string;
-  branch?: string;
-  localPath?: string;
-  buildContext?: string;
-  containerName?: string;
-  pm2Name?: string;
-  imageTag?: string;
-  customDomains?: string[];
-}
-
 export interface CronJob {
   id: string;
   name: string;

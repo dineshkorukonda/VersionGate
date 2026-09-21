@@ -25,10 +25,6 @@ import {
   rollbackEnvironmentHandler,
 } from "../controllers/environment.controller";
 import { promoteEnvironmentHandler } from "../controllers/promote.controller";
-import {
-  discoverDeploymentsHandler,
-  adoptDeploymentHandler,
-} from "../controllers/discovery.controller";
 
 const envSchema = {
   type: "object",
@@ -79,14 +75,6 @@ const updateEnvBodySchema = {
 };
 
 export async function projectRoutes(app: FastifyInstance): Promise<void> {
-  app.get("/system/discover-deployments", {
-    handler: discoverDeploymentsHandler,
-  });
-
-  app.post("/projects/adopt", {
-    handler: adoptDeploymentHandler,
-  });
-
   app.post("/projects", {
     schema: {
       body: createBodySchema,

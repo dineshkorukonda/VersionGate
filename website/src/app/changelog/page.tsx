@@ -44,9 +44,108 @@ interface ProcessedRelease {
 
 const FALLBACK_RELEASES: ProcessedRelease[] = [
   {
-    version: "v3.5.0",
+    version: "v3.6.0",
     date: "September 21, 2026",
     isLatest: true,
+    summary:
+      "Phases 6-9 milestone: dashboard Settings tab decomposition with TanStack Query hooks, webhook and auto-deploy rate limiting, database unlink env cleanup, service discovery removal, and expanded unit tests.",
+    categories: [
+      {
+        title: "Dashboard Query Layer Completion",
+        badge: "IMPROVEMENT",
+        items: [
+          {
+            title: "Settings Page Tab Decomposition",
+            description:
+              "Split Settings into seven dedicated tab components (General, Build, Network, Security, Webhooks, Updates, Advanced) with a thin page shell and useSettingsPage hook.",
+            command: "useSettingsPage()  |  SettingsGeneralTab",
+          },
+          {
+            title: "TanStack Query Hooks for Overview, Activity, Deployments, and System Health",
+            description:
+              "Added useRecentJobs and useSystemHealth hooks. Migrated Overview, Deployments, Activity, and System Health pages to cached server-state with automatic refetch intervals.",
+            command: "useRecentJobs()  |  useSystemHealth()",
+          },
+          {
+            title: "Sidebar Navigation Fixes",
+            description:
+              "Renamed Logs to Activity, fixed deployment route active state for /projects/:id/deploy/, and removed broken project settings sub-navigation.",
+          },
+        ],
+      },
+      {
+        title: "Rate Limiting & UX",
+        badge: "IMPROVEMENT",
+        items: [
+          {
+            title: "Webhook Ingress Rate Limiting",
+            description:
+              "GitHub webhook routes return HTTP 429 when a secret exceeds 30 requests per minute using an in-memory sliding-window limiter.",
+            command: "checkRateLimit('webhook:{secret}', 30, 60000)",
+          },
+          {
+            title: "Auto-Deploy Poll Throttling",
+            description:
+              "Background poller rate-limits git ls-remote checks to once per 30 seconds and deploy enqueues to once per 5 minutes per project.",
+          },
+          {
+            title: "Landing Page Copy Cleanup",
+            description:
+              "Removed references to deleted discovery/adoption endpoints from FAQ, bento features, and PaaS comparison sections.",
+          },
+        ],
+      },
+      {
+        title: "Database Improvements",
+        badge: "IMPROVEMENT",
+        items: [
+          {
+            title: "Unlink Removes Injected Env Keys",
+            description:
+              "unlinkFromProject deletes the linked engine env var key (DATABASE_URL) from the project environment when a managed database is unlinked.",
+            command: "DELETE env.DATABASE_URL on unlink",
+          },
+          {
+            title: "Schema Introspection Error Propagation",
+            description:
+              "getDatabaseSchema throws explicit errors on container exec failure instead of returning empty table lists.",
+          },
+        ],
+      },
+      {
+        title: "Service Discovery Removal",
+        badge: "IMPROVEMENT",
+        items: [
+          {
+            title: "Removed Host Scanning and Adoption API",
+            description:
+              "Deleted GET /api/system/discover-deployments and POST /api/projects/adopt endpoints, the ServiceDiscoveryService backend module, and the Adopt Service dashboard modal.",
+            command: "Removed: GET /api/system/discover-deployments  |  POST /api/projects/adopt",
+          },
+          {
+            title: "Preserved Existing Adopted Project Support",
+            description:
+              "Projects created via the former adoption flow keep isAdopted=true, localPath Git sourcing, PM2 restart logic, and webhook auto-deploy behavior unchanged.",
+          },
+        ],
+      },
+      {
+        title: "Test Coverage",
+        badge: "IMPROVEMENT",
+        items: [
+          {
+            title: "Rate Limiter and Database Provisioning Tests",
+            description:
+              "Added unit tests for sliding-window rate limiting, database unlink env cleanup, and schema introspection failure handling.",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    version: "v3.5.0",
+    date: "September 21, 2026",
+    isLatest: false,
     summary:
       "Dashboard Phase 5: ProjectDetail tab decomposition, TanStack Query hooks for project detail and deployments, and initial dashboard unit tests.",
     categories: [

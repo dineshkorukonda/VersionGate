@@ -1,14 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import {
-  getInstanceSettings,
-  listAllJobs,
-  triggerDeploy,
-  type JobRecord,
-  type Project,
-} from "@/lib/api";
+import { useQueryClient } from "@tanstack/react-query";
+import { getInstanceSettings, triggerDeploy, type JobRecord, type Project } from "@/lib/api";
 import { useAllDeployments } from "@/hooks/use-deployments";
 import { useProjectsSummary } from "@/hooks/use-projects";
+import { useRecentJobs } from "@/hooks/use-recent-jobs";
+import { queryKeys } from "@/hooks/query-keys";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -53,13 +50,11 @@ function timeAgo(date: string): string {
 export function Overview() {
   const launchCreate = useLaunchCreateProject();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { data: summaryProjects = [], isLoading: summaryLoading } = useProjectsSummary();
   const { data: deployments = [], isLoading: deploymentsLoading } = useAllDeployments();
+  useRecentJobs(10, 12_000);
   const projects = summaryProjects as Project[];
-  const [domainsByProject, setDomainsByProject] = useState<Record<string, { hostname: string; sslStatus: string }[]>>({});
-  const [latestJobs, setLatestJobs] = useState<Record<string, JobRecord | undefined>>({});
-  const [, setRecentJobs] = useState<JobRecord[]>([]);
-  const [initialLoading, setInitialLoading] = useState(true);
   const [deleteTarget, setDeleteTarget] = useState<Project | null>(null);
 
   // Filter & layout state
@@ -68,40 +63,27 @@ export function Overview() {
   const [sortBy, setSortBy] = useState<"activity" | "name" | "created">("activity");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
-  const loadData = useCallback(async (isSilent = false) => {
-    if (!isSilent && projects.length === 0) {
-      setInitialLoading(true);
-    }
-    try {
-      const [allJobs, inst] = await Promise.all([
-        listAllJobs({ limit: 10 }),
-        getInstanceSettings().catch(() => null),
-      ]);
-      setRecentJobs(allJobs.jobs);
-      setConfiguredPublicHost(inst?.publicDomain);
+  useEffect(() => {
+    void getInstanceSettings()
+      .then((inst) => setConfiguredPublicHost(inst.publicDomain))
+      .catch(() => null);
+  }, []);
 
-      const domainMap: Record<string, { hostname: string; sslStatus: string }[]> = {};
-      const jobMap: Record<string, JobRecord | undefined> = {};
-      for (const proj of summaryProjects) {
-        domainMap[proj.id] = (proj.domains as { hostname: string; sslStatus: string }[]) || [];
-        jobMap[proj.id] = (proj.latestJob as JobRecord) || undefined;
-      }
-      setDomainsByProject(domainMap);
-      setLatestJobs(jobMap);
-    } catch (e) {
-      if (!isSilent) {
-        toast.error(e instanceof Error ? e.message : "Failed to load dashboard state");
-      }
-    } finally {
-      setInitialLoading(false);
+  const domainsByProject = useMemo(() => {
+    const domainMap: Record<string, { hostname: string; sslStatus: string }[]> = {};
+    for (const proj of summaryProjects) {
+      domainMap[proj.id] = (proj.domains as { hostname: string; sslStatus: string }[]) || [];
     }
+    return domainMap;
   }, [summaryProjects]);
 
-  useEffect(() => {
-    void loadData(false);
-    const interval = window.setInterval(() => void loadData(true), 12000);
-    return () => window.clearInterval(interval);
-  }, [loadData]);
+  const latestJobs = useMemo(() => {
+    const jobMap: Record<string, JobRecord | undefined> = {};
+    for (const proj of summaryProjects) {
+      jobMap[proj.id] = (proj.latestJob as JobRecord) || undefined;
+    }
+    return jobMap;
+  }, [summaryProjects]);
 
   const stats = useMemo(() => {
     let running = 0;
@@ -163,7 +145,7 @@ export function Overview() {
     }
   };
 
-  if ((initialLoading || summaryLoading || deploymentsLoading) && projects.length === 0) {
+  if ((summaryLoading || deploymentsLoading) && projects.length === 0) {
     return (
       <div className="w-full space-y-6 max-w-7xl font-sans">
         <div className="flex items-center justify-between">
@@ -735,7 +717,7 @@ export function Overview() {
           projectName={deleteTarget.name}
           navigateTo={false}
           onDeleted={() => {
-            void loadData(false);
+            void queryClient.invalidateQueries({ queryKey: queryKeys.projects.summary });
             setDeleteTarget(null);
           }}
         />

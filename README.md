@@ -44,25 +44,21 @@ Open the dashboard setup wizard at `http://your-server-ip:9090/` or `https://you
 - **Bare-Metal PM2 Supervision:** Run apps natively on the host via PM2 with automatic port assignment and health validation.
 - **Universal Package Managers:** Auto-detects and supports `bun`, `pnpm`, `yarn`, `npm`, `uv`, `poetry`, `pipenv`, `cargo` (Rust), and `composer` (PHP).
 
-### 04 // Server Deployment Auto-Discovery & Adoption
-- **Host Scanning Engine:** Scans the server for unmanaged external Docker containers and active PM2 processes.
-- **1-Click Adoption:** Imports discovered services into VersionGate, assigning zero-downtime environments, health checks, and Nginx reverse proxy routes without downtime.
-
-### 05 // Managed Multi-Database Provisioning
+### 04 // Managed Multi-Database Provisioning
 - **1-Click Containerized Databases:** Provision PostgreSQL 16, Redis, MySQL, or MongoDB with persistent Docker volumes and conflict-free port allocation.
 - **Environment Auto-Linking:** Automatically injects `DATABASE_URL` or `REDIS_URL` directly into project encrypted environment variables.
 
-### 06 // Preflight DNS Verification & SSL Automation
+### 05 // Preflight DNS Verification & SSL Automation
 - **DNS Propagation Validation:** Conducts direct DNS A and CNAME record queries against the server's public IPv4 before triggering Certbot, preventing Let's Encrypt rate-limit bans.
 - **Isolated Upstream Vhosts:** Project-specific Nginx configurations isolate application traffic from the management dashboard.
 
-### 07 // Developer Experience & Observability
+### 06 // Developer Experience & Observability
 - **Global Command Palette:** Grouped `Cmd+K` / `Ctrl+K` keyboard search across projects, navigation tabs, and system actions.
 - **Realtime Log Streaming:** Live stdout/stderr log stream viewer with auto-scroll lock, search filtering, and log export.
 - **Raw .env Bulk Editor:** Dual-mode key-value inputs alongside raw multiline dotenv editing with AES-256 secret masking.
 - **Rolling Telemetry:** 24-hour hit counters, response status code distributions (2xx, 3xx, 4xx, 5xx), and millisecond latency metrics.
 
-### 08 // Cron Jobs & Background Scheduling
+### 07 // Cron Jobs & Background Scheduling
 - **5-Part Cron Scheduler:** Run background tasks on custom intervals (`*/15 * * * *`) with HTTP webhook triggers and host shell commands.
 - **Execution Telemetry:** Real-time log capture, timeout guards, manual trigger execution, and server resource limit analytics.
 

@@ -37,12 +37,12 @@ const BENTO_FEATURES: BentoCard[] = [
     command: "POST /api/v1/projects",
   },
   {
-    id: "adoption",
-    category: "Infrastructure",
-    title: "Server deployment adoption",
-    description: "Scan for unmanaged PM2 processes and Docker containers, then adopt them into zero-downtime control in one click.",
+    id: "webhook-autodeploy",
+    category: "Deployment",
+    title: "Webhook and commit auto-deploy",
+    description: "GitHub push webhooks and background ls-remote polling enqueue zero-downtime deploys with per-project rate limiting.",
     badge: "Ops",
-    command: "GET /api/v1/system/discover-deployments",
+    command: "POST /api/webhooks/:secret  |  AUTO_DEPLOY_POLL_MS",
   },
   {
     id: "managed-db",

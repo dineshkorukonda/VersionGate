@@ -1,17 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  getEngineHealth,
-  getPreflight,
-  getServerDashboard,
-  type EngineHealthReport,
-  type PreflightReport,
-  type SystemDashboardResponse,
-  type ServerStats,
-} from "@/lib/api";
+import { useEffect, useMemo } from "react";
+import { type ServerStats } from "@/lib/api";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { useServerMetricHistory } from "@/hooks/use-server-metric-history";
+import { useSystemHealth } from "@/hooks/use-system-health";
 import { DonutChart } from "@/components/charts/DonutChart";
 import { ServerNetworkLineChart, ServerResourceLineChart } from "@/components/charts/ServerLineCharts";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -30,51 +23,19 @@ function hostnameHint(): string {
 }
 
 export function SystemHealth() {
-  const [preflight, setPreflight] = useState<PreflightReport | null>(null);
-  const [preflightBusy, setPreflightBusy] = useState(false);
-  const [dashboard, setDashboard] = useState<SystemDashboardResponse | null>(null);
-  const [engineHealth, setEngineHealth] = useState<EngineHealthReport | null>(null);
+  const { data, isLoading, isFetching, refetch } = useSystemHealth();
   const { history, push } = useServerMetricHistory();
 
-  const loadPreflight = useCallback(async () => {
-    setPreflightBusy(true);
-    try {
-      const r = await getPreflight();
-      setPreflight(r);
-    } catch {
-      setPreflight(null);
-    } finally {
-      setPreflightBusy(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void loadPreflight();
-  }, [loadPreflight]);
-
-  useEffect(() => {
-    let cancelled = false;
-    const load = async () => {
-      try {
-        const [d, eh] = await Promise.all([getServerDashboard(), getEngineHealth().catch(() => null)]);
-        if (!cancelled) {
-          setDashboard(d);
-          if (eh) setEngineHealth(eh);
-          push(d.system_stats as ServerStats);
-        }
-      } catch {
-        if (!cancelled) setDashboard(null);
-      }
-    };
-    void load();
-    const id = window.setInterval(load, 5000);
-    return () => {
-      cancelled = true;
-      window.clearInterval(id);
-    };
-  }, [push]);
-
+  const preflight = data?.preflight ?? null;
+  const dashboard = data?.dashboard ?? null;
+  const engineHealth = data?.engineHealth ?? null;
   const stats = dashboard?.system_stats ?? null;
+
+  useEffect(() => {
+    if (stats) {
+      push(stats as ServerStats);
+    }
+  }, [stats, push]);
 
   const securityItems = useMemo(() => {
     const items: { severity: "high" | "medium" | "low"; source: string; message: string }[] = [];
@@ -95,7 +56,7 @@ export function SystemHealth() {
     return items;
   }, [preflight, dashboard]);
 
-  if (!stats) {
+  if (isLoading || !stats) {
     return (
       <div className="w-full space-y-6">
         <Skeleton className="h-10 w-72" />
@@ -118,7 +79,6 @@ export function SystemHealth() {
 
   return (
     <div className="w-full space-y-8 font-sans">
-      {/* Vercel Header Bar */}
       <div className="flex flex-col gap-4 border-b border-neutral-800 pb-6 lg:flex-row lg:items-center lg:justify-between">
         <div className="space-y-1">
           <div className="flex items-center gap-2 text-xs text-neutral-400">
@@ -140,16 +100,15 @@ export function SystemHealth() {
             type="button"
             variant="outline"
             size="sm"
-            disabled={preflightBusy}
-            onClick={() => void loadPreflight()}
+            disabled={isFetching}
+            onClick={() => void refetch()}
             className="border-neutral-800 bg-neutral-900/80 text-neutral-300 hover:text-white text-xs h-8"
           >
-            {preflightBusy ? "Scanning..." : "Re-run Checks"}
+            {isFetching ? "Scanning..." : "Re-run Checks"}
           </Button>
         </div>
       </div>
 
-      {/* Metric Cards Grid */}
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-xl border border-neutral-800 bg-[#0a0a0a] p-5 space-y-3">
           <div className="flex items-center justify-between text-xs text-neutral-400">
@@ -195,7 +154,6 @@ export function SystemHealth() {
         </div>
       </section>
 
-      {/* Background Engine State Card */}
       {engineHealth ? (
         <div className="overflow-hidden rounded-xl border border-neutral-800 bg-[#0a0a0a]">
           <div className="p-6 space-y-4">
@@ -258,7 +216,6 @@ export function SystemHealth() {
         </div>
       ) : null}
 
-      {/* Preflight Dependencies Table */}
       <div className="overflow-hidden rounded-xl border border-neutral-800 bg-[#0a0a0a]">
         <div className="p-6 border-b border-neutral-800 flex items-center justify-between">
           <div>
@@ -329,7 +286,6 @@ export function SystemHealth() {
         </div>
       </div>
 
-      {/* Historical Telemetry Charts */}
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="overflow-hidden rounded-xl border border-neutral-800 bg-[#0a0a0a] lg:col-span-2">
           <div className="p-6">
@@ -367,7 +323,6 @@ export function SystemHealth() {
         </div>
       </div>
 
-      {/* Listening Ports Table */}
       <div className="overflow-hidden rounded-xl border border-neutral-800 bg-[#0a0a0a]">
         <div className="p-6 border-b border-neutral-800 flex items-center justify-between">
           <div>
@@ -426,7 +381,6 @@ export function SystemHealth() {
         </div>
       </div>
 
-      {/* Established TCP Connections Table */}
       {connections.length > 0 && (
         <div className="overflow-hidden rounded-xl border border-neutral-800 bg-[#0a0a0a]">
           <div className="p-6 border-b border-neutral-800 flex items-center justify-between">
@@ -466,7 +420,6 @@ export function SystemHealth() {
         </div>
       )}
 
-      {/* Top Process Manager Table */}
       <div className="overflow-hidden rounded-xl border border-neutral-800 bg-[#0a0a0a]">
         <div className="p-6 border-b border-neutral-800">
           <h3 className="text-base font-semibold text-white">Host Top Processes</h3>
@@ -507,7 +460,6 @@ export function SystemHealth() {
         </div>
       </div>
 
-      {/* Security Alerts (if any) */}
       {securityItems.length > 0 && (
         <div className="overflow-hidden rounded-xl border border-amber-500/30 bg-[#0a0a0a]">
           <div className="p-6 border-b border-neutral-800">
@@ -529,7 +481,6 @@ export function SystemHealth() {
         </div>
       )}
 
-      {/* Aggregate System Log Stream */}
       <div className="space-y-3">
         <h3 className="text-xs font-semibold uppercase tracking-wider text-neutral-400">Global Cluster Logs</h3>
         <AggregateJobLogStream title="Main cluster logs (job tail)" pollMs={6000} />

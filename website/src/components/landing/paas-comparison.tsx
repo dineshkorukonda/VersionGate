@@ -29,11 +29,11 @@ const ROWS: ComparisonRow[] = [
     vercel: "Serverless only",
   },
   {
-    feature: "Server deployment auto-adoption",
-    versiongate: "1-click discovery",
-    dokploy: "Manual recreation",
-    coolify: "Manual recreation",
-    vercel: "Not supported",
+    feature: "Git webhook and commit auto-deploy",
+    versiongate: "Built-in poller + webhooks",
+    dokploy: "Manual webhook setup",
+    coolify: "Manual webhook setup",
+    vercel: "Git integration only",
   },
   {
     feature: "Preflight DNS before Let's Encrypt",

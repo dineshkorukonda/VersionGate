@@ -14,6 +14,50 @@ export interface Capability {
 
 const CAPABILITIES: Capability[] = [
   {
+    id: "cap-dashboard-settings-query-completion",
+    category: "Monitoring",
+    title: "Settings Tab Decomposition & Dashboard Query Hooks",
+    command: "useSettingsPage()  |  useSystemHealth()  |  useRecentJobs()",
+    description:
+      "Settings page split into seven tab components with TanStack Query hooks across Overview, Deployments, Activity, System Health, and Settings.",
+    details:
+      "Extracted General, Build, Network, Security, Webhooks, Updates, and Advanced settings tabs into dedicated components. Added useRecentJobs, useSystemHealth, and useSettingsPage hooks with shared query keys. Sidebar navigation fixes: Activity label, deployment route matching, and removal of broken project settings sub-nav.",
+    badge: "IMPROVEMENT",
+  },
+  {
+    id: "cap-webhook-autodeploy-rate-limits",
+    category: "Security",
+    title: "Webhook & Auto-Deploy Rate Limiting",
+    command: "checkRateLimit()  |  POST /webhooks/:secret  |  AUTO_DEPLOY_POLL_MS",
+    description:
+      "In-memory sliding-window rate limiter for webhook ingress and per-project auto-deploy poll throttling.",
+    details:
+      "GitHub webhook routes return HTTP 429 when a secret exceeds 30 requests per minute. Background auto-deploy poller rate-limits git ls-remote checks to once per 30 seconds and deploy enqueues to once per 5 minutes per project, preventing runaway poll loops.",
+    badge: "IMPROVEMENT",
+  },
+  {
+    id: "cap-database-unlink-schema-hardening",
+    category: "Deployment",
+    title: "Database Unlink Env Cleanup & Schema Error Propagation",
+    command: "unlinkFromProject()  |  GET /api/v1/databases/:id/schema",
+    description:
+      "Unlinking a managed database removes injected DATABASE_URL env keys from linked projects. Schema introspection failures surface as explicit API errors.",
+    details:
+      "When a managed database is unlinked from a project, the corresponding engine env var key is deleted from the project environment. Schema introspection no longer returns empty tables on container exec failure; it throws a descriptive error for the dashboard DB studio to display.",
+    badge: "IMPROVEMENT",
+  },
+  {
+    id: "cap-service-discovery-removal",
+    category: "Deployment",
+    title: "Service Discovery & Adoption Removal",
+    command: "Removed: GET /api/system/discover-deployments  |  POST /api/projects/adopt",
+    description:
+      "Removed host scanning and one-click adoption endpoints. Existing adopted projects retain isAdopted metadata and PM2 local-path deploy behavior.",
+    details:
+      "Deleted ServiceDiscoveryService, discovery controller routes, and the Adopt Service dashboard modal. Projects previously imported via adoption keep isAdopted=true, local Git sourcing, PM2 restart logic, and webhook auto-deploy unchanged.",
+    badge: "IMPROVEMENT",
+  },
+  {
     id: "cap-dashboard-query-layer",
     category: "Monitoring",
     title: "TanStack Query Data Layer & Project Tab Decomposition",
@@ -41,9 +85,9 @@ const CAPABILITIES: Capability[] = [
     title: "Autonomous Commit Polling & Remote Git ls-remote Engine",
     command: "AUTO_DEPLOY_POLL_MS=60000  |  git ls-remote  |  POST /webhooks/:secret",
     description:
-      "Autonomous background application polling daemon, remote Git ls-remote commit detection, dual-format urlencoded/json webhook ingress, and automatic Git remote adoption.",
+      "Autonomous background application polling daemon, remote Git ls-remote commit detection, and dual-format urlencoded/json webhook ingress with per-project throttling.",
     details:
-      "Continuous background poller engine automatically queries remote repository HEAD commits via authenticated git ls-remote, eliminating stale local git log checks. Ingests GitHub default application/x-www-form-urlencoded webhook payloads, provides root /webhooks/:secret routing aliases, and automatically extracts Git origin remotes and baseline commits for adopted services.",
+      "Continuous background poller engine automatically queries remote repository HEAD commits via authenticated git ls-remote, eliminating stale local git log checks. Ingests GitHub default application/x-www-form-urlencoded webhook payloads and provides root /webhooks/:secret routing aliases with sliding-window rate limits.",
     badge: "NEW",
   },
   {
@@ -65,7 +109,7 @@ const CAPABILITIES: Capability[] = [
     description:
       "Automated source route scanning across Node, Python, and Go, paired with dual-host candidate probing and database health path auto-sync.",
     details:
-      "Statically scans codebase routes (/health, /api/health, /healthz, /live, /ready, /ping, /status) upon adoption and deployment. Executes resilient dual-host validation probes testing IPv4 127.0.0.1 alongside localhost and candidate endpoints, automatically updating the project database configuration when active health routes are resolved.",
+      "Statically scans codebase routes (/health, /api/health, /healthz, /live, /ready, /ping, /status) during deployment. Executes resilient dual-host validation probes testing IPv4 127.0.0.1 alongside localhost and candidate endpoints, automatically updating the project database configuration when active health routes are resolved.",
     badge: "NEW",
   },
   {
@@ -105,11 +149,11 @@ const CAPABILITIES: Capability[] = [
     id: "cap-pm2-autodeploy-commits",
     category: "Deployment",
     title: "Adopted PM2 Auto-Deployments & Commit Restarts",
-    command: "POST /api/webhooks/:secret  |  POST /api/projects/adopt",
+    command: "POST /api/webhooks/:secret  |  POST /api/v1/projects",
     description:
       "Seamless commit-triggered auto-deployments, SSH Git remote normalization, and intelligent PM2 process restarts for adopted host services.",
     details:
-      "Automatically registers cryptographic webhook secrets during PM2 service adoption, normalizes GitHub SSH remotes to HTTPS, tracks local commit histories, injects node_modules/.bin into process PATH, and detects ecosystem configuration files for zero-friction PM2 rollouts.",
+      "Normalizes GitHub SSH remotes to HTTPS, tracks local commit histories, injects node_modules/.bin into process PATH, and detects ecosystem configuration files for zero-friction PM2 rollouts on existing adopted projects.",
     badge: "NEW",
   },
   {
@@ -121,17 +165,6 @@ const CAPABILITIES: Capability[] = [
       "Global and per-project deployment feeds with commit metadata, status filters, environment badges, and commit-centric deployment history.",
     details:
       "Dashboard deployments page lists all projects with production/preview labels, commit SHA, branch, author, and duration. Project workspaces expose Deployments and Commits tabs with shared filters and live log drill-down.",
-    badge: "NEW",
-  },
-  {
-    id: "cap-adopted-domains-pm2",
-    category: "Networking",
-    title: "Nginx Domain Ingestion & PM2 Telemetry",
-    command: "GET /api/system/discover-deployments  |  POST /api/projects/adopt",
-    description:
-      "Auto-detect active reverse proxy hostnames and extract live PM2 stdout/stderr logs and process telemetry on service adoption.",
-    details:
-      "Scans host Nginx vhost directories for server_name rules proxying to unmanaged service ports, attaches custom domains automatically during adoption, and streams real-time PM2 process logs and metrics directly into the workspace dashboard.",
     badge: "NEW",
   },
   {
@@ -198,17 +231,6 @@ const CAPABILITIES: Capability[] = [
       "High-density monospace badges, clean hairline borders, update refresh requirement notices, and zero decorative icon bloat.",
     details:
       "Precision-tuned interface inspired by Vercel and hyper-focused developer tooling. Explicit reload prompts ensure new client assets apply seamlessly post-update, and status indicators display as pure monospace text badges.",
-    badge: "NEW",
-  },
-  {
-    id: "cap-adopt-deployments",
-    category: "Deployment",
-    title: "Server Deployment Auto-Adoption",
-    command: "GET /api/v1/system/discover-deployments",
-    description:
-      "Automatically scan the host server for unmanaged PM2 processes and external Docker containers, with 1-click adoption into VersionGate control.",
-    details:
-      "Discovers live processes, listening ports, and Git metadata across the server. Adopting instantly creates a managed Project, sets up zero-downtime environments, reloads Nginx reverse proxy routes, and tracks health.",
     badge: "NEW",
   },
   {
