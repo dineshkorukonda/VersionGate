@@ -14,6 +14,17 @@ export interface Capability {
 
 const CAPABILITIES: Capability[] = [
   {
+    id: "cap-dashboard-query-layer",
+    category: "Monitoring",
+    title: "TanStack Query Data Layer & Project Tab Decomposition",
+    command: "useProjectDetail()  |  useAllDeployments()  |  ProjectDetailOverviewTab",
+    description:
+      "Cached server-state hooks for project detail and deployments, plus decomposed ProjectDetail tab components for maintainability.",
+    details:
+      "ProjectDetail page reduced to a thin shell using useProjectDetail with 15-second refetch intervals. Overview and deployments pages share TanStack Query caches. Remaining tabs extracted into dedicated components with colocated settings form state.",
+    badge: "IMPROVEMENT",
+  },
+  {
     id: "cap-engine-architecture-hardening",
     category: "Deployment",
     title: "Unified Deploy Pipeline & Resilient Job Recovery",
