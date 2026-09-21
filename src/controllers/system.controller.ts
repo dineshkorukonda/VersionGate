@@ -1,12 +1,11 @@
 import { FastifyRequest, FastifyReply } from "fastify";
 import { ReconciliationService } from "../services/reconciliation.service";
-import { SystemMetricsService } from "../services/system-metrics.service";
+import { systemMetrics } from "../services/system-metrics.service";
 import { logger } from "../utils/logger";
 
 const reconciliationService = new ReconciliationService();
 
-// Singleton shared with server.ts via module-level export
-export const systemMetrics = new SystemMetricsService();
+export { systemMetrics };
 
 const EMPTY_STATS = {
   status: "unavailable",

@@ -3,13 +3,13 @@ import { Link, useNavigate } from "react-router-dom";
 import {
   getAllDeployments,
   getInstanceSettings,
-  getProjectsSummary,
   listAllJobs,
   triggerDeploy,
   type Deployment,
   type JobRecord,
   type Project,
 } from "@/lib/api";
+import { useProjectsSummary } from "@/hooks/use-projects";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -54,6 +54,7 @@ function timeAgo(date: string): string {
 export function Overview() {
   const launchCreate = useLaunchCreateProject();
   const navigate = useNavigate();
+  const { data: summaryProjects = [], isLoading: summaryLoading } = useProjectsSummary();
   const [projects, setProjects] = useState<Project[]>([]);
   const [deployments, setDeployments] = useState<Deployment[]>([]);
   const [domainsByProject, setDomainsByProject] = useState<Record<string, { hostname: string; sslStatus: string }[]>>({});
@@ -73,12 +74,12 @@ export function Overview() {
       setInitialLoading(true);
     }
     try {
-      const [p, d, allJobs, inst] = await Promise.all([
-        getProjectsSummary(),
+      const [d, allJobs, inst] = await Promise.all([
         getAllDeployments(),
         listAllJobs({ limit: 10 }),
         getInstanceSettings().catch(() => null),
       ]);
+      const p = { projects: summaryProjects };
       setProjects(p.projects);
       setDeployments(d.deployments);
       setRecentJobs(allJobs.jobs);
@@ -99,7 +100,7 @@ export function Overview() {
     } finally {
       setInitialLoading(false);
     }
-  }, [projects.length]);
+  }, [projects.length, summaryProjects]);
 
   useEffect(() => {
     void loadData(false);
@@ -167,7 +168,7 @@ export function Overview() {
     }
   };
 
-  if (initialLoading && projects.length === 0) {
+  if ((initialLoading || summaryLoading) && projects.length === 0) {
     return (
       <div className="w-full space-y-6 max-w-7xl font-sans">
         <div className="flex items-center justify-between">

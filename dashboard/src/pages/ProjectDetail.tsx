@@ -22,18 +22,19 @@ import {
   type ProjectAnalytics,
   type ProjectDomain,
 } from "@/lib/api";
-import { RuntimeLogsViewer } from "@/components/RuntimeLogsViewer";
-import { CronJobsManager } from "@/components/CronJobsManager";
+import { ProjectDetailCronTab } from "@/components/project-detail/ProjectDetailCronTab";
+import { ProjectDetailDatabasesTab } from "@/components/project-detail/ProjectDetailDatabasesTab";
+import { ProjectDetailDomainsTab } from "@/components/project-detail/ProjectDetailDomainsTab";
+import { ProjectDetailEnvTab } from "@/components/project-detail/ProjectDetailEnvTab";
+import { ProjectDetailLogsTab } from "@/components/project-detail/ProjectDetailLogsTab";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { BlueGreenTrafficCard } from "@/components/BlueGreenTrafficCard";
 import { getDeployingDeployment, publicProjectLiveUrl } from "@/lib/deployment-display";
-import { ProjectCustomDomainCard } from "@/components/ProjectCustomDomainCard";
-import { AggregateJobLogStream } from "@/components/AggregateJobLogStream";
 import { DeploymentList } from "@/components/DeploymentList";
-import { EnvVariablesEditor, type EnvPair } from "@/components/EnvVariablesEditor";
+import { type EnvPair } from "@/components/EnvVariablesEditor";
 import { VercelCardBox } from "@/components/ui/VercelCardBox";
 import {
   DropdownMenu,
@@ -915,26 +916,14 @@ export function ProjectDetail() {
 
       {/* VIEW 3: RUNTIME LOGS */}
       {activeTab === "logs" && (
-        <div className="space-y-6">
-          <RuntimeLogsViewer
-            title="Live Application Container Logs (stdout/stderr)"
-            containerName={runtimeContainerName}
-            logs={runtimeLogs}
-            loading={runtimeLogsLoading}
-            onRefresh={() => void fetchRuntimeLogs()}
-            autoRefresh={runtimeAutoRefresh}
-            onToggleAutoRefresh={setRuntimeAutoRefresh}
-            emptyMessage="No active container running or no container logs emitted yet."
-            maxHeightClass="max-h-96"
-          />
-
-          <div className="space-y-3">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-neutral-400">
-              Recent Deployment Tail
-            </h3>
-            <AggregateJobLogStream title="Recent jobs on this instance" pollMs={8000} />
-          </div>
-        </div>
+        <ProjectDetailLogsTab
+          runtimeContainerName={runtimeContainerName}
+          runtimeLogs={runtimeLogs}
+          runtimeLogsLoading={runtimeLogsLoading}
+          runtimeAutoRefresh={runtimeAutoRefresh}
+          onRefresh={() => void fetchRuntimeLogs()}
+          onToggleAutoRefresh={setRuntimeAutoRefresh}
+        />
       )}
 
       {/* VIEW 4: OBSERVABILITY & TELEMETRY */}
@@ -981,72 +970,28 @@ export function ProjectDetail() {
 
       {/* VIEW 5: ENVIRONMENT VARIABLES */}
       {activeTab === "env" && (
-        <div className="space-y-6">
-          <VercelCardBox
-            title="Environment Variables"
-            description="Injected securely into the Docker container runtime at container boot time. Encrypted with AES-256-GCM."
-            footerLeft={<span>Environment variables are loaded automatically on deployment.</span>}
-            footerAction={
-              <Button
-                size="sm"
-                className="bg-white text-black font-semibold hover:bg-neutral-200 text-xs"
-                onClick={() => void onSaveEnvVars()}
-                disabled={savingEnv}
-              >
-                {savingEnv ? "Saving..." : "Save Variables"}
-              </Button>
-            }
-          >
-            <EnvVariablesEditor pairs={envPairs} onChange={setEnvPairs} />
-          </VercelCardBox>
-        </div>
+        <ProjectDetailEnvTab
+          envPairs={envPairs}
+          onChange={setEnvPairs}
+          savingEnv={savingEnv}
+          onSave={() => void onSaveEnvVars()}
+        />
       )}
 
-      {/* VIEW 6: DOMAINS */}
       {activeTab === "domains" && (
-        <div className="space-y-6">
-          <ProjectCustomDomainCard
-            projectId={project.id}
-            liveUrl={liveUrl}
-            onCopy={copyText}
-            onUpdated={() => {
-              void load(true);
-            }}
-          />
-        </div>
+        <ProjectDetailDomainsTab
+          projectId={project.id}
+          liveUrl={liveUrl}
+          onCopy={copyText}
+          onUpdated={() => {
+            void load(true);
+          }}
+        />
       )}
 
-      {/* VIEW 7: STORAGE & DATABASES */}
-      {activeTab === "databases" && (
-        <div className="space-y-6">
-          <VercelCardBox
-            title="Managed Databases"
-            description="Databases attached or provisioned for this project."
-            footerLeft={<span>Create and attach PostgreSQL, MySQL, Redis, or SQLite instances.</span>}
-            footerAction={
-              <Button
-                size="sm"
-                className="bg-white text-black font-semibold hover:bg-neutral-200 text-xs"
-                onClick={() => navigate("/databases")}
-              >
-                Manage Databases
-              </Button>
-            }
-          >
-            <p className="text-xs text-neutral-400">
-              VersionGate automatically injects standard <code className="font-mono text-neutral-200">DATABASE_URL</code> and{" "}
-              <code className="font-mono text-neutral-200">REDIS_URL</code> environment variables when databases are linked.
-            </p>
-          </VercelCardBox>
-        </div>
-      )}
+      {activeTab === "databases" && <ProjectDetailDatabasesTab />}
 
-      {/* VIEW 8: CRON JOBS */}
-      {activeTab === "cron" && (
-        <div className="space-y-6">
-          <CronJobsManager projectId={project.id} project={project} />
-        </div>
-      )}
+      {activeTab === "cron" && <ProjectDetailCronTab projectId={project.id} project={project} />}
 
       {/* VIEW 9: PROJECT SETTINGS (Screenshot 3) */}
       {activeTab === "settings" && (

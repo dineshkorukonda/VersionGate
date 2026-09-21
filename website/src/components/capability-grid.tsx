@@ -14,6 +14,17 @@ export interface Capability {
 
 const CAPABILITIES: Capability[] = [
   {
+    id: "cap-engine-architecture-hardening",
+    category: "Deployment",
+    title: "Unified Deploy Pipeline & Resilient Job Recovery",
+    command: "runDeployPipeline()  |  MAX_JOB_LOG_LINES=5000  |  recoverStuckJobs()",
+    description:
+      "Consolidated deploy orchestration service, bounded job log retention, and worker restart recovery that re-queues in-flight jobs instead of failing them.",
+    details:
+      "Extracted a single deploy-pipeline.service.ts shared by worker handlers, capped PostgreSQL JSONB job logs at 5000 lines, and improved recoverStuckJobs to re-queue recent RUNNING jobs on worker restart while failing only stale hung jobs.",
+    badge: "IMPROVEMENT",
+  },
+  {
     id: "cap-autonomous-autodeploy-sync-engine",
     category: "Deployment",
     title: "Autonomous Commit Polling & Remote Git ls-remote Engine",

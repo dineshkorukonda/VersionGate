@@ -6,22 +6,19 @@ import { Input } from "@/components/ui/input";
 import {
   ApiError,
   applyNginxSite,
-  changePassword,
   checkSelfUpdateFromSettings,
-  createApiToken,
   enableSelfUpdateFromSettings,
-  getApiTokens,
   getInstanceSettings,
   getSelfUpdateSettings,
   getSetupStatus,
   patchInstanceEnv,
   requestCertbotSsl,
-  revokeApiToken,
-  type ApiTokenItem,
   type InstanceSettings,
   type SelfUpdateSettingsResponse,
   type SetupStatus,
 } from "@/lib/api";
+import { ApiTokensCard } from "@/components/settings/ApiTokensCard";
+import { ChangePasswordCard } from "@/components/settings/ChangePasswordCard";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { SystemUpdateModal } from "@/components/modals/SystemUpdateModal";
@@ -60,239 +57,6 @@ const inputClass = cn(
   "focus-visible:border-neutral-500 focus-visible:ring-1 focus-visible:ring-neutral-500",
   "disabled:cursor-not-allowed disabled:opacity-50"
 );
-
-function ChangePasswordCard() {
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [updating, setUpdating] = useState(false);
-
-  const handlePasswordChange = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (newPassword.length < 10) {
-      toast.error("New password must be at least 10 characters.");
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      toast.error("New passwords do not match.");
-      return;
-    }
-    setUpdating(true);
-    try {
-      const res = await changePassword({ currentPassword, newPassword });
-      toast.success(res.message || "Password updated successfully");
-      setCurrentPassword("");
-      setNewPassword("");
-      setConfirmPassword("");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to update password");
-    } finally {
-      setUpdating(false);
-    }
-  };
-
-  return (
-    <VercelCardBox
-      title="Administrator Password"
-      description="Update your dashboard authentication password. Passwords must be at least 10 characters."
-      footerLeft={
-        <span>Use a secure password with a mix of characters to safeguard control plane access.</span>
-      }
-      footerAction={
-        <Button
-          type="submit"
-          form="change-password-form"
-          size="sm"
-          disabled={updating || !newPassword}
-          className="bg-white text-black font-semibold hover:bg-neutral-200 text-xs shrink-0"
-        >
-          {updating ? "Updating..." : "Save Password"}
-        </Button>
-      }
-    >
-      <form id="change-password-form" onSubmit={handlePasswordChange} className="space-y-4 max-w-md">
-        <div className="space-y-1.5">
-          <label className="text-xs font-medium text-neutral-300" htmlFor="current-pass">
-            Current Password
-          </label>
-          <Input
-            id="current-pass"
-            type="password"
-            value={currentPassword}
-            onChange={(e) => setCurrentPassword(e.target.value)}
-            placeholder="Enter current password"
-            autoComplete="current-password"
-            className={inputClass}
-          />
-        </div>
-        <div className="space-y-1.5">
-          <label className="text-xs font-medium text-neutral-300" htmlFor="new-pass">
-            New Password
-          </label>
-          <Input
-            id="new-pass"
-            type="password"
-            value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
-            placeholder="Minimum 10 characters"
-            required
-            minLength={10}
-            autoComplete="new-password"
-            className={inputClass}
-          />
-        </div>
-        <div className="space-y-1.5">
-          <label className="text-xs font-medium text-neutral-300" htmlFor="confirm-pass">
-            Confirm New Password
-          </label>
-          <Input
-            id="confirm-pass"
-            type="password"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            placeholder="Re-enter new password"
-            required
-            minLength={10}
-            autoComplete="new-password"
-            className={inputClass}
-          />
-        </div>
-      </form>
-    </VercelCardBox>
-  );
-}
-
-function ApiTokensCard() {
-  const [tokens, setTokens] = useState<ApiTokenItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [name, setName] = useState("");
-  const [creating, setCreating] = useState(false);
-  const [newRawToken, setNewRawToken] = useState<string | null>(null);
-
-  const loadTokens = async () => {
-    try {
-      const res = await getApiTokens();
-      setTokens(res.tokens);
-    } catch {
-      // ignore
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    void loadTokens();
-  }, []);
-
-  const handleCreate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name.trim()) return;
-    setCreating(true);
-    try {
-      const res = await createApiToken(name.trim());
-      setNewRawToken(res.token.token);
-      setName("");
-      toast.success("API token created. Copy it now, it will not be shown again.");
-      void loadTokens();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to create API token");
-    } finally {
-      setCreating(false);
-    }
-  };
-
-  const handleRevoke = async (id: string) => {
-    try {
-      await revokeApiToken(id);
-      toast.success("Token revoked");
-      setTokens((prev) => prev.filter((t) => t.id !== id));
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to revoke token");
-    }
-  };
-
-  return (
-    <VercelCardBox
-      title="API Access Tokens"
-      description="Personal and CI/CD access tokens for interacting with the VersionGate engine API."
-      footerLeft={<span>Tokens inherit your administrator role. Revoke immediately if compromised.</span>}
-    >
-      <div className="space-y-4">
-        {newRawToken ? (
-          <div className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 p-4 text-xs">
-            <p className="font-semibold text-emerald-400">New Token Created</p>
-            <p className="mt-1 text-neutral-300">
-              Copy this token now. You will not be able to see it again.
-            </p>
-            <div className="mt-2 flex items-center gap-2">
-              <code className="flex-1 rounded bg-black px-2.5 py-1.5 font-mono text-emerald-300 select-all">
-                {newRawToken}
-              </code>
-              <Button
-                size="sm"
-                variant="outline"
-                className="text-xs"
-                onClick={() => {
-                  void navigator.clipboard.writeText(newRawToken);
-                  toast.success("Token copied to clipboard");
-                }}
-              >
-                Copy
-              </Button>
-            </div>
-          </div>
-        ) : null}
-
-        <form onSubmit={handleCreate} className="flex gap-2 max-w-md">
-          <Input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Token name (e.g. GitHub Actions, CLI)"
-            className={inputClass}
-          />
-          <Button
-            type="submit"
-            size="sm"
-            disabled={creating || !name.trim()}
-            className="bg-white text-black font-semibold hover:bg-neutral-200 text-xs shrink-0"
-          >
-            {creating ? "Creating..." : "Create Token"}
-          </Button>
-        </form>
-
-        <div className="pt-2">
-          {loading ? (
-            <Skeleton className="h-20 w-full" />
-          ) : tokens.length === 0 ? (
-            <p className="text-xs text-neutral-500">No active API tokens found.</p>
-          ) : (
-            <div className="divide-y divide-neutral-800/60 rounded-lg border border-neutral-800 bg-black/40">
-              {tokens.map((t) => (
-                <div key={t.id} className="flex items-center justify-between p-3 text-xs">
-                  <div>
-                    <p className="font-medium text-white">{t.name}</p>
-                    <p className="font-mono text-[11px] text-neutral-500">
-                      Created {new Date(t.createdAt).toLocaleDateString()} · Last used{" "}
-                      {t.lastUsedAt ? new Date(t.lastUsedAt).toLocaleDateString() : "Never"}
-                    </p>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-red-400 hover:text-red-300 hover:bg-red-950/20 text-xs h-7"
-                    onClick={() => void handleRevoke(t.id)}
-                  >
-                    Revoke
-                  </Button>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-    </VercelCardBox>
-  );
-}
 
 export function Settings() {
   const [searchParams] = useSearchParams();

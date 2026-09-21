@@ -106,7 +106,7 @@ export function GlobalSearchDialog({
       badge: "05",
       action: () => {
         onOpenChange(false);
-        navigate("/dashboard/integrations");
+        navigate("/integrations");
       },
     },
     {

@@ -1,8 +1,10 @@
 import { StrictMode, lazy, Suspense } from "react";
 import { createRoot } from "react-dom/client";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import "./index.css";
 import { Layout } from "@/components/Layout";
+import { queryClient } from "@/lib/query-client";
 
 const Overview = lazy(() => import("@/pages/Overview").then((m) => ({ default: m.Overview })));
 const ProjectDetail = lazy(() => import("@/pages/ProjectDetail").then((m) => ({ default: m.ProjectDetail })));
@@ -28,6 +30,7 @@ const PageLoader = () => (
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
+    <QueryClientProvider client={queryClient}>
     <BrowserRouter>
       <Suspense fallback={<PageLoader />}>
         <Routes>
@@ -54,13 +57,15 @@ createRoot(document.getElementById("root")!).render(
             <Route path="/projects/:id/deploy/:jobId" element={<DeployLog />} />
             <Route path="/system" element={<SystemHealth />} />
             <Route path="/server" element={<Navigate to="/system" replace />} />
-            <Route path="/dashboard/integrations" element={<Integrations />} />
+            <Route path="/integrations" element={<Integrations />} />
+            <Route path="/dashboard/integrations" element={<Navigate to="/integrations" replace />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>
       </Suspense>
     </BrowserRouter>
+    </QueryClientProvider>
   </StrictMode>
 );
 

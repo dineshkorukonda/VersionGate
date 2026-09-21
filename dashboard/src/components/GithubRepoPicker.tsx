@@ -111,7 +111,7 @@ export function GithubRepoPicker({
           <p className="mt-1 text-amber-400/90">{error}</p>
           <div className="mt-3 flex flex-wrap gap-2">
             <Link
-              to="/dashboard/integrations"
+              to="/integrations"
               className={cn(buttonVariants({ variant: "outline", size: "sm" }), "inline-flex font-mono text-xs")}
             >
               Open Integrations // Run Diagnostics

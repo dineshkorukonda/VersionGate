@@ -5,7 +5,7 @@ import redisService from "./redis.service";
 import { DeploymentRepository } from "../repositories/deployment.repository";
 import { inspectContainer } from "../utils/docker";
 import { logger } from "../utils/logger";
-import { systemMetrics } from "../controllers/system.controller";
+import { systemMetrics } from "./system-metrics.service";
 
 export interface EngineHealthAlert {
   id: string;
