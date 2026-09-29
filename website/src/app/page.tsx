@@ -8,7 +8,7 @@ import { InstallSection } from "@/components/landing/install-section";
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-black text-foreground">
+    <div className="min-h-screen bg-[#fafafa] text-neutral-900 antialiased selection:bg-neutral-950 selection:text-white">
       <SiteHeader />
       <main id="main">
         <HeroSection />

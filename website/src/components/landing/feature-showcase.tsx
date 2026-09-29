@@ -39,16 +39,16 @@ export function FeatureShowcase() {
   ];
 
   return (
-    <section id="features" className="border-t border-neutral-850 bg-[#040404] py-20 scroll-mt-16">
+    <section id="features" className="border-t border-neutral-200 bg-white py-20 scroll-mt-16">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <div className="max-w-2xl">
-          <p className="font-mono text-xs font-semibold uppercase tracking-wider text-neutral-400">
+          <p className="font-mono text-xs font-semibold uppercase tracking-wider text-neutral-500">
             Features
           </p>
-          <h2 className="mt-3 text-3xl font-bold tracking-tight text-white sm:text-4xl">
+          <h2 className="mt-3 text-3xl font-extrabold tracking-tight text-neutral-950 sm:text-4xl">
             Everything you need to ship, run, and scale on your own server.
           </h2>
-          <p className="mt-4 text-base leading-relaxed text-neutral-400">
+          <p className="mt-4 text-base leading-relaxed text-neutral-600">
             No cloud markups, no per-seat fees, and no mystery black-boxes. Just reliable infrastructure primitives.
           </p>
         </div>
@@ -57,18 +57,18 @@ export function FeatureShowcase() {
           {features.map((feature) => (
             <div
               key={feature.title}
-              className="flex flex-col justify-between rounded-xl border border-neutral-800 bg-neutral-950 p-6 transition hover:border-neutral-700 hover:bg-neutral-900/40"
+              className="flex flex-col justify-between rounded-2xl border border-neutral-200 bg-white p-6 shadow-xs transition hover:border-neutral-300 hover:shadow-md"
             >
               <div>
                 <div className="flex items-center justify-between">
-                  <span className="rounded bg-neutral-900 border border-neutral-800 px-2 py-0.5 font-mono text-[10px] text-neutral-300">
+                  <span className="rounded-full bg-neutral-100 border border-neutral-200 px-3 py-0.5 font-mono text-[10px] font-semibold text-neutral-800">
                     {feature.badge}
                   </span>
                 </div>
-                <h3 className="mt-4 text-lg font-semibold text-white">
+                <h3 className="mt-4 text-lg font-semibold text-neutral-950">
                   {feature.title}
                 </h3>
-                <p className="mt-2 text-sm leading-relaxed text-neutral-400">
+                <p className="mt-2 text-sm leading-relaxed text-neutral-600">
                   {feature.description}
                 </p>
               </div>

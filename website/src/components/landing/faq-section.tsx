@@ -44,16 +44,16 @@ export function FaqSection() {
   const [openIndex, setOpenIndex] = useState<number | null>(0);
 
   return (
-    <section id="faq" className="border-t border-neutral-850 bg-[#040404] py-20 scroll-mt-16">
+    <section id="faq" className="border-t border-neutral-200 bg-white py-20 scroll-mt-16">
       <div className="mx-auto max-w-4xl px-4 sm:px-6">
         <div className="text-center">
-          <p className="font-mono text-xs font-semibold uppercase tracking-wider text-neutral-400">
+          <p className="font-mono text-xs font-semibold uppercase tracking-wider text-neutral-500">
             Frequently Asked Questions
           </p>
-          <h2 className="mt-3 text-3xl font-bold tracking-tight text-white sm:text-4xl">
+          <h2 className="mt-3 text-3xl font-extrabold tracking-tight text-neutral-950 sm:text-4xl">
             Everything you need to know
           </h2>
-          <p className="mx-auto mt-4 max-w-xl text-base leading-relaxed text-neutral-400">
+          <p className="mx-auto mt-4 max-w-xl text-base leading-relaxed text-neutral-600">
             Direct answers on architecture, zero-downtime deployments, and self-hosting.
           </p>
         </div>
@@ -64,7 +64,7 @@ export function FaqSection() {
             return (
               <div
                 key={faq.question}
-                className="overflow-hidden rounded-xl border border-neutral-800 bg-neutral-950 transition hover:border-neutral-700"
+                className="overflow-hidden rounded-2xl border border-neutral-200 bg-white transition hover:border-neutral-300"
               >
                 <button
                   type="button"
@@ -72,12 +72,12 @@ export function FaqSection() {
                   className="flex w-full items-center justify-between gap-4 p-5 text-left transition sm:p-6"
                   aria-expanded={isOpen}
                 >
-                  <span className="text-base font-semibold text-white">
+                  <span className="text-base font-semibold text-neutral-950">
                     {faq.question}
                   </span>
                   <span
-                    className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-neutral-800 bg-neutral-900 text-xs font-mono text-neutral-400 transition-transform duration-200 ${
-                      isOpen ? "rotate-180 text-white" : ""
+                    className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-neutral-200 bg-neutral-100 text-xs font-mono text-neutral-500 transition-transform duration-200 ${
+                      isOpen ? "rotate-180 text-neutral-950" : ""
                     }`}
                   >
                     ↓
@@ -85,8 +85,8 @@ export function FaqSection() {
                 </button>
 
                 {isOpen && (
-                  <div className="border-t border-neutral-850 bg-neutral-900/30 px-5 pb-6 pt-4 sm:px-6">
-                    <p className="text-sm leading-relaxed text-neutral-300">
+                  <div className="border-t border-neutral-150 bg-neutral-50/70 px-5 pb-6 pt-4 sm:px-6">
+                    <p className="text-sm leading-relaxed text-neutral-600">
                       {faq.answer}
                     </p>
                   </div>
