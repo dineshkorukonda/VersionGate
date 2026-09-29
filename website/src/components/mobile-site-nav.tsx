@@ -7,8 +7,7 @@ const GITHUB_REPO = "https://github.com/dineshkorukonda/VersionGate";
 
 const NAV_LINKS = [
   { href: "/#features", label: "Features" },
-  { href: "/#architecture", label: "How it works" },
-  { href: "/#capabilities", label: "Capabilities" },
+  { href: "/#how-it-works", label: "How it works" },
   { href: "/#faq", label: "FAQ" },
   { href: "/#install", label: "Install" },
   { href: "/docs", label: "Docs" },

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 
 const SCRIPT_CMD = "curl -fsSL https://versiongate.tech/install.sh | sudo bash";
 const DOCKER_CMD =
@@ -20,20 +21,22 @@ export function InstallSection() {
   };
 
   return (
-    <section id="install" className="border-t border-neutral-800 py-20 scroll-mt-20">
-      <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
+    <section id="install" className="border-t border-neutral-850 bg-[#020202] py-20 scroll-mt-16">
+      <div className="mx-auto max-w-3xl px-4 sm:px-6">
         <div className="text-center">
-          <p className="text-sm font-medium text-primary">Install</p>
-          <h2 className="mt-2 text-3xl font-bold tracking-tight text-white sm:text-4xl">
-            Run VersionGate on your VPS
+          <p className="font-mono text-xs font-semibold uppercase tracking-wider text-neutral-400">
+            Installation
+          </p>
+          <h2 className="mt-3 text-3xl font-bold tracking-tight text-white sm:text-4xl">
+            Run VersionGate on your server
           </h2>
-          <p className="mt-4 text-neutral-400">
-            Ubuntu 22.04+ or Debian 12 with Docker, PostgreSQL, and Nginx.
+          <p className="mx-auto mt-4 max-w-lg text-base leading-relaxed text-neutral-400">
+            Compatible with Ubuntu 22.04+ or Debian 12. Installs in less than 2 minutes.
           </p>
         </div>
 
         <div className="mt-10 rounded-xl border border-neutral-800 bg-neutral-950 p-6">
-          <div role="tablist" aria-label="Install method" className="flex gap-2 text-sm">
+          <div role="tablist" aria-label="Install method" className="flex gap-2 text-xs font-mono">
             <button
               type="button"
               role="tab"
@@ -41,13 +44,13 @@ export function InstallSection() {
               aria-selected={tab === "script"}
               aria-controls={panelId}
               onClick={() => setTab("script")}
-              className={`rounded-md px-3 py-1.5 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+              className={`rounded-lg px-3.5 py-1.5 transition ${
                 tab === "script"
-                  ? "bg-primary font-medium text-white"
-                  : "text-neutral-400 hover:text-white"
+                  ? "bg-white text-black font-semibold"
+                  : "border border-neutral-800 text-neutral-400 hover:text-white"
               }`}
             >
-              Install script
+              Install Script (Recommended)
             </button>
             <button
               type="button"
@@ -56,10 +59,10 @@ export function InstallSection() {
               aria-selected={tab === "docker"}
               aria-controls={panelId}
               onClick={() => setTab("docker")}
-              className={`rounded-md px-3 py-1.5 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+              className={`rounded-lg px-3.5 py-1.5 transition ${
                 tab === "docker"
-                  ? "bg-primary font-medium text-white"
-                  : "text-neutral-400 hover:text-white"
+                  ? "bg-white text-black font-semibold"
+                  : "border border-neutral-800 text-neutral-400 hover:text-white"
               }`}
             >
               Docker
@@ -70,19 +73,23 @@ export function InstallSection() {
             id={panelId}
             role="tabpanel"
             aria-labelledby={tab === "script" ? "install-script-tab" : "install-docker-tab"}
-            className="mt-4 flex items-center justify-between gap-3 rounded-lg border border-neutral-800 bg-card p-4"
+            className="mt-4 flex items-center justify-between gap-3 rounded-lg border border-neutral-800 bg-black p-4"
           >
             <code className="overflow-x-auto font-mono text-xs text-neutral-300">{cmd}</code>
             <button
               type="button"
               onClick={copy}
-              className="shrink-0 rounded-md border border-neutral-700 px-3 py-1.5 text-xs font-medium text-neutral-300 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              className="shrink-0 rounded-lg bg-neutral-800 px-3 py-1.5 font-mono text-xs text-white transition hover:bg-neutral-700"
             >
-              {copied ? "Copied" : "Copy"}
+              {copied ? "Copied!" : "Copy"}
             </button>
-            <span aria-live="polite" className="sr-only">
-              {copied ? "Install command copied to clipboard" : ""}
-            </span>
+          </div>
+
+          <div className="mt-6 flex flex-wrap items-center justify-between gap-4 border-t border-neutral-850 pt-4 text-xs text-neutral-400">
+            <span>Requires: Docker, PostgreSQL 16, Nginx</span>
+            <Link href="/docs/quick-start" className="text-white hover:underline">
+              Read Quick Start Guide →
+            </Link>
           </div>
         </div>
       </div>

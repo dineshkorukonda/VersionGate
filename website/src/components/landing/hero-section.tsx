@@ -2,9 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { DashboardPreview } from "./dashboard-preview";
 
-const INSTALL_CMD = "curl -fsSL https://versiongate.tech/install.sh | sudo bash";
+const INSTALL_CMD = "curl -fsSL https://versiongate.tech/install.sh | bash";
 
 export function HeroSection() {
   const [copied, setCopied] = useState(false);
@@ -16,60 +15,110 @@ export function HeroSection() {
   };
 
   return (
-    <section className="relative overflow-hidden pt-16 pb-20 lg:pt-24 lg:pb-28">
-      <div className="pointer-events-none absolute inset-0 bg-grid-pattern opacity-[0.07]" />
+    <section className="relative overflow-hidden pt-12 pb-20 sm:pt-16 sm:pb-24">
+      <div className="relative mx-auto max-w-4xl px-4 text-center sm:px-6">
+        {/* Eyebrow Badge */}
+        <div className="inline-flex items-center gap-2 rounded-full border border-neutral-800 bg-neutral-900/80 px-3 py-1 font-mono text-xs text-neutral-400">
+          <span className="h-1.5 w-1.5 rounded-full bg-white" />
+          <span>Open Source Self-Hosted PaaS</span>
+        </div>
 
-      <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
-          <div>
-            <p className="text-sm font-medium text-primary">Self-hosted deployment engine</p>
-            <h1 className="mt-4 text-4xl font-bold tracking-tight text-white sm:text-5xl lg:text-6xl">
-              Deploy to your VPS with zero downtime
-            </h1>
-            <p className="mt-5 max-w-xl text-base leading-relaxed text-neutral-400 sm:text-lg">
-              VersionGate is an open-source PaaS you run on your own server. Git webhooks,
-              blue/green slot routing, PM2 or Docker, database studio, and TLS — without cloud lock-in.
-            </p>
+        {/* Headline */}
+        <h1 className="mt-6 text-4xl font-bold tracking-tight text-white sm:text-6xl sm:leading-[1.1]">
+          Deploy to your VPS with zero downtime.
+        </h1>
 
-            <div className="mt-8 flex flex-wrap items-center gap-3">
-              <Link
-                href="#install"
-                className="inline-flex h-11 items-center rounded-lg bg-primary px-5 text-sm font-medium text-white transition hover:bg-primary/90"
-              >
-                Install on your server
-              </Link>
-              <Link
-                href="/docs/quick-start"
-                className="inline-flex h-11 items-center rounded-lg border border-neutral-700 bg-neutral-900 px-5 text-sm font-medium text-white transition hover:border-neutral-600"
-              >
-                Read the docs
-              </Link>
+        {/* Subtitle */}
+        <p className="mx-auto mt-5 max-w-2xl text-base leading-relaxed text-neutral-400 sm:text-lg">
+          VersionGate turns any Linux server into a production-grade deployment platform.
+          Git-push deploys, blue/green traffic cutovers, built-in database management, and instant rollbacks on your own hardware.
+        </p>
+
+        {/* CTAs */}
+        <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+          <Link
+            href="#install"
+            className="inline-flex h-10 items-center justify-center rounded-lg bg-white px-5 text-sm font-semibold text-black transition hover:bg-neutral-200"
+          >
+            Get Started
+          </Link>
+          <a
+            href="https://github.com/dineshkorukonda/VersionGate"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex h-10 items-center justify-center rounded-lg border border-neutral-800 bg-neutral-900 px-5 text-sm font-medium text-white transition hover:bg-neutral-850 hover:border-neutral-700"
+          >
+            Star on GitHub
+          </a>
+        </div>
+
+        {/* One-click Install Snippet */}
+        <div className="mx-auto mt-6 max-w-md">
+          <div className="flex items-center justify-between gap-3 rounded-lg border border-neutral-800 bg-neutral-950 px-3.5 py-2">
+            <span className="font-mono text-xs text-neutral-300 truncate">{INSTALL_CMD}</span>
+            <button
+              type="button"
+              onClick={copyInstall}
+              className="shrink-0 rounded bg-neutral-800 px-2 py-0.5 font-mono text-[11px] font-medium text-neutral-300 transition hover:bg-neutral-700 hover:text-white"
+            >
+              {copied ? "Copied!" : "Copy"}
+            </button>
+          </div>
+        </div>
+
+        {/* Trust Badges */}
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-6 font-mono text-xs text-neutral-500">
+          <span>MIT Licensed</span>
+          <span>•</span>
+          <span>Zero Vendor Lock-in</span>
+          <span>•</span>
+          <span>Runs on $5 VPS</span>
+        </div>
+
+        {/* Interactive App Preview */}
+        <div className="mt-12 overflow-hidden rounded-xl border border-neutral-800 bg-neutral-950 text-left shadow-2xl">
+          <div className="flex items-center justify-between border-b border-neutral-800 bg-[#0c0c0e] px-4 py-3">
+            <div className="flex items-center gap-2">
+              <span className="h-2.5 w-2.5 rounded-full bg-neutral-700" />
+              <span className="h-2.5 w-2.5 rounded-full bg-neutral-700" />
+              <span className="h-2.5 w-2.5 rounded-full bg-neutral-700" />
+              <span className="ml-2 font-mono text-xs text-neutral-400">
+                production // web-api
+              </span>
             </div>
+            <span className="rounded bg-white/10 px-2 py-0.5 font-mono text-[10px] font-semibold text-white">
+              LIVE · 0ms DOWNTIME
+            </span>
+          </div>
 
-            <div className="mt-6 max-w-lg rounded-lg border border-neutral-800 bg-neutral-950 p-3">
-              <div className="flex items-center justify-between gap-3">
-                <code className="truncate font-mono text-xs text-neutral-300">{INSTALL_CMD}</code>
-                <button
-                  type="button"
-                  onClick={copyInstall}
-                  className="shrink-0 rounded-md border border-neutral-700 px-2.5 py-1 text-xs font-medium text-neutral-300 transition hover:border-neutral-500 hover:text-white"
-                >
-                  {copied ? "Copied" : "Copy"}
-                </button>
-                <span aria-live="polite" className="sr-only">
-                  {copied ? "Install command copied to clipboard" : ""}
-                </span>
+          <div className="p-5 sm:p-6 space-y-4">
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div className="rounded-lg border border-neutral-800/80 bg-neutral-900/50 p-3">
+                <span className="text-[11px] font-mono text-neutral-500 block">Active Slot</span>
+                <span className="text-sm font-semibold text-white mt-1 block">Slot A · Port 3101</span>
+                <span className="text-[11px] text-neutral-400 font-mono">100% Live Traffic</span>
+              </div>
+              <div className="rounded-lg border border-neutral-800/80 bg-neutral-900/50 p-3">
+                <span className="text-[11px] font-mono text-neutral-500 block">Standby Slot</span>
+                <span className="text-sm font-semibold text-white mt-1 block">Slot B · Port 3100</span>
+                <span className="text-[11px] text-neutral-400 font-mono">Warm Rollback Ready (&lt; 2s)</span>
+              </div>
+              <div className="rounded-lg border border-neutral-800/80 bg-neutral-900/50 p-3">
+                <span className="text-[11px] font-mono text-neutral-500 block">Health Check</span>
+                <span className="text-sm font-semibold text-white mt-1 block">200 OK · 12ms</span>
+                <span className="text-[11px] text-neutral-400 font-mono">Dual-host verified</span>
               </div>
             </div>
 
-            <div className="mt-8 flex flex-wrap gap-6 text-sm text-neutral-500">
-              <span>MIT licensed</span>
-              <span>Open source</span>
-              <span>No vendor lock-in</span>
+            <div className="rounded-lg border border-neutral-800/80 bg-black p-3.5 font-mono text-xs text-neutral-400 flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <span className="text-white font-semibold">Latest deploy:</span>
+                <span className="text-neutral-300">feat: add bearer tokens & rate limiting</span>
+                <span className="text-neutral-500">(commit a99bcfd)</span>
+              </div>
+              <span className="text-neutral-500 text-[11px]">Duration: 28s</span>
             </div>
           </div>
-
-          <DashboardPreview />
         </div>
       </div>
     </section>

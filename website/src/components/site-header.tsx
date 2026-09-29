@@ -4,13 +4,13 @@ import { MobileSiteNav } from "@/components/mobile-site-nav";
 export function SiteHeader({ active }: { active?: string }) {
   return (
     <header className="sticky top-0 z-40 w-full border-b border-neutral-850 bg-black/80 backdrop-blur-md">
-      <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:px-6">
         <div className="flex items-center gap-8">
           <Link
             href="/"
             className="flex items-center gap-2 font-mono text-sm font-bold tracking-tight text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500 rounded"
           >
-            <span className="inline-block h-4 w-4 bg-white" />
+            <span className="inline-block h-3.5 w-3.5 bg-white" />
             VersionGate
           </Link>
 
@@ -22,28 +22,16 @@ export function SiteHeader({ active }: { active?: string }) {
               Features
             </Link>
             <Link
-              href="/#architecture"
+              href="/#how-it-works"
               className="text-neutral-400 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500"
             >
               How it works
-            </Link>
-            <Link
-              href="/#capabilities"
-              className="text-neutral-400 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500"
-            >
-              Capabilities
             </Link>
             <Link
               href="/#faq"
               className="text-neutral-400 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500"
             >
               FAQ
-            </Link>
-            <Link
-              href="/#install"
-              className="text-neutral-400 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500"
-            >
-              Install
             </Link>
             <Link
               href="/docs"
@@ -69,7 +57,7 @@ export function SiteHeader({ active }: { active?: string }) {
             href="https://github.com/dineshkorukonda/VersionGate"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-xs font-mono text-neutral-400 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500"
+            className="hidden sm:inline-block text-xs font-mono text-neutral-400 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500"
           >
             GitHub
           </Link>
