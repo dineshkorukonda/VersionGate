@@ -1,17 +1,16 @@
 import Link from "next/link";
 import { MobileSiteNav } from "@/components/mobile-site-nav";
 
-const GITHUB_REPO = "https://github.com/dineshkorukonda/VersionGate";
-
-export function SiteHeader({ active }: { active?: "docs" | "changelog" } = {}) {
+export function SiteHeader({ active }: { active?: string }) {
   return (
-    <header className="sticky top-0 z-50 border-b border-neutral-800/80 bg-black/80 backdrop-blur-md">
-      <div className="relative mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center gap-4 md:gap-8">
+    <header className="sticky top-0 z-40 w-full border-b border-neutral-850 bg-black/80 backdrop-blur-md">
+      <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center gap-8">
           <Link
             href="/"
-            className="text-sm font-semibold text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500"
+            className="flex items-center gap-2 font-mono text-sm font-bold tracking-tight text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500 rounded"
           >
+            <span className="inline-block h-4 w-4 bg-white" />
             VersionGate
           </Link>
 
@@ -29,6 +28,18 @@ export function SiteHeader({ active }: { active?: "docs" | "changelog" } = {}) {
               How it works
             </Link>
             <Link
+              href="/#capabilities"
+              className="text-neutral-400 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500"
+            >
+              Capabilities
+            </Link>
+            <Link
+              href="/#faq"
+              className="text-neutral-400 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500"
+            >
+              FAQ
+            </Link>
+            <Link
               href="/#install"
               className="text-neutral-400 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500"
             >
@@ -36,26 +47,29 @@ export function SiteHeader({ active }: { active?: "docs" | "changelog" } = {}) {
             </Link>
             <Link
               href="/docs"
-              className={active === "docs" ? "text-white font-medium" : "text-neutral-400 hover:text-white transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500"}
+              className={`transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500 ${
+                active === "docs" ? "text-white font-medium" : "text-neutral-400"
+              }`}
             >
               Docs
             </Link>
             <Link
               href="/changelog"
-              className={active === "changelog" ? "text-white font-medium" : "text-neutral-400 hover:text-white transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500"}
+              className={`transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500 ${
+                active === "changelog" ? "text-white font-medium" : "text-neutral-400"
+              }`}
             >
               Changelog
             </Link>
           </nav>
         </div>
 
-        <div className="flex items-center gap-2 sm:gap-3">
-          <MobileSiteNav />
+        <div className="flex items-center gap-3">
           <Link
-            href={GITHUB_REPO}
+            href="https://github.com/dineshkorukonda/VersionGate"
             target="_blank"
-            rel="noreferrer"
-            className="hidden sm:inline-flex text-sm text-neutral-400 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500"
+            rel="noopener noreferrer"
+            className="text-xs font-mono text-neutral-400 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500"
           >
             GitHub
           </Link>
@@ -65,6 +79,7 @@ export function SiteHeader({ active }: { active?: "docs" | "changelog" } = {}) {
           >
             Get started
           </Link>
+          <MobileSiteNav />
         </div>
       </div>
     </header>

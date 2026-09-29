@@ -1,11 +1,10 @@
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { HeroSection } from "@/components/landing/hero-section";
-import { LaunchVideoSection } from "@/components/landing/launch-video-section";
 import { FeatureShowcase } from "@/components/landing/feature-showcase";
-import { CapabilityGrid } from "@/components/capability-grid";
-import { LandingFAQ } from "@/components/landing-faq";
 import { HowItWorks } from "@/components/landing/how-it-works";
+import { CapabilityGrid } from "@/components/capability-grid";
+import { FaqSection } from "@/components/landing/faq-section";
 import { InstallSection } from "@/components/landing/install-section";
 
 export default function Home() {
@@ -14,11 +13,10 @@ export default function Home() {
       <SiteHeader />
       <main id="main">
         <HeroSection />
-        <LaunchVideoSection />
         <FeatureShowcase />
-        <CapabilityGrid />
         <HowItWorks />
-        <LandingFAQ />
+        <CapabilityGrid />
+        <FaqSection />
         <InstallSection />
       </main>
       <SiteFooter />

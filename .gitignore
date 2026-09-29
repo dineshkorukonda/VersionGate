@@ -9,6 +9,7 @@ dashboard/.next/
 dashboard/out/
 website/.next/
 website/out/
+brag-output/
 
 # Environment
 .env
@@ -36,3 +37,4 @@ coverage/
 .deepsec/
 .worktrees/
 worktrees/
+.agents/
