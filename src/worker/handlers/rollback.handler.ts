@@ -124,12 +124,12 @@ export async function runRollbackJob(
     }
 
     await envRepo.assertDeployLock(environmentId);
-    await log(`Switching traffic to port ${previous.port}`);
-    await traffic.switchTrafficTo(previous.port, {
-      projectName: project.name,
-      environmentName: environment.name,
-    });
     if (environment.name === DEFAULT_ENVIRONMENT_NAME) {
+      await log(`Switching traffic to port ${previous.port}`);
+      await traffic.switchTrafficTo(previous.port, {
+        projectName: project.name,
+        environmentName: environment.name,
+      });
       await syncCustomDomainUpstream(project.name, previous.port);
     }
 

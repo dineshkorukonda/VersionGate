@@ -122,9 +122,8 @@ export class RollbackService {
       );
     }
 
-    await this.traffic.switchTrafficTo(previous.port);
-
     if (envRow.name === DEFAULT_ENVIRONMENT_NAME) {
+      await this.traffic.switchTrafficTo(previous.port, { projectName: project.name, environmentName: envRow.name });
       await syncCustomDomainUpstream(project.name, previous.port);
     }
 
