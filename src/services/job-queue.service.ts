@@ -107,13 +107,14 @@ export async function appendLog(jobId: string, line: string): Promise<void> {
       FROM (
         SELECT line, idx
         FROM (
-          SELECT value AS line, row_number() OVER () AS idx
-          FROM jsonb_array_elements("Job".logs || ${jsonArrayStr}::jsonb)
+          SELECT value AS line, ordinality AS idx
+          FROM jsonb_array_elements("Job".logs || ${jsonArrayStr}::jsonb) WITH ORDINALITY
         ) combined
         ORDER BY idx DESC
         LIMIT ${MAX_JOB_LOG_LINES}
       ) trimmed
     ),
+    "logSequence" = GREATEST("logSequence", jsonb_array_length(logs)) + 1,
     "updatedAt" = NOW()
     WHERE id = ${jobId}
   `);

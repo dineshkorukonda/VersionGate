@@ -197,6 +197,7 @@ export const jobs = pgTable(
     payload: jsonb("payload").notNull(),
     result: jsonb("result"),
     logs: jsonb("logs").default(sql`'[]'::jsonb`).notNull(),
+    logSequence: integer("logSequence").default(0).notNull(),
     error: text("error"),
     startedAt: timestamp("startedAt", { mode: "date" }),
     workerOwner: text("workerOwner"),

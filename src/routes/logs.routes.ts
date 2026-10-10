@@ -2,113 +2,53 @@ import { FastifyInstance } from "fastify";
 import { eq } from "drizzle-orm";
 import { getDb } from "../db/client";
 import { jobs } from "../db/schema";
-import { logEmitter } from "../events/log-emitter";
+import { jobLogsAfter } from "../utils/job-log-cursor";
 
 export async function logsRoutes(app: FastifyInstance): Promise<void> {
   app.get("/logs/:jobId", { websocket: true }, (socket, req) => {
-    const jobId =
-      (req.params as { jobId?: string }).jobId ??
-      req.url.replace(/^\//, "").split("/").pop()?.split("?")[0] ??
-      "";
-    if (!jobId) {
-      socket.close();
-      return;
-    }
-
-    let lastIndex = 0;
+    const jobId = (req.params as { jobId?: string }).jobId ?? "";
+    let cursor = 0;
     let closed = false;
+    let reading = false;
+    let poll: ReturnType<typeof setInterval> | null = null;
 
+    const cleanup = (): void => {
+      if (closed) return;
+      closed = true;
+      if (poll) clearInterval(poll);
+      try { socket.close(); } catch { /* connection already closed */ }
+    };
+    socket.on("close", cleanup);
+    socket.on("error", cleanup);
     const sendJson = (obj: unknown): void => {
       if (closed) return;
-      try {
-        socket.send(JSON.stringify(obj));
-      } catch {
-        closed = true;
-      }
+      try { socket.send(JSON.stringify(obj)); } catch { cleanup(); }
     };
+    if (!jobId) { cleanup(); return; }
 
-    void (async () => {
-      const db = getDb();
-      const [job] = await db.select().from(jobs).where(eq(jobs.id, jobId)).limit(1);
-      if (!job) {
-        sendJson({ type: "error", message: "Job not found" });
-        socket.close();
-        return;
-      }
-
-      const initialLogs = Array.isArray(job.logs) ? (job.logs as string[]) : [];
-      for (let i = 0; i < initialLogs.length; i++) {
-        sendJson({
-          type: "log",
-          line: initialLogs[i],
-          timestamp: new Date().toISOString(),
-        });
-      }
-      lastIndex = initialLogs.length;
-
-      const isTerminal = (s: string) => s === "COMPLETE" || s === "FAILED" || s === "CANCELLED";
-
-      if (isTerminal(job.status)) {
-        sendJson({ type: "status", status: job.status });
-        socket.close();
-        return;
-      }
-
-      const onLiveLog = (line: string): void => {
-        lastIndex++;
-        sendJson({ type: "log", line, timestamp: new Date().toISOString() });
-      };
-      const onLiveStatus = (status: string): void => {
-        sendJson({ type: "status", status });
-        if (isTerminal(status)) {
-          cleanup();
-        }
-      };
-
-      const unsubLog = logEmitter.subscribeLog(jobId, onLiveLog);
-      const unsubStatus = logEmitter.subscribeStatus(jobId, onLiveStatus);
-
-      const cleanup = (): void => {
+    // PostgreSQL is the ordered source for both in-process and external workers.
+    // A single cursor avoids duplicate delivery between local events and polling.
+    const read = async (): Promise<void> => {
+      if (closed || reading) return;
+      reading = true;
+      try {
+        const [job] = await getDb().select({ logs: jobs.logs, logSequence: jobs.logSequence, status: jobs.status })
+          .from(jobs).where(eq(jobs.id, jobId)).limit(1);
         if (closed) return;
-        closed = true;
-        clearInterval(poll);
-        unsubLog();
-        unsubStatus();
-        try {
-          socket.close();
-        } catch {
-          /* ignore */
+        if (!job) { sendJson({ type: "error", message: "Job not found" }); cleanup(); return; }
+        const batch = jobLogsAfter(job, cursor);
+        if (batch.gap) sendJson({ type: "log", line: "[logs] Some older lines expired from retention.", timestamp: new Date().toISOString() });
+        for (const entry of batch.entries) {
+          sendJson({ type: "log", ...entry, timestamp: new Date().toISOString() });
         }
-      };
-
-      const poll = setInterval(async () => {
-        try {
-          const [j] = await db.select().from(jobs).where(eq(jobs.id, jobId)).limit(1);
-          if (!j || closed) {
-            cleanup();
-            return;
-          }
-          const currentLogs = Array.isArray(j.logs) ? (j.logs as string[]) : [];
-          while (lastIndex < currentLogs.length) {
-            sendJson({
-              type: "log",
-              line: currentLogs[lastIndex],
-              timestamp: new Date().toISOString(),
-            });
-            lastIndex++;
-          }
-          if (isTerminal(j.status)) {
-            sendJson({ type: "status", status: j.status });
-            cleanup();
-          }
-        } catch {
+        cursor = batch.cursor;
+        if (["COMPLETE", "FAILED", "CANCELLED"].includes(job.status)) {
+          sendJson({ type: "status", status: job.status });
           cleanup();
         }
-      }, 400);
-
-      socket.on("close", () => {
-        cleanup();
-      });
-    })();
+      } catch { cleanup(); } finally { reading = false; }
+    };
+    poll = setInterval(() => { void read(); }, 400);
+    void read();
   });
 }
