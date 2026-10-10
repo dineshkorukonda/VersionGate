@@ -1,7 +1,12 @@
-import { eq, and, asc, sql, lt, gte } from "drizzle-orm";
+import { eq, and, asc, sql, lt, or, isNull } from "drizzle-orm";
+import { randomUUID } from "crypto";
 import { getDb } from "../db/client";
 import { jobs, projects, environments, JobSelect, ProjectSelect, EnvironmentSelect } from "../db/schema";
 import redisService from "./redis.service";
+import { DeploymentError } from "../utils/errors";
+
+export const WORKER_OWNER = randomUUID();
+export const JOB_LEASE_MS = 120_000;
 
 export type JobWithDetails = JobSelect & {
   project: ProjectSelect;
@@ -24,7 +29,8 @@ export async function claimNextJob(): Promise<JobWithDetails | null> {
 
     const [updated] = await tx
       .update(jobs)
-      .set({ status: "RUNNING", startedAt: new Date(), updatedAt: new Date() })
+      .set({ status: "RUNNING", startedAt: new Date(), updatedAt: new Date(),
+        workerOwner: WORKER_OWNER, leaseExpiresAt: new Date(Date.now() + JOB_LEASE_MS) })
       .where(and(eq(jobs.id, next.id), eq(jobs.status, "PENDING")))
       .returning();
 
@@ -57,9 +63,11 @@ export async function completeJob(jobId: string, result: unknown): Promise<JobSe
       updatedAt: new Date(),
       result: result as any,
     })
-    .where(eq(jobs.id, jobId))
+    .where(and(eq(jobs.id, jobId), eq(jobs.status, "RUNNING"), eq(jobs.workerOwner, WORKER_OWNER),
+      sql`${jobs.leaseExpiresAt} >= NOW()`))
     .returning();
 
+  if (!updated) throw new DeploymentError("Worker job lease ownership lost before completion");
   return updated;
 }
 
@@ -73,7 +81,7 @@ export async function failJob(jobId: string, error: string): Promise<JobSelect> 
       updatedAt: new Date(),
       error,
     })
-    .where(eq(jobs.id, jobId))
+    .where(and(eq(jobs.id, jobId), eq(jobs.status, "RUNNING"), eq(jobs.workerOwner, WORKER_OWNER)))
     .returning();
 
   return updated;
@@ -139,34 +147,39 @@ export async function enqueueJob(
 /** Jobs running longer than this are marked failed instead of re-queued on restart. */
 export const STALE_RUNNING_JOB_MS = 2 * 60 * 60 * 1000;
 
+/** Heartbeat is independent of log output, including long builds with no logs. */
+export async function heartbeatJob(jobId: string): Promise<boolean> {
+  const rows = await getDb().update(jobs)
+    .set({ leaseExpiresAt: new Date(Date.now() + JOB_LEASE_MS) })
+    .where(and(eq(jobs.id, jobId), eq(jobs.status, "RUNNING"), eq(jobs.workerOwner, WORKER_OWNER),
+      sql`${jobs.leaseExpiresAt} >= NOW()`))
+    .returning();
+  return rows.length === 1;
+}
+
+/** Fence side effects when recovery has already invalidated this worker's job. */
+export async function assertJobLease(jobId: string): Promise<void> {
+  if (!await heartbeatJob(jobId)) throw new DeploymentError("Worker job lease ownership lost");
+}
+
+export async function withJobHeartbeat(jobId: string, run: () => Promise<void>): Promise<void> {
+  const timer = setInterval(() => { void heartbeatJob(jobId).catch(() => false); }, 30_000);
+  timer.unref();
+  try { await run(); } finally { clearInterval(timer); }
+}
+
 export async function recoverStuckJobs(staleAfterMs = STALE_RUNNING_JOB_MS): Promise<number> {
-  const db = getDb();
   const now = new Date();
   const staleCutoff = new Date(now.getTime() - staleAfterMs);
-
-  const failed = await db
-    .update(jobs)
-    .set({
-      status: "FAILED",
-      completedAt: now,
-      updatedAt: now,
-      error: "Job exceeded maximum runtime and was stopped during worker restart",
-    })
-    .where(and(eq(jobs.status, "RUNNING"), lt(jobs.startedAt, staleCutoff)))
-    .returning();
-
-  const requeued = await db
-    .update(jobs)
-    .set({
-      status: "PENDING",
-      startedAt: null,
-      updatedAt: now,
-      error: null,
-    })
-    .where(and(eq(jobs.status, "RUNNING"), gte(jobs.startedAt, staleCutoff)))
-    .returning();
-
-  return failed.length + requeued.length;
+  // Legacy jobs without leases receive a grace period. Never reset another live worker's job.
+  const failed = await getDb().update(jobs).set({
+    status: "FAILED", completedAt: now, updatedAt: now, leaseExpiresAt: null,
+    error: "Worker lease expired; deployment outcome must be reconciled before retrying",
+  }).where(and(eq(jobs.status, "RUNNING"), or(
+    lt(jobs.leaseExpiresAt, now),
+    and(isNull(jobs.leaseExpiresAt), lt(jobs.updatedAt, staleCutoff)),
+  ))).returning();
+  return failed.length;
 }
 
 export async function cancelPendingJob(jobId: string): Promise<boolean> {

@@ -5,7 +5,7 @@ import { getDb } from "../../db/client";
 import { jobs, JobSelect, ProjectSelect, EnvironmentSelect } from "../../db/schema";
 import { DeploymentError } from "../../utils/errors";
 import { runDeployPipeline } from "../../services/deploy-pipeline.service";
-import { completeJob, failJob } from "../../services/job-queue.service";
+import { completeJob, failJob, assertJobLease } from "../../services/job-queue.service";
 import { humanizeDeployFailure } from "../../utils/deploy-errors";
 import { logEmitter } from "../../events/log-emitter";
 
@@ -65,6 +65,7 @@ export async function runDeployJob(
       environment,
       log,
       checkCancelled: async (id) => {
+        await assertJobLease(jobId);
         await envRepo.assertDeployLock(environmentId);
         await checkCancelled(id, log);
       },

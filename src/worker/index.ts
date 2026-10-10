@@ -1,6 +1,6 @@
 import { logger } from "../utils/logger";
 import { disconnectDb } from "../db/client";
-import { appendLog, claimNextJob, failJob, recoverStuckJobs } from "../services/job-queue.service";
+import { appendLog, claimNextJob, failJob, recoverStuckJobs, withJobHeartbeat } from "../services/job-queue.service";
 import { runDeployJob } from "./handlers/deploy.handler";
 import { runRollbackJob } from "./handlers/rollback.handler";
 import { runPromoteJob } from "./handlers/promote.handler";
@@ -33,20 +33,28 @@ async function processNextJob(): Promise<void> {
   const job = await claimNextJob();
   if (!job) return;
 
-  const log = makeLogFn(job.id);
-  await log(`[job ${job.id}] type=${job.type} status=RUNNING`);
+  await withJobHeartbeat(job.id, async () => {
+    try {
+      const log = makeLogFn(job.id);
+      await log(`[job ${job.id}] type=${job.type} status=RUNNING`);
 
-  if (job.type === "DEPLOY") {
-    await runDeployJob(job, log);
-  } else if (job.type === "ROLLBACK") {
-    await runRollbackJob(job, log);
-  } else if (job.type === "PROMOTE") {
-    await runPromoteJob(job, log);
-  } else {
-    await log(`Unknown job type: ${job.type}`);
-    await failJob(job.id, `Unknown job type: ${job.type}`);
-    logEmitter.emitStatus(job.id, "FAILED");
-  }
+      if (job.type === "DEPLOY") {
+        await runDeployJob(job, log);
+      } else if (job.type === "ROLLBACK") {
+        await runRollbackJob(job, log);
+      } else if (job.type === "PROMOTE") {
+        await runPromoteJob(job, log);
+      } else {
+        await log(`Unknown job type: ${job.type}`);
+        await failJob(job.id, `Unknown job type: ${job.type}`);
+        logEmitter.emitStatus(job.id, "FAILED");
+      }
+    } catch (err) {
+      await failJob(job.id, err instanceof Error ? err.message : String(err));
+      logEmitter.emitStatus(job.id, "FAILED");
+      throw err;
+    }
+  });
 }
 
 async function loop(): Promise<void> {
