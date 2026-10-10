@@ -3,6 +3,8 @@ import { getDb } from "../db/client";
 import { jobs } from "../db/schema";
 import { DeploymentRepository } from "../repositories/deployment.repository";
 import { EnvironmentRepository } from "../repositories/environment.repository";
+import { isPm2Running, stopPm2App } from "../utils/pm2";
+import { ProjectRepository } from "../repositories/project.repository";
 import { stopContainer, removeContainer, inspectContainer } from "../utils/docker";
 import { logger } from "../utils/logger";
 import { recoverStuckJobs, JOB_LEASE_MS } from "./job-queue.service";
@@ -63,8 +65,14 @@ export class ReconciliationService {
         { deploymentId: d.id, containerName: d.containerName, environmentId: d.environmentId },
         "Recovering crashed deployment"
       );
-      await stopContainer(d.containerName).catch(() => null);
-      await removeContainer(d.containerName).catch(() => null);
+      const env = await this.envRepo.findById(d.environmentId);
+      const project = env ? await new ProjectRepository().findById(env.projectId) : null;
+      if (project?.deploymentType === "pm2") {
+        await stopPm2App(d.containerName).catch(() => null);
+      } else {
+        await stopContainer(d.containerName).catch(() => null);
+        await removeContainer(d.containerName).catch(() => null);
+      }
       await this.repo.updateStatus(d.id, "FAILED").catch((err) => {
         logger.error({ err, deploymentId: d.id }, "Failed to mark crashed deployment as FAILED");
       });
@@ -82,7 +90,9 @@ export class ReconciliationService {
     for (const d of active) {
       let running: boolean;
       try {
-        running = await inspectContainer(d.containerName);
+        running = d.project.deploymentType === "pm2"
+          ? await isPm2Running(d.containerName)
+          : await inspectContainer(d.containerName);
       } catch (err) {
         logger.warn(
           { err, deploymentId: d.id, containerName: d.containerName, environmentId: d.environmentId },
