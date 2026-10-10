@@ -1,6 +1,7 @@
 import { ChangelogTimeline, type ChangelogRelease } from "@/components/changelog-timeline";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
+import { INSTALL_CMD } from "@/lib/installer";
 
 export const revalidate = 3600; // Revalidate dynamic releases every 1 hour (ISR)
 
@@ -39,6 +40,13 @@ const AUDIT_UPDATE: ChangelogRelease = {
   isLatest: true,
   summary: "Security and reliability audit fixes pending release: verified relay access, owned leases, runtime-aware rollback, retained log streaming, and recoverable setup.",
   categories: [
+    {
+      title: "Host Installation",
+      badge: "FIX",
+      items: [
+        { title: "Direct GitHub Installer Download", description: "Landing page and Quick Start commands download install.sh from GitHub with HTTPS verification and run only after a successful download. The custom-domain example now passes DOMAIN to the installer through sudo env.", command: INSTALL_CMD },
+      ],
+    },
     {
       title: "Authentication & Setup",
       badge: "FIX",

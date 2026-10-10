@@ -11,13 +11,13 @@ Push to GitHub (or invoke the HTTP API), VersionGate builds the application on a
 One-command automated host bootstrap:
 
 ```bash
-curl -fsSL https://versiongate.tech/install.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/dineshkorukonda/VersionGate/main/install.sh -o /tmp/versiongate-install.sh && sudo bash /tmp/versiongate-install.sh
 ```
 
 With custom domain and automatic Let's Encrypt TLS:
 
 ```bash
-DOMAIN=versiongate.tech curl -fsSL https://versiongate.tech/install.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/dineshkorukonda/VersionGate/main/install.sh -o /tmp/versiongate-install.sh && sudo env DOMAIN=vg.example.com bash /tmp/versiongate-install.sh
 ```
 
 Open the dashboard setup wizard at `http://your-server-ip:9090/` or `https://your-domain/` when `DOMAIN` is configured.
