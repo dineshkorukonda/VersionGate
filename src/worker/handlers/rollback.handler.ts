@@ -123,6 +123,7 @@ export async function runRollbackJob(
       );
     }
 
+    await envRepo.assertDeployLock(environmentId);
     await log(`Switching traffic to port ${previous.port}`);
     await traffic.switchTrafficTo(previous.port, {
       projectName: project.name,

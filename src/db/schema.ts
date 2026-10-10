@@ -170,6 +170,7 @@ export const environments = pgTable(
     appPort: integer("appPort").notNull(),
     env: jsonb("env").default(sql`'{}'::jsonb`).notNull(),
     lockedAt: timestamp("lockedAt", { mode: "date" }),
+    lockOwner: text("lockOwner"),
     createdAt: timestamp("createdAt", { mode: "date" }).defaultNow().notNull(),
     updatedAt: timestamp("updatedAt", { mode: "date" }).defaultNow().notNull(),
   },

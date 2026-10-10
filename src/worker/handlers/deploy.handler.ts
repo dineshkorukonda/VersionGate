@@ -65,6 +65,7 @@ export async function runDeployJob(
       environment,
       log,
       checkCancelled: async (id) => {
+        await envRepo.assertDeployLock(environmentId);
         await checkCancelled(id, log);
       },
       onDeploymentCreated: async (id) => {

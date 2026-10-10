@@ -149,6 +149,7 @@ export async function runPromoteJob(
       config.dockerNetwork,
       mergedEnv
     );
+    await envRepo.assertDeployLock(targetEnvironmentId);
     await checkCancelled(deploymentId, log);
 
     await log(`Health check http://localhost:${hostPort}${project.healthPath}`);
@@ -160,6 +161,7 @@ export async function runPromoteJob(
     if (!health.success) {
       throw new DeploymentError(health.error ?? "Health check failed");
     }
+    await envRepo.assertDeployLock(targetEnvironmentId);
     await checkCancelled(deploymentId, log);
 
     const switchPublicTraffic = targetEnv.name === DEFAULT_ENVIRONMENT_NAME;
