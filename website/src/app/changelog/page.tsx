@@ -33,6 +33,33 @@ interface ReleaseCategory {
   items: ReleaseItem[];
 }
 
+const AUDIT_UPDATE: ChangelogRelease = {
+  version: "Unreleased",
+  date: "October 10, 2026",
+  isLatest: true,
+  summary: "Security and reliability audit fixes pending release: verified relay access, owned leases, runtime-aware rollback, retained log streaming, and recoverable setup.",
+  categories: [
+    {
+      title: "Authentication & Setup",
+      badge: "FIX",
+      items: [
+        { title: "Relay Signature and TLS Verification", description: "Removed numeric installation signature bypasses, public default secrets, and TLS verification retries. Configure matching GITHUB_STATE_SECRET and RELAY_SECRET before using the relay." },
+        { title: "Protected API Token Routes", description: "Token listing, creation, and revocation now authenticate the session or API token before accessing the user account." },
+        { title: "Retryable Setup", description: "Database credentials are excluded from setup logs. Admin and session creation share a transaction; configuration publication is atomic and failed initialization retains previous settings." },
+      ],
+    },
+    {
+      title: "Deployment Recovery & Observability",
+      badge: "FIX",
+      items: [
+        { title: "Renewable Owner-Checked Leases", description: "Deployment leases renew during long builds and can only be released by their owner. Worker heartbeats distinguish abandoned jobs from active work during restarts." },
+        { title: "Runtime and Environment Rollback Isolation", description: "Queued rollback uses the same Docker and PM2 service. Staging and development rollback leave production Nginx traffic unchanged." },
+        { title: "Log Streaming Beyond Retention", description: "Monotonic sequence cursors keep job streams advancing after the 5,000-line retention window fills and report retention gaps." },
+      ],
+    },
+  ],
+};
+
 const FALLBACK_RELEASES: ChangelogRelease[] = [
   {
     version: "v3.6.0",
@@ -1577,7 +1604,7 @@ async function fetchGitHubReleases(): Promise<ChangelogRelease[]> {
 }
 
 export default async function ChangelogPage() {
-  const releases = await fetchGitHubReleases();
+  const releases = [AUDIT_UPDATE, ...(await fetchGitHubReleases()).map((release) => ({ ...release, isLatest: false }))];
 
   return (
     <div className="min-h-screen bg-background text-foreground transition-colors">

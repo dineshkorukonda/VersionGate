@@ -15,6 +15,26 @@ export interface Capability {
 
 const CAPABILITIES: Capability[] = [
   {
+    id: "cap-deployment-leases",
+    category: "Deployment",
+    title: "Owned Deployment Leases & Runtime Rollbacks",
+    command: "POST /api/v1/projects/:id/rollback",
+    description: "Renewable deployment and worker leases protect active work during long builds and API restarts.",
+    details: "Owner checks prevent another worker from releasing a deployment lease. Rollback shares Docker and PM2 execution, with staging and development isolated from production Nginx traffic. Job log sequence cursors continue streaming after the retained 5,000-line window fills.",
+    badge: "RELIABILITY",
+    tag: "Owned Leases",
+  },
+  {
+    id: "cap-relay-authentication",
+    category: "Security & Auth",
+    title: "Authenticated Relay & Recoverable Setup",
+    command: "GITHUB_STATE_SECRET  |  RELAY_SECRET",
+    description: "Relay queries require valid signatures and trusted TLS certificates. API token management uses authenticated routes.",
+    details: "Operators must configure matching private relay secrets; public default secrets are rejected. Setup creates the admin and session in one transaction, publishes configuration atomically, and preserves the previous configuration after failure without logging database credentials.",
+    badge: "SECURITY",
+    tag: "Verified Access",
+  },
+  {
     id: "cap-blue-green-engine",
     category: "Deployment",
     title: "Blue/Green Zero-Downtime Deployments",
