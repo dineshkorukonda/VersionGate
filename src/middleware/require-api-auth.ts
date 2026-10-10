@@ -9,7 +9,7 @@ function pathOnly(url: string): string {
 
 function isPublicApiPath(path: string): boolean {
   if (path.startsWith("/api/v1/setup/")) return true;
-  if (path.startsWith("/api/v1/auth/")) return true;
+  if (["status", "register", "login", "logout"].some((route) => path === `/api/v1/auth/${route}`)) return true;
   if (path.startsWith("/api/v1/webhooks/")) return true;
   if (path.startsWith("/api/webhooks/")) return true;
   if (path.startsWith("/webhooks/")) return true;
