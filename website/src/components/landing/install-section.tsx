@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 
-const SCRIPT_CMD = "curl -fsSL https://versiongate.tech/install.sh | sudo bash";
+import { INSTALL_CMD } from "@/lib/installer";
 const DOCKER_CMD =
   "docker run -d --name versiongate -p 9090:9090 -v /var/run/docker.sock:/var/run/docker.sock versiongate/engine:latest";
 
@@ -11,7 +11,7 @@ export function InstallSection() {
   const [tab, setTab] = useState<"script" | "docker">("script");
   const [copied, setCopied] = useState(false);
 
-  const cmd = tab === "script" ? SCRIPT_CMD : DOCKER_CMD;
+  const cmd = tab === "script" ? INSTALL_CMD : DOCKER_CMD;
   const panelId = tab === "script" ? "install-script-panel" : "install-docker-panel";
 
   const copy = () => {
@@ -75,7 +75,7 @@ export function InstallSection() {
             aria-labelledby={tab === "script" ? "install-script-tab" : "install-docker-tab"}
             className="mt-4 flex items-center justify-between gap-3 rounded-xl border border-neutral-200 bg-neutral-50 p-4"
           >
-            <code className="overflow-x-auto font-mono text-xs text-neutral-800">{cmd}</code>
+            <code className="min-w-0 break-all font-mono text-xs text-neutral-800">{cmd}</code>
             <button
               type="button"
               onClick={copy}

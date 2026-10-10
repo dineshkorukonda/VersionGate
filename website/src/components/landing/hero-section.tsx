@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 
-const INSTALL_CMD = "curl -fsSL https://versiongate.tech/install.sh | bash";
+import { INSTALL_CMD } from "@/lib/installer";
 
 export function HeroSection() {
   const [copied, setCopied] = useState(false);
@@ -53,9 +53,9 @@ export function HeroSection() {
         </div>
 
         {/* One-line Install Pill */}
-        <div className="mx-auto mt-6 max-w-md">
-          <div className="flex items-center justify-between gap-3 rounded-full border border-neutral-200 bg-white px-4 py-2 shadow-xs">
-            <span className="font-mono text-xs text-neutral-800 truncate">{INSTALL_CMD}</span>
+        <div className="mx-auto mt-6 max-w-3xl">
+          <div className="flex items-center justify-between gap-3 rounded-xl border border-neutral-200 bg-white px-4 py-3 shadow-xs">
+            <code className="min-w-0 break-all text-left font-mono text-xs text-neutral-800">{INSTALL_CMD}</code>
             <button
               type="button"
               onClick={copyInstall}

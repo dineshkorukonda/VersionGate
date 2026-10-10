@@ -5,9 +5,9 @@
 # persists PM2 systemd service across host reboots, and detects Azure NSG rules.
 #
 # Usage on a fresh VM (root or sudo user):
-#   curl -fsSL https://versiongate.tech/install.sh | sudo bash
+#   curl -fsSL https://raw.githubusercontent.com/dineshkorukonda/VersionGate/main/install.sh -o /tmp/versiongate-install.sh && sudo bash /tmp/versiongate-install.sh
 # With custom domain & automatic TLS:
-#   DOMAIN=versiongate.tech curl -fsSL https://versiongate.tech/install.sh | sudo bash
+#   curl -fsSL https://raw.githubusercontent.com/dineshkorukonda/VersionGate/main/install.sh -o /tmp/versiongate-install.sh && sudo env DOMAIN=vg.example.com bash /tmp/versiongate-install.sh
 # Local execution:
 #   sudo bash install.sh
 #
@@ -27,7 +27,7 @@ if [[ "$(id -u)" -ne 0 ]]; then
   if command -v sudo >/dev/null 2>&1; then
     exec sudo -E bash "$0" "$@"
   fi
-  die "Run as root: curl -fsSL https://versiongate.tech/install.sh | sudo bash"
+  die "Run as root: curl -fsSL https://raw.githubusercontent.com/dineshkorukonda/VersionGate/main/install.sh -o /tmp/versiongate-install.sh && sudo bash /tmp/versiongate-install.sh"
 fi
 
 REAL_USER="${SUDO_USER:-root}"

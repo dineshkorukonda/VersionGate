@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { INSTALL_CMD } from "@/lib/installer";
 
 interface BentoCard {
   id: string;
@@ -82,7 +83,7 @@ const BENTO_FEATURES: BentoCard[] = [
     title: "100% self-hosted",
     description: "Complete data ownership on your VPS. No cloud seats, no surprise bills, no external dependencies.",
     badge: "Open Source",
-    command: "curl -fsSL https://versiongate.tech/install.sh",
+    command: INSTALL_CMD,
   },
 ];
 

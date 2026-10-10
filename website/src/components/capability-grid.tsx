@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
+import { INSTALL_CMD } from "@/lib/installer";
 
 export interface Capability {
   id: string;
@@ -14,6 +15,16 @@ export interface Capability {
 }
 
 const CAPABILITIES: Capability[] = [
+  {
+    id: "cap-github-installer",
+    category: "Deployment",
+    title: "Direct GitHub Host Installer",
+    command: INSTALL_CMD,
+    description: "Download the host installer directly from GitHub over HTTPS, then run it after a successful download.",
+    details: "The landing page and Quick Start use the same GitHub download command, avoiding dependency on the marketing domain's certificate for installation. The custom-domain example passes DOMAIN to the privileged installer process for automatic Certbot setup.",
+    badge: "INSTALLATION",
+    tag: "GitHub Source",
+  },
   {
     id: "cap-deployment-leases",
     category: "Deployment",

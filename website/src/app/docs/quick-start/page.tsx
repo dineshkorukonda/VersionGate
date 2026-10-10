@@ -1,4 +1,5 @@
 import { Breadcrumb, Callout, Code, H2, InlineCode, Lead, NextLinks, P, PageTitle } from "../ui";
+import { INSTALL_CMD, DOMAIN_INSTALL_CMD, INSTALLER_URL } from "@/lib/installer";
 
 export default function QuickStart() {
   return (
@@ -13,13 +14,17 @@ export default function QuickStart() {
       <P>
         On a clean VPS (Ubuntu, Debian, RHEL) with nothing installed, run this single command to provision Docker Engine, Nginx reverse proxy, Node 20, Bun, PM2 boot persistence, and start VersionGate:
       </P>
-      <Code title="terminal">{`curl -fsSL https://versiongate.tech/install.sh | sudo bash`}</Code>
+      <Code title="terminal">{INSTALL_CMD}</Code>
+      <P>
+        The installer downloads from <a href={INSTALLER_URL} className="text-foreground underline underline-offset-2">the GitHub repository</a> over HTTPS and runs only after the download succeeds.
+      </P>
 
       <H2>Automatic TLS / Custom Domain Setup</H2>
       <P>
         If you have a domain pointing to your VM's public IP address, pass the <InlineCode>DOMAIN</InlineCode> environment variable to provision free Let's Encrypt SSL/TLS certificates automatically via Certbot:
       </P>
-      <Code title="terminal">{`DOMAIN=versiongate.tech curl -fsSL https://versiongate.tech/install.sh | sudo bash`}</Code>
+      <Code title="terminal">{DOMAIN_INSTALL_CMD}</Code>
+      <P>Replace <InlineCode>vg.example.com</InlineCode> with your own domain.</P>
       <P>
         The installer configures Nginx to proxy incoming traffic on ports 80 and 443 to the local VersionGate API and dashboard on <InlineCode>127.0.0.1:9090</InlineCode>.
       </P>
