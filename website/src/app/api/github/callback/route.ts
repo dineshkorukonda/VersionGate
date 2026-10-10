@@ -25,7 +25,10 @@ function escapeHtml(s: string) {
  * Persists installation_id → instanceUrl in Redis so push webhooks can fan out.
  */
 export async function GET(request: NextRequest) {
-  const secret = (process.env.RELAY_SECRET || "vg_relay_shared_secret").trim();
+  const secret = process.env.RELAY_SECRET?.trim() ?? "";
+  if (!secret) {
+    return NextResponse.json({ error: "Relay secret not configured" }, { status: 503 });
+  }
 
   const installationId = request.nextUrl.searchParams.get("installation_id");
   const setupAction = request.nextUrl.searchParams.get("setup_action");

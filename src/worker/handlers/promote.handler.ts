@@ -9,7 +9,7 @@ import { runContainer, stopContainer, removeContainer, freeHostPort } from "../.
 import { DeploymentError } from "../../utils/errors";
 import { TrafficService } from "../../services/traffic.service";
 import { ValidationService } from "../../services/validation.service";
-import { completeJob, failJob } from "../../services/job-queue.service";
+import { completeJob, failJob, assertJobLease } from "../../services/job-queue.service";
 import { humanizeDeployFailure } from "../../utils/deploy-errors";
 import { logEmitter } from "../../events/log-emitter";
 import { syncCustomDomainUpstream } from "../../services/project-domain.service";
@@ -149,6 +149,8 @@ export async function runPromoteJob(
       config.dockerNetwork,
       mergedEnv
     );
+    await assertJobLease(jobId);
+    await envRepo.assertDeployLock(targetEnvironmentId);
     await checkCancelled(deploymentId, log);
 
     await log(`Health check http://localhost:${hostPort}${project.healthPath}`);
@@ -160,6 +162,8 @@ export async function runPromoteJob(
     if (!health.success) {
       throw new DeploymentError(health.error ?? "Health check failed");
     }
+    await assertJobLease(jobId);
+    await envRepo.assertDeployLock(targetEnvironmentId);
     await checkCancelled(deploymentId, log);
 
     const switchPublicTraffic = targetEnv.name === DEFAULT_ENVIRONMENT_NAME;

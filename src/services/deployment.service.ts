@@ -4,7 +4,6 @@ import { DeploymentSelect } from "../db/schema";
 import { stopContainer, removeContainer } from "../utils/docker";
 import { logger } from "../utils/logger";
 import { NotFoundError } from "../utils/errors";
-import { releaseEnvironmentDeployLock } from "./deploy-pipeline.service";
 
 export class DeploymentService {
   private static readonly cancelRequests = new Set<string>();
@@ -38,7 +37,7 @@ export class DeploymentService {
 
     await this.repo.updateStatus(deploying.id, "FAILED", "Cancelled by user").catch(() => null);
 
-    await releaseEnvironmentDeployLock(defaultEnv.id);
+    // The running worker releases its owned lease after observing cancellation.
     DeploymentService.cancelRequests.delete(defaultEnv.id);
 
     logger.info({ projectId, environmentId: defaultEnv.id, deploymentId: deploying.id }, "Deployment cancelled");

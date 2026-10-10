@@ -24,7 +24,10 @@ export class RollbackService {
   private readonly traffic: TrafficService;
   private readonly validation: ValidationService;
 
-  constructor() {
+  constructor(private readonly options: {
+    log?: (line: string) => void | Promise<void>;
+    assertLock?: () => Promise<void>;
+  } = {}) {
     this.repo = new DeploymentRepository();
     this.projectRepo = new ProjectRepository();
     this.envRepo = new EnvironmentRepository();
@@ -33,7 +36,9 @@ export class RollbackService {
   }
 
   async rollback(projectId: string, environmentId: string): Promise<RollbackResult> {
+    await this.options.assertLock?.();
     logger.info({ projectId, environmentId }, "Initiating rollback");
+    await this.options.log?.(`Initiating rollback for environment ${environmentId}`);
 
     const project = await this.projectRepo.findById(projectId);
     if (!project) {
@@ -106,7 +111,8 @@ export class RollbackService {
     const result = await this.validation.validate(
       `http://localhost:${previous.port}`,
       project.healthPath,
-      previous.containerName
+      previous.containerName,
+      this.options.log
     );
 
     if (!result.success) {
@@ -122,9 +128,9 @@ export class RollbackService {
       );
     }
 
-    await this.traffic.switchTrafficTo(previous.port);
-
+    await this.options.assertLock?.();
     if (envRow.name === DEFAULT_ENVIRONMENT_NAME) {
+      await this.traffic.switchTrafficTo(previous.port, { projectName: project.name, environmentName: envRow.name });
       await syncCustomDomainUpstream(project.name, previous.port);
     }
 

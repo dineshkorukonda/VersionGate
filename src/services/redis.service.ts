@@ -51,11 +51,11 @@ class RedisService {
   /**
    * Acquire a distributed lock with automatic expiration (TTL in ms).
    */
-  async acquireLock(key: string, ttlMs: number = 900_000): Promise<boolean> {
+  async acquireLock(key: string, ttlMs: number = 900_000, owner = "locked"): Promise<boolean> {
     if (!this.isAvailable() || !this.client) return false;
     try {
       const lockKey = `lock:${key}`;
-      const result = await this.client.set(lockKey, "locked", "PX", ttlMs, "NX");
+      const result = await this.client.set(lockKey, owner, "PX", ttlMs, "NX");
       return result === "OK";
     } catch {
       return false;
@@ -65,13 +65,27 @@ class RedisService {
   /**
    * Release a distributed lock.
    */
-  async releaseLock(key: string): Promise<void> {
+  async releaseLock(key: string, owner = "locked"): Promise<void> {
     if (!this.isAvailable() || !this.client) return;
     try {
-      await this.client.del(`lock:${key}`);
+      await this.client.eval(
+        "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end",
+        1, `lock:${key}`, owner,
+      );
     } catch (err) {
       logger.debug({ err, key }, "Failed to release Redis lock");
     }
+  }
+
+  async renewLock(key: string, owner: string, ttlMs: number): Promise<boolean> {
+    if (!this.isAvailable() || !this.client) return false;
+    try {
+      const renewed = await this.client.eval(
+        "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('pexpire', KEYS[1], ARGV[2]) else return 0 end",
+        1, `lock:${key}`, owner, ttlMs,
+      );
+      return renewed === 1;
+    } catch { return false; }
   }
 
   /**

@@ -38,7 +38,10 @@ function hashToken(raw: string): string {
 }
 
 export async function createSession(userId: string): Promise<string> {
-  const db = getDb();
+  return createSessionWithClient(getDb(), userId);
+}
+
+export async function createSessionWithClient(db: Pick<ReturnType<typeof getDb>, "insert">, userId: string): Promise<string> {
   const raw = randomBytes(32).toString("base64url");
   const tokenHash = hashToken(raw);
   const expiresAt = new Date(Date.now() + SESSION_MAX_AGE_SEC * 1000);
@@ -50,10 +53,6 @@ export async function createSession(userId: string): Promise<string> {
   });
 
   return raw;
-}
-
-export async function createSessionWithClient(_client: any, userId: string): Promise<string> {
-  return createSession(userId);
 }
 
 export async function deleteSessionByRawToken(raw: string | undefined): Promise<void> {

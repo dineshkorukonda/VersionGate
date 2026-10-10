@@ -24,11 +24,9 @@ export function runDrizzleSchemaSync(options: { cwd?: string; env?: NodeJS.Proce
       stdio: "pipe",
     });
     logger.info("Database schema sync complete (Drizzle Kit)");
-  } catch (err: any) {
-    const stderr = err?.stderr?.toString() ?? "";
-    const stdout = err?.stdout?.toString() ?? "";
-    logger.error({ stderr, stdout }, "Drizzle schema sync failed");
-    throw err;
+  } catch {
+    logger.error("Drizzle schema sync failed; check database connectivity and schema configuration");
+    throw new Error("Drizzle schema sync failed");
   }
 }
 

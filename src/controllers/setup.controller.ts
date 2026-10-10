@@ -1,18 +1,16 @@
 import { FastifyRequest, FastifyReply } from "fastify";
 import { execSync } from "child_process";
-import { accessSync, constants, existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import { accessSync, constants, existsSync, mkdirSync, readFileSync } from "fs";
 import { randomBytes } from "crypto";
 import { join } from "path";
 import { logger } from "../utils/logger";
 import { config } from "../config/env";
 import { envFilePath, projectRoot } from "../utils/paths";
-import { runDrizzleSchemaSync } from "../utils/drizzle-schema-sync";
-import { userService } from "../services/user.service";
+import { setupService } from "../services/setup.service";
+import { mergeDotenvContent } from "../utils/env-file";
 import { notifySetupApplied } from "../services/post-setup-hooks.service";
 import {
   AUTH_MIN_PASSWORD_LENGTH,
-  createSession,
-  hashPassword,
   isValidEmail,
   SESSION_MAX_AGE_SEC,
 } from "../services/auth.service";
@@ -49,7 +47,7 @@ function readDatabaseUrl(): string | null {
 }
 
 function isConfigured(): boolean {
-  const dbUrl = readDatabaseUrl();
+  const dbUrl = process.env.DATABASE_URL?.trim() || readDatabaseUrl();
   return !!dbUrl && dbUrl.length > 0;
 }
 
@@ -60,14 +58,6 @@ function readExistingEncryptionKey(): string | null {
   const content = readFileSync(envPath, "utf-8");
   const match = content.match(ENCRYPTION_KEY_REGEX);
   return match ? match[1] : null;
-}
-
-function escapeEnvValue(value: string): string {
-  return value
-    .replace(/\\/g, "\\\\")
-    .replace(/\n/g, "\\n")
-    .replace(/\r/g, "\\r")
-    .replace(/"/g, '\\"');
 }
 
 function resolveProjectsRootPath(): string {
@@ -89,15 +79,15 @@ interface DbCheckResult {
 }
 
 async function canConnectToDatabase(databaseUrl: string): Promise<DbCheckResult> {
+  const postgres = (await import("postgres")).default;
+  const client = postgres(databaseUrl, { connect_timeout: 5, max: 1 });
   try {
-    const postgres = (await import("postgres")).default;
-    const sql = postgres(databaseUrl, { connect_timeout: 5, max: 1 });
-    await sql`SELECT 1`;
-    await sql.end();
+    await client`SELECT 1`;
     return { ok: true };
-  } catch (err: unknown) {
-    const errorMsg = err instanceof Error ? err.message : String(err);
-    return { ok: false, error: errorMsg };
+  } catch {
+    return { ok: false, error: "Unable to connect to the provided PostgreSQL instance." };
+  } finally {
+    await client.end({ timeout: 5 }).catch(() => undefined);
   }
 }
 
@@ -109,7 +99,7 @@ export async function getSetupStatusHandler(
 
   let dbConnected = false;
   if (configured) {
-    const dbUrl = readDatabaseUrl();
+    const dbUrl = process.env.DATABASE_URL?.trim() || readDatabaseUrl();
     if (dbUrl) {
       const normalized = normalizeDatabaseUrl(dbUrl);
       const res = await canConnectToDatabase(normalized);
@@ -160,7 +150,7 @@ export async function applySetupHandler(
   }
 
   const existingDatabaseUrl = readDatabaseUrl();
-  if (existingDatabaseUrl?.trim()) {
+  if (existingDatabaseUrl?.trim() || process.env.DATABASE_URL?.trim()) {
     return reply.code(409).send({
       error: "SetupError",
       message:
@@ -173,7 +163,7 @@ export async function applySetupHandler(
   logger.info({ rawUrl: databaseUrl, normalizedUrl: normalizedDbUrl }, "Setup: validating database connection…");
   const dbCheck = await canConnectToDatabase(normalizedDbUrl);
   if (!dbCheck.ok) {
-    req.log.error({ err: dbCheck.error, url: normalizedDbUrl }, "Setup: Database connection validation failed");
+    req.log.error("Setup: database connection validation failed");
     return reply.code(422).send({
       statusCode: 422,
       error: "Unprocessable Entity",
@@ -183,79 +173,29 @@ export async function applySetupHandler(
     });
   }
 
-  // 2. Write .env file
+  // Keep configuration private until schema, admin and session initialization succeed.
   const envPath = getEnvPath();
-  logger.info({ envPath }, "Setup: writing .env file…");
   const encryptionKey = readExistingEncryptionKey() ?? randomBytes(32).toString("hex");
-  const githubStateSecret = process.env.GITHUB_STATE_SECRET?.trim() || "vg_relay_shared_secret";
+  const githubStateSecret = process.env.GITHUB_STATE_SECRET?.trim() || "";
   const jwtSecret = process.env.JWT_SECRET?.trim() || randomBytes(32).toString("hex");
   const projectsRootPath = resolveProjectsRootPath();
-
-  const publicUrl = normalizedDomain.startsWith("http://") || normalizedDomain.startsWith("https://")
-    ? normalizedDomain
-    : domainIsIp
-      ? `http://${normalizedDomain}:9090`
-      : `https://${normalizedDomain}`;
-
-  let envContent = `DATABASE_URL="${escapeEnvValue(normalizedDbUrl)}"
-PORT=9090
-NODE_ENV=production
-DOCKER_NETWORK="versiongate-net"
-NGINX_CONFIG_PATH="${NGINX_UPSTREAM_CONF_PATH}"
-PROJECTS_ROOT_PATH="${escapeEnvValue(projectsRootPath)}"
-PUBLIC_DOMAIN="${escapeEnvValue(normalizedDomain)}"
-PUBLIC_URL="${escapeEnvValue(publicUrl)}"
-PUBLIC_BASE_PATH="/"
-ENCRYPTION_KEY="${encryptionKey}"
-GITHUB_STATE_SECRET="${githubStateSecret}"
-JWT_SECRET="${jwtSecret}"
-`;
-
-  if (geminiApiKey && geminiApiKey.trim().length > 0) {
-    envContent += `GEMINI_API_KEY="${escapeEnvValue(geminiApiKey.trim())}"\n`;
-  }
-
-  writeFileSync(envPath, envContent, "utf-8");
-  logger.info("Setup: .env written successfully");
-
-  process.env.DATABASE_URL = normalizedDbUrl;
-  process.env.ENCRYPTION_KEY = encryptionKey;
-  process.env.PUBLIC_URL = publicUrl;
-  process.env.GITHUB_STATE_SECRET = githubStateSecret;
-  process.env.JWT_SECRET = jwtSecret;
-
-  // 3. Sync database schema using Drizzle Kit
-  logger.info("Setup: running database schema sync with Drizzle Kit…");
-  const setupEnv = { ...process.env, DATABASE_URL: normalizedDbUrl, ENCRYPTION_KEY: encryptionKey };
-  try {
-    runDrizzleSchemaSync({
-      cwd: projectRoot,
-      env: setupEnv,
-    });
-    logger.info("Setup: database migrations complete");
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : String(err);
-    logger.error({ err: msg }, "Setup: database migration failed");
-    return reply.code(500).send({
-      error: "SetupError",
-      message: "Database migration failed: " + msg,
-    });
-  }
-
-  // 3b. Create first admin and session
+  const publicUrl = domainIsIp ? `http://${normalizedDomain}:9090` : `https://${normalizedDomain}`;
+  const updates: Record<string, string> = {
+    DATABASE_URL: normalizedDbUrl, PORT: "9090", NODE_ENV: "production", DOCKER_NETWORK: "versiongate-net",
+    NGINX_CONFIG_PATH: NGINX_UPSTREAM_CONF_PATH, PROJECTS_ROOT_PATH: projectsRootPath,
+    PUBLIC_DOMAIN: normalizedDomain, PUBLIC_URL: publicUrl, PUBLIC_BASE_PATH: "/",
+    ENCRYPTION_KEY: encryptionKey, GITHUB_STATE_SECRET: githubStateSecret, JWT_SECRET: jwtSecret,
+  };
+  if (geminiApiKey?.trim()) updates.GEMINI_API_KEY = geminiApiKey.trim();
+  const envContent = mergeDotenvContent(existsSync(envPath) ? readFileSync(envPath, "utf-8") : "", updates);
   let sessionToken: string;
   try {
-    const passwordHash = await hashPassword(password);
-    const user = await userService.createUser({ email, passwordHash });
-    sessionToken = await createSession(user.id);
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : String(err);
-    logger.error({ err: msg }, "Setup: failed to create admin user");
-    return reply.code(500).send({
-      error: "SetupError",
-      message: "Failed to create admin account: " + msg,
-    });
+    sessionToken = await setupService.initialize({ databaseUrl: normalizedDbUrl, email, password, envContent });
+  } catch {
+    logger.error("Setup initialization failed; previous configuration retained");
+    return reply.code(500).send({ error: "SetupError", message: "Setup initialization failed. Correct the database configuration or admin credentials and retry." });
   }
+  Object.assign(process.env, updates);
 
   notifySetupApplied();
 

@@ -61,37 +61,8 @@ function resolveRelayTimeout(explicit?: number): number {
 }
 
 async function relayFetch(url: string, init?: RequestInit): Promise<Response> {
-  try {
-    return await fetch(url, init);
-  } catch (err: any) {
-    const errMsg = (err?.message || "").toLowerCase();
-    const errCode = (err?.code || "").toLowerCase();
-    const causeMsg = (err?.cause?.message || "").toLowerCase();
-    const causeCode = (err?.cause?.code || "").toLowerCase();
-
-    const isTlsError =
-      errMsg.includes("tls") ||
-      errMsg.includes("cert") ||
-      errMsg.includes("altname") ||
-      errCode.includes("tls") ||
-      errCode.includes("cert") ||
-      causeMsg.includes("tls") ||
-      causeMsg.includes("cert") ||
-      causeCode.includes("tls") ||
-      causeCode.includes("cert");
-
-    if (isTlsError) {
-      try {
-        return await fetch(url, {
-          ...init,
-          tls: { rejectUnauthorized: false },
-        } as any);
-      } catch {
-        throw err;
-      }
-    }
-    throw err;
-  }
+  // Certificate validation must fail closed; use the runtime's trusted CA configuration.
+  return fetch(url, init);
 }
 
 /** Notify the central relay of installation → this instance mapping. */

@@ -1,11 +1,18 @@
-import { eq, and, asc, isNotNull, sql } from "drizzle-orm";
+import { eq, and, asc, sql } from "drizzle-orm";
+import { randomUUID } from "crypto";
+import { DeploymentError } from "../utils/errors";
 import { getDb } from "../db/client";
-import { environments, deployments, EnvironmentSelect } from "../db/schema";
+import { environments, EnvironmentSelect } from "../db/schema";
 import redisService from "../services/redis.service";
 
 export const DEFAULT_ENVIRONMENT_NAME = "production";
 
+export const DEPLOY_LOCK_TTL_MS = 900_000;
+
 export class EnvironmentRepository {
+  private readonly leases = new Map<string, {
+    owner: string; redis: boolean; timer: ReturnType<typeof setInterval>; lost: boolean;
+  }>();
   async findById(id: string): Promise<EnvironmentSelect | null> {
     const db = getDb();
     const [env] = await db.select().from(environments).where(eq(environments.id, id)).limit(1);
@@ -42,59 +49,68 @@ export class EnvironmentRepository {
   }
 
   async acquireDeployLock(id: string): Promise<boolean> {
-    // 1. Try Redis Distributed Lock if Redis is available
-    if (redisService.isAvailable()) {
-      const acquiredRedis = await redisService.acquireLock(`env:${id}`, 900_000); // 15 mins TTL
-      if (!acquiredRedis) return false;
+    if (this.leases.has(id)) return false;
+    const owner = randomUUID();
+    const useRedis = redisService.isAvailable();
+    if (useRedis && !await redisService.acquireLock(`env:${id}`, DEPLOY_LOCK_TTL_MS, owner)) return false;
+    try {
+      const result = await getDb().update(environments)
+        .set({ lockedAt: new Date(), lockOwner: owner })
+        .where(and(eq(environments.id, id),
+          sql`(${environments.lockedAt} IS NULL OR ${environments.lockedAt} < NOW() - INTERVAL '15 minutes')`))
+        .returning();
+      if (result.length !== 1) {
+        if (useRedis) await redisService.releaseLock(`env:${id}`, owner);
+        return false;
+      }
+      const timer = setInterval(() => {
+        void this.assertDeployLock(id).catch(() => {
+          const lease = this.leases.get(id);
+          if (lease?.owner === owner) lease.lost = true;
+        });
+      }, 30_000);
+      timer.unref();
+      this.leases.set(id, { owner, redis: useRedis, timer, lost: false });
+      return true;
+    } catch (err) {
+      if (useRedis) await redisService.releaseLock(`env:${id}`, owner);
+      throw err;
     }
+  }
 
-    // 2. Database lock update
-    const db = getDb();
-    const result = await db
-      .update(environments)
+  /** Renew the lease and reject work after ownership is lost. */
+  async assertDeployLock(id: string): Promise<void> {
+    const lease = this.leases.get(id);
+    if (!lease || lease.lost) throw new DeploymentError("Deployment lock ownership lost");
+    const result = await getDb().update(environments)
       .set({ lockedAt: new Date() })
-      .where(
-        and(
-          eq(environments.id, id),
-          sql`(${environments.lockedAt} IS NULL OR ${environments.lockedAt} < NOW() - INTERVAL '15 minutes')`
-        )
-      )
+      .where(and(eq(environments.id, id), eq(environments.lockOwner, lease.owner),
+        sql`${environments.lockedAt} >= NOW() - INTERVAL '15 minutes'`))
       .returning();
-
-    return result.length === 1;
+    if (result.length !== 1 || (lease.redis && !await redisService.renewLock(`env:${id}`, lease.owner, DEPLOY_LOCK_TTL_MS))) {
+      lease.lost = true;
+      throw new DeploymentError("Deployment lock ownership lost");
+    }
   }
 
   async releaseDeployLock(id: string): Promise<void> {
-    if (redisService.isAvailable()) {
-      await redisService.releaseLock(`env:${id}`);
+    const lease = this.leases.get(id);
+    if (!lease) return;
+    clearInterval(lease.timer);
+    this.leases.delete(id);
+    try {
+      await getDb().update(environments).set({ lockedAt: null, lockOwner: null })
+        .where(and(eq(environments.id, id), eq(environments.lockOwner, lease.owner)));
+    } finally {
+      if (lease.redis) await redisService.releaseLock(`env:${id}`, lease.owner);
     }
-
-    const db = getDb();
-    await db
-      .update(environments)
-      .set({ lockedAt: null })
-      .where(eq(environments.id, id));
   }
 
   async clearStaleDeployLocks(): Promise<number> {
-    const db = getDb();
-    // Clear locks for environments that have lockedAt set but no DEPLOYING deployments
-    const activeDeployingEnvs = db
-      .select({ environmentId: deployments.environmentId })
-      .from(deployments)
-      .where(eq(deployments.status, "DEPLOYING"));
-
-    const result = await db
-      .update(environments)
-      .set({ lockedAt: null })
-      .where(
-        and(
-          isNotNull(environments.lockedAt),
-          sql`${environments.id} NOT IN (${activeDeployingEnvs})`
-        )
-      )
+    const result = await getDb().update(environments)
+      .set({ lockedAt: null, lockOwner: null })
+      .where(sql`${environments.lockedAt} < NOW() - INTERVAL '15 minutes'`)
       .returning();
-
     return result.length;
   }
 

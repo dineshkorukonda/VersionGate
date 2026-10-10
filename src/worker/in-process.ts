@@ -1,12 +1,13 @@
 import { logger } from "../utils/logger";
 import { inProcessWorkerLive } from "../config/env";
-import { claimNextJob, appendLog, failJob, recoverStuckJobs } from "../services/job-queue.service";
+import { claimNextJob, appendLog, failJob, recoverStuckJobs, withJobHeartbeat } from "../services/job-queue.service";
 import { runDeployJob } from "./handlers/deploy.handler";
 import { runRollbackJob } from "./handlers/rollback.handler";
 import { runPromoteJob } from "./handlers/promote.handler";
 import { logEmitter } from "../events/log-emitter";
 
 let inProcessWorkerActive = false;
+let tickRunning = false;
 let workerLoopTimer: NodeJS.Timeout | null = null;
 
 function makeLogFn(jobId: string): (line: string) => Promise<void> {
@@ -17,29 +18,40 @@ function makeLogFn(jobId: string): (line: string) => Promise<void> {
 }
 
 async function tickWorker(): Promise<void> {
-  if (!process.env.DATABASE_URL?.trim()) return;
+  if (!process.env.DATABASE_URL?.trim() || tickRunning) return;
+  tickRunning = true;
 
   try {
     const job = await claimNextJob();
     if (!job) return;
 
-    logger.info({ jobId: job.id, type: job.type }, "In-process worker executing job");
-    const log = makeLogFn(job.id);
-    await log(`[job ${job.id}] type=${job.type} status=RUNNING`);
+    await withJobHeartbeat(job.id, async () => {
+      try {
+        logger.info({ jobId: job.id, type: job.type }, "In-process worker executing job");
+        const log = makeLogFn(job.id);
+        await log(`[job ${job.id}] type=${job.type} status=RUNNING`);
 
-    if (job.type === "DEPLOY") {
-      await runDeployJob(job, log);
-    } else if (job.type === "ROLLBACK") {
-      await runRollbackJob(job, log);
-    } else if (job.type === "PROMOTE") {
-      await runPromoteJob(job, log);
-    } else {
-      await log(`Unknown job type: ${job.type}`);
-      await failJob(job.id, `Unknown job type: ${job.type}`);
-      logEmitter.emitStatus(job.id, "FAILED");
-    }
+        if (job.type === "DEPLOY") {
+          await runDeployJob(job, log);
+        } else if (job.type === "ROLLBACK") {
+          await runRollbackJob(job, log);
+        } else if (job.type === "PROMOTE") {
+          await runPromoteJob(job, log);
+        } else {
+          await log(`Unknown job type: ${job.type}`);
+          await failJob(job.id, `Unknown job type: ${job.type}`);
+          logEmitter.emitStatus(job.id, "FAILED");
+        }
+      } catch (err) {
+        await failJob(job.id, err instanceof Error ? err.message : String(err));
+        logEmitter.emitStatus(job.id, "FAILED");
+        throw err;
+      }
+    });
   } catch (err) {
     logger.warn({ err }, "In-process worker tick error");
+  } finally {
+    tickRunning = false;
   }
 }
 
