@@ -7,7 +7,10 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ owner: string; repo: string }> }
 ) {
-  const secret = (process.env.RELAY_SECRET || "vg_relay_shared_secret").trim();
+  const secret = process.env.RELAY_SECRET?.trim() ?? "";
+  if (!secret) {
+    return NextResponse.json({ error: "Relay secret not configured" }, { status: 503 });
+  }
   const appId = process.env.GITHUB_APP_ID;
   const privateKey = getRelayPrivateKey();
 
